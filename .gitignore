@@ -1,0 +1,36 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Backend
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+*.egg-info/
+dist/
+build/
+
+# Frontend
+node_modules/
+build/
+dist/
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
