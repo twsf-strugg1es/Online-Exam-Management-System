@@ -1,0 +1,151 @@
+/* Notebook Pattern - Light Mode */
+.notebook-pattern--light {
+    width: 100%;
+    min-height: 100vh;
+    background: #f8f9fa;
+    background-image:
+        /* Red vertical line (margin line) */
+        linear-gradient(90deg,
+            transparent 50px,
+            #ff6b6b 50px,
+            #ff6b6b 52px,
+            transparent 52px),
+        /* Horizontal lines */
+        linear-gradient(#e1e4e8 0.1em,
+            transparent 0.1em);
+    background-size: 100% 30px;
+    position: relative;
+}
+
+/* Notebook Pattern - Dark Mode */
+.notebook-pattern--dark {
+    width: 100%;
+    min-height: 100vh;
+    background: #1a1d23;
+    background-image:
+        /* Blue vertical line (margin line) for dark mode */
+        linear-gradient(90deg,
+            transparent 50px,
+            #0d6efd 50px,
+            #0d6efd 52px,
+            transparent 52px),
+        /* Horizontal lines - subtle for dark mode */
+        linear-gradient(rgba(255, 255, 255, 0.08) 0.1em,
+            transparent 0.1em);
+    background-size: 100% 30px;
+    position: relative;
+}
+
+/* Add subtle paper texture */
+.notebook-pattern--light::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        repeating-linear-gradient(0deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 0, 0, 0.01) 2px,
+            rgba(0, 0, 0, 0.01) 4px);
+    pointer-events: none;
+}
+
+.notebook-pattern--dark::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        repeating-linear-gradient(0deg,
+            transparent,
+            transparent 2px,
+            rgba(255, 255, 255, 0.02) 2px,
+            rgba(255, 255, 255, 0.02) 4px);
+    pointer-events: none;
+}
+
+/* Content wrapper to ensure it's above the pattern */
+.notebook-pattern>* {
+    position: relative;
+    z-index: 1;
+}
+
+/* Hole punch effect (optional decorative element) */
+.notebook-pattern--light::after,
+.notebook-pattern--dark::after {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 40px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow:
+        0 60px 0 rgba(0, 0, 0, 0.05),
+        0 120px 0 rgba(0, 0, 0, 0.05),
+        0 180px 0 rgba(0, 0, 0, 0.05),
+        0 240px 0 rgba(0, 0, 0, 0.05),
+        0 300px 0 rgba(0, 0, 0, 0.05),
+        0 360px 0 rgba(0, 0, 0, 0.05),
+        0 420px 0 rgba(0, 0, 0, 0.05),
+        0 480px 0 rgba(0, 0, 0, 0.05);
+    pointer-events: none;
+}
+
+.notebook-pattern--light::after {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.notebook-pattern--dark::after {
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow:
+        0 60px 0 rgba(255, 255, 255, 0.03),
+        0 120px 0 rgba(255, 255, 255, 0.03),
+        0 180px 0 rgba(255, 255, 255, 0.03),
+        0 240px 0 rgba(255, 255, 255, 0.03),
+        0 300px 0 rgba(255, 255, 255, 0.03),
+        0 360px 0 rgba(255, 255, 255, 0.03),
+        0 420px 0 rgba(255, 255, 255, 0.03),
+        0 480px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+
+    .notebook-pattern--light,
+    .notebook-pattern--dark {
+        background-image:
+            linear-gradient(90deg,
+                transparent 30px,
+                #ff6b6b 30px,
+                #ff6b6b 32px,
+                transparent 32px),
+            linear-gradient(#e1e4e8 0.1em,
+                transparent 0.1em);
+        background-size: 100% 25px;
+    }
+
+    .notebook-pattern--dark {
+        background-image:
+            linear-gradient(90deg,
+                transparent 30px,
+                #0d6efd 30px,
+                #0d6efd 32px,
+                transparent 32px),
+            linear-gradient(rgba(255, 255, 255, 0.08) 0.1em,
+                transparent 0.1em);
+        background-size: 100% 25px;
+    }
+
+    .notebook-pattern--light::after,
+    .notebook-pattern--dark::after {
+        left: 12px;
+        width: 10px;
+        height: 10px;
+    }
+}
