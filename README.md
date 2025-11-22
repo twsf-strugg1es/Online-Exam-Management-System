@@ -102,7 +102,7 @@ python -m pytest tests/ -v
 ## Project Structure
 
 ```
-OnlineExamSystem/
+Online-Exam-Management-System/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py
