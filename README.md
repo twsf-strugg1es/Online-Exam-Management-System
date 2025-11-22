@@ -271,20 +271,6 @@ Online-Exam-Management-System/
 
 ## Troubleshooting
 
-### Backend won't start / Database connection failed
-
-**Problem**: `FATAL: password authentication failed for user "postgres"`
-
-**Solution**:
-
-1. Verify PostgreSQL is running
-2. Check your PostgreSQL username and password in `.env`
-3. Make sure the database `online_exam_system` exists
-4. Try connecting manually with `psql`:
-   ```bash
-   psql -U postgres -h localhost
-   ```
-
 ### Port already in use
 
 **Problem**: `Address already in use` error
