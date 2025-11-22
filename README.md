@@ -109,18 +109,31 @@ OnlineExamSystem/
 │   │   ├── models.py
 │   │   ├── crud.py
 │   │   ├── schemas.py
+│   │   ├── database.py
+│   │   ├── security.py
 │   │   └── routers/
+│   │       ├── admin.py
+│   │       ├── auth.py
+│   │       ├── profile.py
+│   │       └── student.py
 │   ├── tests/
 │   ├── create_admin.py
 │   └── requirements.txt
 │
 └── frontend/
+    ├── public/
+    │   └── index.html
     ├── src/
     │   ├── pages/
     │   ├── components/
     │   ├── context/
-    │   └── api.js
-    └── package.json
+    │   ├── styles/
+    │   ├── App.js
+    │   ├── index.js
+    │   ├── api.js
+    │   └── theme.js
+    ├── package.json
+    └── tailwind.config.js
 ```
 
 ## Excel Import Format
