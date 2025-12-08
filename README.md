@@ -304,3 +304,6 @@ npm install
 - Use `python3` instead of `python` on Linux/macOS
 - Ensure Python is added to PATH on Windows
 - Try: `python --version` to verify installation
+
+
+Lastly, thanks to vibe coding :)
