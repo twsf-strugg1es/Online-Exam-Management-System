@@ -306,4 +306,4 @@ npm install
 - Try: `python --version` to verify installation
 
 
-Lastly, thanks to vibe coding :)
+Lastly, thanks to vibe coding. :)
