@@ -1,6 +1,19 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api from '../api';
 
 const AuthContext = createContext();
+
+const TOKEN_REFRESH_MARGIN = 20 * 60 * 1000; // refresh when less than 20 minutes remain
+
+// Read the expiry (ms since epoch) from a JWT's payload; null if it can't be parsed
+const getTokenExpiry = (jwt) => {
+  try {
+    const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.exp ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -96,6 +109,24 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('lastActivityTime', Date.now().toString());
   };
 
+  // Keeps a long-running page (e.g. an exam) signed in: counts as activity for the
+  // idle timeout and swaps the token for a fresh one before it expires.
+  const refreshSession = useCallback(async () => {
+    localStorage.setItem('lastActivityTime', Date.now().toString());
+    const currentToken = localStorage.getItem('token');
+    if (!currentToken) return;
+    const expiresAt = getTokenExpiry(currentToken);
+    if (expiresAt && expiresAt - Date.now() > TOKEN_REFRESH_MARGIN) return;
+    try {
+      const response = await api.post('/token/refresh');
+      const newToken = response.data.access_token;
+      setToken(newToken);
+      localStorage.setItem('token', newToken);
+    } catch (err) {
+      console.error('Failed to refresh session:', err);
+    }
+  }, []);
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -111,6 +142,7 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     logout,
+    refreshSession,
     isLoading,
     rememberMe,
   };

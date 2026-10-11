@@ -48,8 +48,8 @@ def list_available_exams(
             publisher_email = publisher.email if publisher else "Unknown"
         
         # Determine exam status
-        is_expired = now > exam.end_time
-        is_upcoming = now < exam.start_time
+        is_expired = now > crud.as_utc(exam.end_time)
+        is_upcoming = now < crud.as_utc(exam.start_time)
         is_active = not is_expired and not is_upcoming
         
         # Manually build exam dict
@@ -65,18 +65,8 @@ def list_available_exams(
             "is_expired": is_expired,
             "is_upcoming": is_upcoming,
             "is_active": is_active,
-            "questions": [
-                {
-                    "id": str(q.id),
-                    "title": q.title,
-                    "complexity": q.complexity,
-                    "type": q.type,
-                    "options": q.options,
-                    "max_score": q.max_score,
-                    "tags": q.tags,
-                }
-                for q in (exam.questions or [])
-            ],
+            # Only the count: question content is sent when an attempt starts
+            "question_count": len(exam.questions or []),
         }
         result.append(exam_dict)
     return result
@@ -142,20 +132,36 @@ def start_exam(
                 status_code=400,
                 detail="Exam is not published yet",
             )
+
+        if exam.target_candidates is not None and exam.target_candidates != current_user.exam_candidate:
+            raise HTTPException(status_code=403, detail="This exam is not available to you")
         
         # Check exam timing
         now = datetime.now(timezone.utc)
-        if now < exam.start_time:
+        if now < crud.as_utc(exam.start_time):
             raise HTTPException(
                 status_code=400,
                 detail=f"Exam has not started yet. It will start at {exam.start_time.isoformat()}",
             )
         
-        if now > exam.end_time:
+        if now > crud.as_utc(exam.end_time):
             raise HTTPException(
                 status_code=400,
                 detail="Exam time has expired. You can no longer take this exam",
             )
+
+        # One attempt per student: retaking would let them improve on a known score
+        already_submitted = (
+            db.query(models.ExamAttempt)
+            .filter(
+                models.ExamAttempt.exam_id == exam_id,
+                models.ExamAttempt.student_id == current_user.id,
+                models.ExamAttempt.end_time.isnot(None),
+            )
+            .first()
+        )
+        if already_submitted:
+            raise HTTPException(status_code=400, detail="You have already submitted this exam")
         
         # Check if student already has an unfinished attempt for this exam
         existing_attempt = (
@@ -178,11 +184,9 @@ def start_exam(
             db.commit()
         
         # Build response without strict validation
-        # Timer is based purely on exam duration
-        duration_seconds = exam.duration_minutes * 60
-        # Calculate remaining time based on attempt start time and exam duration
-        elapsed_seconds = int((now - attempt.start_time).total_seconds())
-        time_remaining_seconds = max(0, duration_seconds - elapsed_seconds)
+        # Remaining time runs from the attempt start, capped at the exam window's end
+        deadline = crud.get_attempt_deadline(attempt, exam)
+        time_remaining_seconds = max(0, int((deadline - now).total_seconds()))
         
         exam_dict = {
             "id": str(exam.id),
@@ -266,9 +270,10 @@ def resume_exam(
             detail="Exam is not published anymore",
         )
     
-    # Check if exam time has expired
+    # Auto-submit once the attempt's time is up
     now = datetime.now(timezone.utc)
-    if now > exam.end_time:
+    deadline = crud.get_attempt_deadline(attempt, exam)
+    if now > deadline:
         # Auto-submit the exam
         crud.calculate_and_save_score(db, attempt)
         attempt = db.query(models.ExamAttempt).filter(
@@ -288,10 +293,7 @@ def resume_exam(
         }
     
     # Return exam details (without correct_answers) and attempt info
-    # Calculate remaining time based on attempt start time and exam duration
-    elapsed_seconds = int((now - attempt.start_time).total_seconds())
-    total_duration_seconds = exam.duration_minutes * 60
-    time_remaining_seconds = max(0, total_duration_seconds - elapsed_seconds)
+    time_remaining_seconds = max(0, int((deadline - now).total_seconds()))
     
     exam_dict = {
         "id": str(exam.id),
@@ -464,6 +466,9 @@ def get_attempt_results(
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
 
+    # Withhold the answer key while others may still be writing the exam
+    answers_revealed = datetime.now(timezone.utc) > crud.as_utc(exam.end_time)
+
     # Fetch student's answers for this attempt
     answers = (
         db.query(models.Answer)
@@ -491,6 +496,7 @@ def get_attempt_results(
         "duration_minutes": exam.duration_minutes,
         "is_published": exam.is_published,
         "published_by": publisher_email,
+        "answers_revealed": answers_revealed,
         "questions": [
             {
                 "id": str(q.id),
@@ -498,7 +504,7 @@ def get_attempt_results(
                 "complexity": q.complexity,
                 "type": q.type,
                 "options": q.options,
-                "correct_answers": q.correct_answers,
+                "correct_answers": q.correct_answers if answers_revealed else None,
                 "max_score": q.max_score,
                 "tags": q.tags,
             }

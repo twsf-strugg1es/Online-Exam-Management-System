@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from . import models, schemas
 from .security import get_password_hash
@@ -100,6 +100,22 @@ def get_available_exams(db: Session) -> list[models.Exam]:
     )
 
 
+# Extra time allowed after an attempt's deadline for answers that were
+# in flight when the clock ran out (network latency, slow connections).
+ANSWER_GRACE_SECONDS = 30
+
+
+def as_utc(dt: datetime) -> datetime:
+    """Treat naive datetimes (e.g. from SQLite) as UTC so they compare with aware ones."""
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def get_attempt_deadline(attempt: models.ExamAttempt, exam: models.Exam) -> datetime:
+    """When an attempt must finish: its own duration, but never past the exam window."""
+    personal_deadline = as_utc(attempt.start_time) + timedelta(minutes=exam.duration_minutes)
+    return min(personal_deadline, as_utc(exam.end_time))
+
+
 def create_exam_attempt(
     db: Session, exam_id: uuid.UUID, student_id: uuid.UUID
 ) -> models.ExamAttempt:
@@ -133,6 +149,20 @@ def save_answer(
     )
     if not attempt:
         raise ValueError("Attempt not found or does not belong to student")
+
+    if attempt.end_time is not None:
+        raise ValueError("Exam already submitted")
+
+    exam = get_exam_by_id(db, attempt.exam_id)
+    if not exam:
+        raise ValueError("Exam not found")
+
+    deadline = get_attempt_deadline(attempt, exam)
+    if datetime.now(timezone.utc) > deadline + timedelta(seconds=ANSWER_GRACE_SECONDS):
+        raise ValueError("Exam time is over. Answers can no longer be changed")
+
+    if answer_in.question_id not in {q.id for q in exam.questions}:
+        raise ValueError("Question does not belong to this exam")
 
     # Check if answer already exists
     existing_answer = (

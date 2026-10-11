@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import Button from '../components/Button';
 
@@ -9,6 +10,7 @@ function ExamPage() {
   const { id, attemptId: resumeAttemptId } = useParams();
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { refreshSession } = useAuth();
   const [exam, setExam] = useState(null);
   const [attemptId, setAttemptId] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -76,19 +78,20 @@ function ExamPage() {
       setExam(examObj);
       setAttemptId(attemptObj?.id || null);
 
-      // Set timer based on whether this is a new attempt or resuming
-      if (examObj?.duration_minutes && attemptObj?.start_time) {
-        // Calculate student's personal exam end time based on when they started + duration
-        const attemptStartTime = new Date(attemptObj.start_time);
-        const durationMs = examObj.duration_minutes * 60 * 1000;
-        const studentExamEndTime = new Date(attemptStartTime.getTime() + durationMs);
-        
-        setExamEndTime(studentExamEndTime);
-        
-        // Calculate remaining seconds for initial display
-        const now = new Date();
-        const remaining = Math.floor((studentExamEndTime - now) / 1000);
-        setTimeRemaining(Math.max(0, remaining));
+      // Time ran out while the student was away: the server already submitted the attempt
+      if (examObj?.auto_submitted) {
+        const res = await api.get(`/student/attempts/${attemptObj.id}/results`);
+        setResults(res.data);
+        setLoading(false);
+        return;
+      }
+
+      // Use the server's remaining time: it accounts for the exam window closing
+      // and doesn't depend on the student's device clock being correct
+      if (typeof examObj?.time_remaining_seconds === 'number') {
+        const remaining = Math.max(0, examObj.time_remaining_seconds);
+        setExamEndTime(new Date(Date.now() + remaining * 1000));
+        setTimeRemaining(remaining);
       }
 
       const qList = examObj?.questions || [];
@@ -134,6 +137,14 @@ function ExamPage() {
   useEffect(() => {
     startExam();
   }, [startExam]);
+
+  // Keep the student signed in for the whole exam, however long it runs
+  useEffect(() => {
+    if (!attemptId || results) return;
+    refreshSession();
+    const keepAlive = setInterval(refreshSession, 60 * 1000);
+    return () => clearInterval(keepAlive);
+  }, [attemptId, results, refreshSession]);
 
   // Timer effect
   useEffect(() => {
@@ -315,11 +326,19 @@ function ExamPage() {
         </div>
         <div style={styles.content}>
           <h2 style={{ marginBottom: '20px', color: '#0d6efd' }}>Answer Key</h2>
+          {examFull.answers_revealed === false && (
+            <p style={{ marginBottom: '20px', color: '#000000' }}>
+              Correct answers will be shown after the exam closes
+              {examFull.end_time ? ` (${new Date(examFull.end_time).toLocaleString()})` : ''}.
+            </p>
+          )}
           {(examFull.questions || []).map((q, idx) => {
             const studentAns = answerMap[q.id];
             const correctFlag = isCorrect(q, studentAns);
             const studentDisplay = fmtAns(studentAns) || '—';
-            const correctDisplay = fmtAns(q.correct_answers) || (q.type === 'text' ? 'N/A (text question)' : '—');
+            const correctDisplay = examFull.answers_revealed === false
+              ? 'Hidden until the exam closes'
+              : fmtAns(q.correct_answers) || (q.type === 'text' ? 'N/A (text question)' : '—');
             return (
               <div key={q.id} style={{ ...styles.questionCard, padding: '20px' }}>
                 <p style={{ fontWeight: 'bold', marginBottom: 8, color: '#000000' }}>Q{idx + 1}. {q.title}</p>

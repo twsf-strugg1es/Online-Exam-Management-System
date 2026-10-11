@@ -2,6 +2,7 @@ import pytest
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.pool import StaticPool
 from app.database import Base
 from app.main import app
 from app import models, schemas, crud
@@ -16,7 +17,9 @@ def test_db():
     """Create a test database and tables."""
     engine = create_engine(
         TEST_DATABASE_URL, 
-        connect_args={"check_same_thread": False}
+        connect_args={"check_same_thread": False},
+        # Every in-memory SQLite connection is a separate empty database, so share one
+        poolclass=StaticPool,
     )
     Base.metadata.create_all(bind=engine)
     

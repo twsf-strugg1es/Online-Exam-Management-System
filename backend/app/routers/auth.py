@@ -10,6 +10,8 @@ from ..security import verify_password, create_access_token, get_current_user
 
 router = APIRouter(tags=["Auth"])
 
+ACCESS_TOKEN_EXPIRES = timedelta(minutes=60)
+
 
 @router.post("/token")
 def login_for_access_token(
@@ -23,10 +25,19 @@ def login_for_access_token(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect username or password",
         )
-    access_token_expires = timedelta(minutes=60)
+    return _issue_token(user)
+
+
+@router.post("/token/refresh")
+def refresh_access_token(current_user: models.User = Depends(get_current_user)):
+    """Swap a still-valid token for a fresh one, so long sessions (e.g. exams) don't expire mid-way."""
+    return _issue_token(current_user)
+
+
+def _issue_token(user: models.User) -> dict:
     access_token = create_access_token(
         data={"sub": user.email, "role": user.role},
-        expires_delta=access_token_expires,
+        expires_delta=ACCESS_TOKEN_EXPIRES,
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
