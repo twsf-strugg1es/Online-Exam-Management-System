@@ -1,5 +1,5 @@
 from uuid import UUID
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -9,6 +9,44 @@ from .. import schemas, crud, models
 from ..permissions import require_candidate
 
 router = APIRouter(prefix="/student", tags=["Student"])
+
+
+def _attempt_payload(attempt: models.ExamAttempt) -> dict:
+    return {
+        "id": str(attempt.id),
+        "exam_id": str(attempt.exam_id),
+        "student_id": str(attempt.student_id),
+        "start_time": attempt.start_time.isoformat(),
+        "end_time": attempt.end_time.isoformat() if attempt.end_time is not None else None,
+        "score": attempt.score,
+        "total_possible_score": attempt.total_possible_score,
+        "submit_reason": attempt.submit_reason,
+    }
+
+
+def _exam_session(db: Session, exam: models.Exam, attempt: models.ExamAttempt, now: datetime) -> dict:
+    """What the exam page needs to run an attempt: questions in this student's order,
+    the time left, and the integrity rules to enforce."""
+    deadline = crud.get_attempt_deadline(attempt, exam)
+    return {
+        "exam": {
+            "id": str(exam.id),
+            "title": exam.title,
+            "start_time": exam.start_time.isoformat(),
+            "end_time": exam.end_time.isoformat(),
+            "duration_minutes": exam.duration_minutes,
+            "is_published": exam.is_published,
+            "questions": crud.questions_for_attempt(exam, attempt),
+            # Remaining time runs from the attempt start, capped at the exam window's end
+            "time_remaining_seconds": max(0, int((deadline - now).total_seconds())),
+            "exam_end_time": exam.end_time.isoformat(),
+        },
+        "attempt": _attempt_payload(attempt),
+        "integrity": {
+            **crud.integrity_settings(exam),
+            "violations": crud.count_violations(db, attempt.id),
+        },
+    }
 
 
 @router.get("/exams/")
@@ -172,47 +210,7 @@ def start_exam(
             # Immediately commit to ensure it's in the database
             db.commit()
 
-        # Build response without strict validation
-        # Remaining time runs from the attempt start, capped at the exam window's end
-        deadline = crud.get_attempt_deadline(attempt, exam)
-        time_remaining_seconds = max(0, int((deadline - now).total_seconds()))
-
-        exam_dict = {
-            "id": str(exam.id),
-            "title": exam.title,
-            "start_time": exam.start_time.isoformat(),
-            "end_time": exam.end_time.isoformat(),
-            "duration_minutes": exam.duration_minutes,
-            "is_published": exam.is_published,
-            "questions": [
-                {
-                    "id": str(q.id),
-                    "title": q.title,
-                    "type": q.type,
-                    "complexity": q.complexity,
-                    "max_score": q.max_score,
-                    "options": q.options,
-                }
-                for q in (exam.questions or [])
-            ],
-            "time_remaining_seconds": max(0, time_remaining_seconds),
-            "exam_end_time": exam.end_time.isoformat(),
-        }
-
-        attempt_dict = {
-            "id": str(attempt.id),
-            "exam_id": str(attempt.exam_id),
-            "student_id": str(attempt.student_id),
-            "start_time": attempt.start_time.isoformat(),
-            "end_time": attempt.end_time.isoformat() if (attempt.end_time is not None) else None,
-            "score": attempt.score,
-            "total_possible_score": attempt.total_possible_score,
-        }
-
-        return {
-            "exam": exam_dict,
-            "attempt": attempt_dict,
-        }
+        return _exam_session(db, exam, attempt, now)
     except HTTPException:
         raise
     except Exception as e:
@@ -263,62 +261,13 @@ def resume_exam(
     now = datetime.now(timezone.utc)
     deadline = crud.get_attempt_deadline(attempt, exam)
     if now > deadline:
-        # Auto-submit the exam
-        crud.calculate_and_save_score(db, attempt)
-        attempt = db.query(models.ExamAttempt).filter(
-            models.ExamAttempt.id == attempt_id
-        ).first()
+        crud.calculate_and_save_score(db, attempt, reason=models.SUBMIT_TIME_UP)
         return {
             "exam": {"id": str(exam.id), "title": exam.title, "auto_submitted": True},
-            "attempt": {
-                "id": str(attempt.id),
-                "exam_id": str(attempt.exam_id),
-                "student_id": str(attempt.student_id),
-                "start_time": attempt.start_time.isoformat(),
-                "end_time": attempt.end_time.isoformat() if (attempt.end_time is not None) else None,
-                "score": attempt.score,
-                "total_possible_score": attempt.total_possible_score,
-            },
+            "attempt": _attempt_payload(attempt),
         }
 
-    # Return exam details (without correct_answers) and attempt info
-    time_remaining_seconds = max(0, int((deadline - now).total_seconds()))
-
-    exam_dict = {
-        "id": str(exam.id),
-        "title": exam.title,
-        "start_time": exam.start_time.isoformat(),
-        "end_time": exam.end_time.isoformat(),
-        "duration_minutes": exam.duration_minutes,
-        "is_published": exam.is_published,
-        "questions": [
-            {
-                "id": str(q.id),
-                "title": q.title,
-                "type": q.type,
-                "complexity": q.complexity,
-                "max_score": q.max_score,
-                "options": q.options,
-            }
-            for q in (exam.questions or [])
-        ],
-        "time_remaining_seconds": max(0, time_remaining_seconds),
-        "exam_end_time": exam.end_time.isoformat(),
-    }
-    attempt_dict = {
-        "id": str(attempt.id),
-        "exam_id": str(attempt.exam_id),
-        "student_id": str(attempt.student_id),
-        "start_time": attempt.start_time.isoformat(),
-        "end_time": attempt.end_time.isoformat() if (attempt.end_time is not None) else None,
-        "score": attempt.score,
-        "total_possible_score": attempt.total_possible_score,
-    }
-
-    return {
-        "exam": exam_dict,
-        "attempt": attempt_dict,
-    }
+    return _exam_session(db, exam, attempt, now)
 
 
 @router.post("/attempts/{attempt_id}/save-answer")
@@ -334,6 +283,38 @@ def save_answer(
         return {"status": "saved"}
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
+
+
+@router.post("/attempts/{attempt_id}/events")
+def report_integrity_events(
+    attempt_id: UUID,
+    data: schemas.IntegrityEventsIn,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_candidate),
+):
+    """Record what the exam page noticed (leaving the tab, exiting fullscreen, copy attempts...).
+
+    Returns the violation count; when it reaches the exam's limit the attempt is submitted.
+    """
+    attempt = (
+        db.query(models.ExamAttempt)
+        .filter(models.ExamAttempt.id == attempt_id, models.ExamAttempt.student_id == membership.user_id)
+        .first()
+    )
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Attempt not found or does not belong to you")
+
+    if attempt.end_time is None:
+        violations = crud.record_integrity_events(db, attempt, data.events)
+    else:
+        violations = crud.count_violations(db, attempt.id)  # late events after submitting are ignored
+
+    return {
+        "violations": violations,
+        "max_violations": attempt.exam.max_violations,
+        "submitted": attempt.end_time is not None,
+        "submit_reason": attempt.submit_reason,
+    }
 
 
 @router.post("/attempts/{attempt_id}/submit")
@@ -373,7 +354,13 @@ def submit_exam(
         student_id = str(attempt.student_id)
         start_time = attempt.start_time.isoformat()
 
-        updated_attempt = crud.calculate_and_save_score(db, attempt)
+        # Submits arriving as the clock runs out are the page's automatic time-up submit
+        exam = crud.get_exam_by_id(db, attempt.exam_id)
+        deadline = crud.get_attempt_deadline(attempt, exam)
+        time_up = datetime.now(timezone.utc) >= deadline - timedelta(seconds=5)
+        reason = models.SUBMIT_TIME_UP if time_up else models.SUBMIT_STUDENT
+
+        updated_attempt = crud.calculate_and_save_score(db, attempt, reason=reason)
 
         # Store the returned values as well
         end_time = updated_attempt.end_time.isoformat() if updated_attempt.end_time else None
@@ -389,6 +376,7 @@ def submit_exam(
             "end_time": end_time,
             "score": score,
             "total_possible_score": total,
+            "submit_reason": updated_attempt.submit_reason,
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

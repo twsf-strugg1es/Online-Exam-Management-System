@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr, ConfigDict, Field
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
+
+from . import models
 from uuid import UUID
 from typing import Any, Optional
 from datetime import datetime, date
@@ -125,6 +127,11 @@ class ExamCreate(BaseModel):
     duration_minutes: int
     question_ids: list[UUID]
     group_ids: list[UUID] = []  # empty: open to every candidate in the organization
+    shuffle_questions: bool = True
+    shuffle_options: bool = True
+    require_fullscreen: bool = True
+    block_copy_paste: bool = True
+    max_violations: Optional[int] = Field(default=None, ge=1, le=100)  # None: never auto-submit
 
 
 class Exam(BaseModel):
@@ -136,6 +143,11 @@ class Exam(BaseModel):
     is_published: bool
     published_by: Optional[str] = None  # Admin email who published
     groups: list[GroupSummary] = []
+    shuffle_questions: bool = True
+    shuffle_options: bool = True
+    require_fullscreen: bool = True
+    block_copy_paste: bool = True
+    max_violations: Optional[int] = None
     questions: list[Question]
     model_config = ConfigDict(from_attributes=True)
 
@@ -216,3 +228,28 @@ class Evaluation(BaseModel):
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+
+class IntegrityEventIn(BaseModel):
+    """One event reported by the exam page."""
+    type: str
+    occurred_at: Optional[datetime] = None
+    details: Optional[dict[str, Any]] = None
+
+    @field_validator("type")
+    @classmethod
+    def known_type(cls, value: str) -> str:
+        if value not in models.EVENT_TYPES:
+            raise ValueError(f"Unknown event type: {value}")
+        return value
+
+    @field_validator("details")
+    @classmethod
+    def small_details(cls, value: Optional[dict]) -> Optional[dict]:
+        if value is not None and len(str(value)) > 1000:
+            raise ValueError("details too large")
+        return value
+
+
+class IntegrityEventsIn(BaseModel):
+    events: list[IntegrityEventIn] = Field(min_length=1, max_length=50)

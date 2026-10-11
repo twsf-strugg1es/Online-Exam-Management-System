@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session, joinedload
+import random
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -127,6 +128,11 @@ def create_exam(db: Session, exam: schemas.ExamCreate, organization_id: uuid.UUI
         end_time=exam.end_time,
         duration_minutes=exam.duration_minutes,
         is_published=False,
+        shuffle_questions=exam.shuffle_questions,
+        shuffle_options=exam.shuffle_options,
+        require_fullscreen=exam.require_fullscreen,
+        block_copy_paste=exam.block_copy_paste,
+        max_violations=exam.max_violations,
     )
     if exam.group_ids:
         db_exam.groups = db.query(models.Group).filter(models.Group.id.in_(exam.group_ids)).all()
@@ -265,7 +271,9 @@ def save_answer(
         return new_answer
 
 
-def calculate_and_save_score(db: Session, attempt: models.ExamAttempt) -> models.ExamAttempt:
+def calculate_and_save_score(
+    db: Session, attempt: models.ExamAttempt, reason: str = models.SUBMIT_STUDENT
+) -> models.ExamAttempt:
     """Auto-grade an exam attempt, compute total possible score, and save results."""
     # Get the exam with questions
     exam = db.query(models.Exam).filter(models.Exam.id == attempt.exam_id).first()
@@ -310,6 +318,7 @@ def calculate_and_save_score(db: Session, attempt: models.ExamAttempt) -> models
     attempt.score = float(total_score)  # type: ignore
     attempt.total_possible_score = float(total_possible)  # type: ignore
     attempt.end_time = datetime.now(timezone.utc)  # type: ignore
+    attempt.submit_reason = reason  # type: ignore
     db.commit()
     # Refresh the object to ensure it has the committed values
     db.refresh(attempt)
@@ -366,3 +375,109 @@ def get_evaluation_by_answer(db: Session, answer_id: uuid.UUID) -> models.Evalua
         .filter(models.Evaluation.answer_id == answer_id)
         .first()
     )
+
+
+# --- Integrity ---
+
+def questions_for_attempt(exam: models.Exam, attempt: models.ExamAttempt) -> list[dict]:
+    """The exam's questions as this student sees them, without answers.
+
+    Shuffling is seeded with the attempt's ID: every student gets their own order,
+    and it stays the same when they reload or resume.
+    """
+    questions = list(exam.questions or [])
+    if exam.shuffle_questions:
+        questions.sort(key=lambda q: str(q.id))  # a fixed starting point, so the seed alone decides the order
+        random.Random(f"{attempt.id}:questions").shuffle(questions)
+
+    result = []
+    for q in questions:
+        options = list(q.options) if isinstance(q.options, list) else q.options
+        # Answers are stored as option values, not positions, so shuffling never affects grading
+        if exam.shuffle_options and isinstance(options, list):
+            random.Random(f"{attempt.id}:{q.id}").shuffle(options)
+        result.append({
+            "id": str(q.id),
+            "title": q.title,
+            "type": q.type,
+            "complexity": q.complexity,
+            "max_score": q.max_score,
+            "options": options,
+        })
+    return result
+
+
+def integrity_settings(exam: models.Exam) -> dict:
+    return {
+        "shuffle_questions": exam.shuffle_questions,
+        "shuffle_options": exam.shuffle_options,
+        "require_fullscreen": exam.require_fullscreen,
+        "block_copy_paste": exam.block_copy_paste,
+        "max_violations": exam.max_violations,
+    }
+
+
+def count_violations(db: Session, attempt_id: uuid.UUID) -> int:
+    return (
+        db.query(models.IntegrityEvent)
+        .filter(
+            models.IntegrityEvent.attempt_id == attempt_id,
+            models.IntegrityEvent.type.in_(models.VIOLATION_EVENTS),
+        )
+        .count()
+    )
+
+
+def record_integrity_events(
+    db: Session, attempt: models.ExamAttempt, events: list[schemas.IntegrityEventIn]
+) -> int:
+    """Store events from the exam page and return the attempt's violation count.
+
+    Once the count reaches the exam's limit, the attempt is submitted on the spot.
+    """
+    for event in events:
+        db.add(models.IntegrityEvent(
+            attempt_id=attempt.id,
+            type=event.type,
+            occurred_at=event.occurred_at,
+            details=event.details,
+        ))
+    db.commit()
+
+    violations = count_violations(db, attempt.id)
+    limit = attempt.exam.max_violations
+    if limit and violations >= limit and attempt.end_time is None:
+        calculate_and_save_score(db, attempt, reason=models.SUBMIT_VIOLATIONS)
+    return violations
+
+
+def integrity_summary(attempt: models.ExamAttempt) -> dict:
+    """Counts and an overall risk level, so examiners know which attempts to look at first.
+
+    - high: auto-submitted for violations, 3+ violations, or a minute or more away from the exam
+    - review: any violation or flag
+    - clean: nothing recorded
+    """
+    events = attempt.integrity_events
+    counts = {event_type: 0 for event_type in models.EVENT_TYPES}
+    seconds_away = 0.0
+    for event in events:
+        counts[event.type] = counts.get(event.type, 0) + 1
+        if event.type == models.EVENT_FOCUS_RETURNED:
+            seconds_away += float((event.details or {}).get("away_ms") or 0) / 1000
+
+    violations = sum(counts[t] for t in models.VIOLATION_EVENTS)
+    flags = sum(counts[t] for t in models.FLAG_EVENTS)
+    if attempt.submit_reason == models.SUBMIT_VIOLATIONS or violations >= 3 or seconds_away >= 60:
+        risk = "high"
+    elif violations or flags:
+        risk = "review"
+    else:
+        risk = "clean"
+    return {
+        "risk": risk,
+        "violations": violations,
+        "flags": flags,
+        "seconds_away": round(seconds_away),
+        "counts": counts,
+    }

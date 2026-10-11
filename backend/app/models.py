@@ -1,6 +1,6 @@
 import secrets
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     Column,
     String,
@@ -14,6 +14,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSON
+from sqlalchemy import true as sa_true
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -168,6 +169,14 @@ class Exam(Base):
     is_published = Column(Boolean, nullable=False, default=False)
     published_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)  # Staff member who published
 
+    # Integrity settings
+    shuffle_questions = Column(Boolean, nullable=False, default=True, server_default=sa_true())
+    shuffle_options = Column(Boolean, nullable=False, default=True, server_default=sa_true())
+    require_fullscreen = Column(Boolean, nullable=False, default=True, server_default=sa_true())
+    block_copy_paste = Column(Boolean, nullable=False, default=True, server_default=sa_true())
+    # Submit the attempt automatically once this many violations are recorded; None = never
+    max_violations = Column(Integer, nullable=True)
+
     questions = relationship("Question", secondary=exam_questions, back_populates="exams")
     groups = relationship("Group", secondary=exam_groups, back_populates="exams")
     publisher = relationship("User", foreign_keys=[published_by])
@@ -183,9 +192,49 @@ class ExamAttempt(Base):
     end_time = Column(DateTime(timezone=True), nullable=True)
     score = Column(Float, nullable=True)
     total_possible_score = Column(Float, nullable=True)
+    submit_reason = Column(String, nullable=True)  # one of SUBMIT_REASONS, set when the attempt ends
 
     exam = relationship("Exam")
     student = relationship("User")
+    integrity_events = relationship(
+        "IntegrityEvent", back_populates="attempt", cascade="all, delete-orphan", order_by="IntegrityEvent.recorded_at"
+    )
+
+
+SUBMIT_STUDENT = "student"  # the student pressed submit
+SUBMIT_TIME_UP = "time_up"  # the timer ran out
+SUBMIT_VIOLATIONS = "violations"  # too many integrity violations
+SUBMIT_REASONS = (SUBMIT_STUDENT, SUBMIT_TIME_UP, SUBMIT_VIOLATIONS)
+
+# Integrity events reported by the exam page. Violations count toward the exam's max_violations;
+# the other events are flags that examiners see in the report but that never end an attempt.
+EVENT_FOCUS_LOST = "focus_lost"  # switched to another tab, window or app
+EVENT_FOCUS_RETURNED = "focus_returned"  # came back; details carry how long they were away
+EVENT_FULLSCREEN_EXIT = "fullscreen_exit"
+EVENT_COPY_PASTE = "copy_paste"  # copy, cut or paste attempt
+EVENT_CONTEXT_MENU = "context_menu"
+EVENT_BLOCKED_SHORTCUT = "blocked_shortcut"  # e.g. Ctrl+C, PrintScreen, F12
+EVENT_MULTIPLE_SCREENS = "multiple_screens"
+VIOLATION_EVENTS = (EVENT_FOCUS_LOST, EVENT_FULLSCREEN_EXIT)
+FLAG_EVENTS = (EVENT_COPY_PASTE, EVENT_CONTEXT_MENU, EVENT_BLOCKED_SHORTCUT, EVENT_MULTIPLE_SCREENS)
+EVENT_TYPES = VIOLATION_EVENTS + FLAG_EVENTS + (EVENT_FOCUS_RETURNED,)
+
+
+class IntegrityEvent(Base):
+    """Something the exam page noticed during an attempt, such as leaving the exam tab."""
+
+    __tablename__ = "integrity_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    attempt_id = Column(
+        UUID(as_uuid=True), ForeignKey("exam_attempts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    type = Column(String, nullable=False)  # one of EVENT_TYPES
+    occurred_at = Column(DateTime(timezone=True), nullable=True)  # the student's clock; informational only
+    recorded_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))  # the server's clock
+    details = Column(JSON, nullable=True)
+
+    attempt = relationship("ExamAttempt", back_populates="integrity_events")
 
 
 class Answer(Base):

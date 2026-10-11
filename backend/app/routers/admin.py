@@ -590,6 +590,7 @@ def list_exams(
             "is_published": exam.is_published,
             "published_by": publisher_email,
             "groups": _groups_payload(exam),
+            **crud.integrity_settings(exam),
             "questions": [
                 {
                     "id": str(q.id),
@@ -806,6 +807,8 @@ def get_exam_attempts(
                 "id": str(student.id) if student else None,
             },
             "is_submitted": attempt.end_time is not None,
+            "submit_reason": attempt.submit_reason,
+            "integrity": crud.integrity_summary(attempt),
             "evaluated_by": evaluator_email,
             "is_evaluated": evaluator_email is not None,
         }
@@ -814,6 +817,48 @@ def get_exam_attempts(
         result.append(attempt_data)
 
     return result
+
+
+@router.get("/attempts/{attempt_id}/integrity")
+def get_attempt_integrity(
+    attempt_id: UUID,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """Everything the exam page recorded during an attempt, for an examiner to review."""
+    attempt = _get_org_attempt(db, attempt_id, membership)
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+
+    started = crud.as_utc(attempt.start_time)
+    return {
+        "attempt": {
+            "id": str(attempt.id),
+            "start_time": attempt.start_time.isoformat(),
+            "end_time": attempt.end_time.isoformat() if attempt.end_time else None,
+            "submit_reason": attempt.submit_reason,
+            "score": attempt.score,
+            "total_possible_score": attempt.total_possible_score,
+        },
+        "student": {
+            "id": str(attempt.student.id),
+            "email": attempt.student.email,
+            "full_name": attempt.student.full_name,
+        },
+        "exam": {"id": str(attempt.exam.id), "title": attempt.exam.title, **crud.integrity_settings(attempt.exam)},
+        "summary": crud.integrity_summary(attempt),
+        "events": [
+            {
+                "type": event.type,
+                "recorded_at": event.recorded_at.isoformat(),
+                # Seconds into the attempt, by the server's clock
+                "seconds_into_attempt": max(0, round((crud.as_utc(event.recorded_at) - started).total_seconds())),
+                "is_violation": event.type in models.VIOLATION_EVENTS,
+                "details": event.details,
+            }
+            for event in attempt.integrity_events
+        ],
+    }
 
 
 @router.get("/attempts/{attempt_id}/results")
