@@ -1294,10 +1294,15 @@ def get_attempt_for_evaluation(
             answer_text = None
             uploaded_file_path = None
             uploaded_file_name = None
+            uploaded_file_preview = None
 
             if isinstance(answer.answer_data, dict):
                 answer_text = answer.answer_data.get("text")
                 uploaded_file_path = answer.answer_data.get("file_path")
+                # The exam page stores uploaded images inline as a data: URL
+                preview = answer.answer_data.get("preview")
+                if isinstance(preview, str) and preview.startswith("data:image/"):
+                    uploaded_file_preview = preview
                 uploaded_file_name = answer.answer_data.get("name")
             elif isinstance(answer.answer_data, str):
                 answer_text = answer.answer_data
@@ -1311,6 +1316,7 @@ def get_attempt_for_evaluation(
                 "answer_text": answer_text,
                 "uploaded_file_path": uploaded_file_path,
                 "uploaded_file_name": uploaded_file_name,
+                "uploaded_file_preview": uploaded_file_preview,
                 "is_evaluated": evaluation is not None,
                 "score_awarded": evaluation.score_awarded if evaluation else None,
                 "comment": evaluation.comment if evaluation else None,

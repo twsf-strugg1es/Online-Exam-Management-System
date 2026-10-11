@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 import random
 import uuid
@@ -197,14 +198,26 @@ def get_attempt_deadline(attempt: models.ExamAttempt, exam: models.Exam) -> date
 def create_exam_attempt(
     db: Session, exam_id: uuid.UUID, student_id: uuid.UUID
 ) -> models.ExamAttempt:
-    """Create a new exam attempt for a student."""
+    """Create a student's attempt at an exam, or return the one they already have.
+
+    Two "start" requests can arrive together (a double click, a retried request); the
+    database's one-attempt-per-exam constraint makes the second one reuse the first.
+    """
     attempt = models.ExamAttempt(
         exam_id=exam_id,
         student_id=student_id,
         start_time=datetime.now(timezone.utc),  # type: ignore
     )
     db.add(attempt)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return (
+            db.query(models.ExamAttempt)
+            .filter(models.ExamAttempt.exam_id == exam_id, models.ExamAttempt.student_id == student_id)
+            .one()
+        )
     db.refresh(attempt)
     return attempt
 

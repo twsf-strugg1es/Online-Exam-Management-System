@@ -184,6 +184,8 @@ class Exam(Base):
 
 class ExamAttempt(Base):
     __tablename__ = "exam_attempts"
+    # One attempt per student per exam; also stops two simultaneous "start" requests creating two
+    __table_args__ = (UniqueConstraint("exam_id", "student_id", name="uq_attempt_exam_student"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     exam_id = Column(UUID(as_uuid=True), ForeignKey("exams.id"), nullable=False)

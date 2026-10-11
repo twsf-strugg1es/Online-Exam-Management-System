@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app import models
+from app import crud, models
 from app.security import create_access_token
 
 
@@ -189,3 +189,14 @@ def test_token_refresh_requires_a_valid_token(client):
     response = client.post("/token/refresh", headers={"Authorization": "Bearer not-a-token"})
 
     assert response.status_code == 401
+
+
+def test_simultaneous_starts_create_only_one_attempt(test_db, sample_student_user, question):
+    exam = make_exam(test_db, question)
+
+    # Two "start" requests that both passed the "no attempt yet" check
+    first = crud.create_exam_attempt(test_db, exam.id, sample_student_user.id)
+    second = crud.create_exam_attempt(test_db, exam.id, sample_student_user.id)
+
+    assert first.id == second.id
+    assert test_db.query(models.ExamAttempt).filter(models.ExamAttempt.exam_id == exam.id).count() == 1

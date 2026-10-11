@@ -91,6 +91,8 @@ def list_available_exams(
             "is_upcoming": is_upcoming,
             "is_active": is_active,
             "is_submitted": exam.id in submitted_exam_ids,  # one attempt per exam
+            # Shown on the exam's rules screen before the student starts
+            "integrity": crud.integrity_settings(exam),
             # Only the count: question content is sent when an attempt starts
             "question_count": len(exam.questions or []),
         }
