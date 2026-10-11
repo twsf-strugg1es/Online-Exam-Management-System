@@ -62,30 +62,45 @@ def sample_question_data():
 
 
 @pytest.fixture
-def sample_admin_user(test_db):
-    """Create a test admin user."""
+def org(test_db):
+    """An organization that the sample users belong to."""
+    organization = models.Organization(name="Test Organization")
+    test_db.add(organization)
+    test_db.commit()
+    test_db.refresh(organization)
+    return organization
+
+
+def _add_member(db, user, organization, role):
+    db.add(models.Membership(user_id=user.id, organization_id=organization.id, role=role))
+    db.commit()
+    db.refresh(user)
+
+
+@pytest.fixture
+def sample_admin_user(test_db, org):
+    """Create a test user who owns the test organization."""
     user_data = schemas.UserCreate(
         email="admin@test.com",
         password="AdminPassword123!",
-        role="admin",
         full_name="Test Admin"
     )
     user = crud.create_user(test_db, user_data)
+    _add_member(test_db, user, org, models.ROLE_OWNER)
     user.password = "AdminPassword123!"  # Store plaintext for testing
     return user
 
 
 @pytest.fixture
-def sample_student_user(test_db):
-    """Create a test student user."""
+def sample_student_user(test_db, org):
+    """Create a test user who is a candidate in the test organization."""
     user_data = schemas.UserCreate(
         email="student@test.com",
         password="StudentPassword123!",
-        role="student",
         full_name="Test Student",
         gender="male",
-        exam_candidate="SSC"
     )
     user = crud.create_user(test_db, user_data)
+    _add_member(test_db, user, org, models.ROLE_CANDIDATE)
     user.password = "StudentPassword123!"  # Store plaintext for testing
     return user

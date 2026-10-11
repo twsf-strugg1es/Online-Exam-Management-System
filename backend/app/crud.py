@@ -11,22 +11,87 @@ def get_user_by_email(db: Session, email: str) -> models.User | None:
     return db.query(models.User).filter(models.User.email == email).first()
 
 
-def create_user(db: Session, user: schemas.UserCreate) -> models.User:
+def create_user(db: Session, user: schemas.UserCreate, commit: bool = True) -> models.User:
     """Create a new user with hashed password."""
     hashed_password = get_password_hash(user.password)
     db_user = models.User(
         email=user.email,
         hashed_password=hashed_password,
-        role=user.role,
         full_name=user.full_name,
         date_of_birth=user.date_of_birth,
         gender=user.gender,
-        exam_candidate=user.exam_candidate,
     )
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    if commit:
+        db.commit()
+        db.refresh(db_user)
+    else:
+        db.flush()
     return db_user
+
+
+def create_organization(db: Session, name: str, owner: models.User) -> models.Organization:
+    """Create an organization with `owner` as its first member."""
+    org = models.Organization(name=name)
+    db.add(org)
+    db.flush()
+    db.add(models.Membership(user_id=owner.id, organization_id=org.id, role=models.ROLE_OWNER))
+    db.commit()
+    db.refresh(org)
+    return org
+
+
+def get_membership(db: Session, user_id: uuid.UUID, organization_id: uuid.UUID) -> models.Membership | None:
+    return (
+        db.query(models.Membership)
+        .filter(models.Membership.user_id == user_id, models.Membership.organization_id == organization_id)
+        .first()
+    )
+
+
+def find_join_code(
+    db: Session, code: str
+) -> tuple[models.Organization, models.Group | None] | None:
+    """Resolve a join code to its organization, plus the group when it's a group's code."""
+    code = code.strip().upper()
+    group = db.query(models.Group).filter(models.Group.join_code == code).first()
+    if group:
+        return group.organization, group
+    org = db.query(models.Organization).filter(models.Organization.join_code == code).first()
+    return (org, None) if org else None
+
+
+def join_with_code(db: Session, user: models.User, code: str) -> models.Membership:
+    """Join an organization as a candidate using its join code or one of its groups' codes.
+
+    A group code also adds the candidate to that group. Joining again with another
+    group's code adds the group to the existing membership.
+    """
+    found = find_join_code(db, code)
+    if not found:
+        raise ValueError("Invalid join code")
+    org, group = found
+
+    membership = get_membership(db, user.id, org.id)
+    if not membership:
+        membership = models.Membership(user_id=user.id, organization_id=org.id, role=models.ROLE_CANDIDATE)
+        db.add(membership)
+    if group and group not in membership.groups:
+        if membership.role != models.ROLE_CANDIDATE:
+            raise ValueError("Staff members can't join a candidate group")
+        membership.groups.append(group)
+    db.commit()
+    db.refresh(membership)
+    return membership
+
+
+def visible_to_candidate(exam: models.Exam, membership: models.Membership) -> bool:
+    """Whether a candidate may see and take an exam: same organization, and in one of its groups if it has any."""
+    if exam.organization_id != membership.organization_id:
+        return False
+    if not exam.groups:
+        return True
+    return bool({g.id for g in exam.groups} & {g.id for g in membership.groups})
 
 
 def get_question_by_id(db: Session, question_id: uuid.UUID) -> models.Question | None:
@@ -34,9 +99,10 @@ def get_question_by_id(db: Session, question_id: uuid.UUID) -> models.Question |
     return db.query(models.Question).filter(models.Question.id == question_id).first()
 
 
-def create_question(db: Session, question: schemas.QuestionBase) -> models.Question:
-    """Create a new question from schema."""
+def create_question(db: Session, question: schemas.QuestionBase, organization_id: uuid.UUID) -> models.Question:
+    """Create a new question in an organization's question bank."""
     db_q = models.Question(
+        organization_id=organization_id,
         title=question.title,
         description=question.description,
         complexity=question.complexity,
@@ -52,16 +118,18 @@ def create_question(db: Session, question: schemas.QuestionBase) -> models.Quest
     return db_q
 
 
-def create_exam(db: Session, exam: schemas.ExamCreate) -> models.Exam:
-    """Create a new exam with associated questions."""
+def create_exam(db: Session, exam: schemas.ExamCreate, organization_id: uuid.UUID) -> models.Exam:
+    """Create a new exam with associated questions and target groups."""
     db_exam = models.Exam(
+        organization_id=organization_id,
         title=exam.title,
         start_time=exam.start_time,
         end_time=exam.end_time,
         duration_minutes=exam.duration_minutes,
         is_published=False,
-        target_candidates=exam.target_candidates,
     )
+    if exam.group_ids:
+        db_exam.groups = db.query(models.Group).filter(models.Group.id.in_(exam.group_ids)).all()
     
     # Attach questions to the exam
     for question_id in exam.question_ids:
@@ -75,9 +143,9 @@ def create_exam(db: Session, exam: schemas.ExamCreate) -> models.Exam:
     return db_exam
 
 
-def get_exams(db: Session) -> list[models.Exam]:
-    """Get all exams."""
-    return db.query(models.Exam).all()
+def get_exams(db: Session, organization_id: uuid.UUID) -> list[models.Exam]:
+    """Get all of an organization's exams."""
+    return db.query(models.Exam).filter(models.Exam.organization_id == organization_id).all()
 
 
 def get_exam_by_id(db: Session, exam_id: uuid.UUID) -> models.Exam | None:
@@ -90,14 +158,18 @@ def get_exam_by_id(db: Session, exam_id: uuid.UUID) -> models.Exam | None:
     )
 
 
-def get_available_exams(db: Session) -> list[models.Exam]:
-    """Get all published exams available to students."""
-    return (
+def get_available_exams(db: Session, membership: models.Membership) -> list[models.Exam]:
+    """Get the published exams a candidate may take."""
+    exams = (
         db.query(models.Exam)
-        .options(joinedload(models.Exam.questions))
-        .filter(models.Exam.is_published == True)
+        .options(joinedload(models.Exam.questions), joinedload(models.Exam.groups))
+        .filter(
+            models.Exam.is_published == True,
+            models.Exam.organization_id == membership.organization_id,
+        )
         .all()
     )
+    return [exam for exam in exams if visible_to_candidate(exam, membership)]
 
 
 # Extra time allowed after an attempt's deadline for answers that were

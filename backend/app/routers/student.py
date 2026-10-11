@@ -5,53 +5,34 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from .. import schemas, crud, models, security
+from .. import schemas, crud, models
+from ..permissions import require_candidate
 
 router = APIRouter(prefix="/student", tags=["Student"])
-
-
-def get_current_student_user(
-    current_user: models.User = Depends(security.get_current_user),
-) -> models.User:
-    """Verify the current user is a student."""
-    if current_user.role != "student":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Student privileges required",
-        )
-    return current_user
 
 
 @router.get("/exams/")
 def list_available_exams(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_student_user),
+    membership: models.Membership = Depends(require_candidate),
 ):
-    """List all published exams available to students based on their exam_candidate selection."""
-    exams = crud.get_available_exams(db)
+    """List the published exams this candidate may take in the current organization."""
+    exams = crud.get_available_exams(db, membership)
     now = datetime.now(timezone.utc)
-    
-    # Filter exams based on student's exam_candidate
-    filtered_exams = []
-    for exam in exams:
-        # If exam has no target_candidates, show to all students
-        # If exam has target_candidates, only show if student's exam_candidate matches
-        if exam.target_candidates is None or exam.target_candidates == current_user.exam_candidate:
-            filtered_exams.append(exam)
-    
+
     result = []
-    for exam in filtered_exams:
+    for exam in exams:
         # Get publisher email if published
         publisher_email = None
         if exam.published_by:
             publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
             publisher_email = publisher.email if publisher else "Unknown"
-        
+
         # Determine exam status
         is_expired = now > crud.as_utc(exam.end_time)
         is_upcoming = now < crud.as_utc(exam.start_time)
         is_active = not is_expired and not is_upcoming
-        
+
         # Manually build exam dict
         exam_dict = {
             "id": str(exam.id),
@@ -61,7 +42,6 @@ def list_available_exams(
             "duration_minutes": exam.duration_minutes,
             "is_published": exam.is_published,
             "published_by": publisher_email,
-            "target_candidates": exam.target_candidates,
             "is_expired": is_expired,
             "is_upcoming": is_upcoming,
             "is_active": is_active,
@@ -75,15 +55,20 @@ def list_available_exams(
 @router.get("/unfinished-attempts/")
 def list_unfinished_attempts(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_student_user),
+    membership: models.Membership = Depends(require_candidate),
 ):
-    """List all unfinished exam attempts for the current student."""
-    # Simple query: get all attempts where end_time is NULL (unfinished)
-    attempts = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.student_id == current_user.id,
-        models.ExamAttempt.end_time.is_(None)
-    ).all()
-    
+    """List the current student's unfinished exam attempts in this organization."""
+    attempts = (
+        db.query(models.ExamAttempt)
+        .join(models.Exam, models.ExamAttempt.exam_id == models.Exam.id)
+        .filter(
+            models.ExamAttempt.student_id == membership.user_id,
+            models.ExamAttempt.end_time.is_(None),
+            models.Exam.organization_id == membership.organization_id,
+        )
+        .all()
+    )
+
     # Build response with exam details
     result = []
     for attempt in attempts:
@@ -104,10 +89,9 @@ def list_unfinished_attempts(
                     "end_time": exam.end_time.isoformat(),
                     "duration_minutes": exam.duration_minutes,
                     "is_published": exam.is_published,
-                    "target_candidates": exam.target_candidates,
                 }
             })
-    
+
     return result
 
 
@@ -115,27 +99,24 @@ def list_unfinished_attempts(
 def start_exam(
     exam_id: UUID,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_student_user),
+    membership: models.Membership = Depends(require_candidate),
 ):
     """Start an exam attempt for the current student."""
     try:
         # CRITICAL: Expire all objects at the very start to prevent race conditions
         # This ensures we get fresh reads from the database for the existence check
         db.expire_all()
-        
+
         exam = crud.get_exam_by_id(db, exam_id)
-        if not exam:
+        if not exam or not crud.visible_to_candidate(exam, membership):
             raise HTTPException(status_code=404, detail="Exam not found")
-        
+
         if not exam.is_published:
             raise HTTPException(
                 status_code=400,
                 detail="Exam is not published yet",
             )
 
-        if exam.target_candidates is not None and exam.target_candidates != current_user.exam_candidate:
-            raise HTTPException(status_code=403, detail="This exam is not available to you")
-        
         # Check exam timing
         now = datetime.now(timezone.utc)
         if now < crud.as_utc(exam.start_time):
@@ -143,7 +124,7 @@ def start_exam(
                 status_code=400,
                 detail=f"Exam has not started yet. It will start at {exam.start_time.isoformat()}",
             )
-        
+
         if now > crud.as_utc(exam.end_time):
             raise HTTPException(
                 status_code=400,
@@ -155,39 +136,39 @@ def start_exam(
             db.query(models.ExamAttempt)
             .filter(
                 models.ExamAttempt.exam_id == exam_id,
-                models.ExamAttempt.student_id == current_user.id,
+                models.ExamAttempt.student_id == membership.user_id,
                 models.ExamAttempt.end_time.isnot(None),
             )
             .first()
         )
         if already_submitted:
             raise HTTPException(status_code=400, detail="You have already submitted this exam")
-        
+
         # Check if student already has an unfinished attempt for this exam
         existing_attempt = (
             db.query(models.ExamAttempt)
             .filter(
                 models.ExamAttempt.exam_id == exam_id,
-                models.ExamAttempt.student_id == current_user.id,
+                models.ExamAttempt.student_id == membership.user_id,
                 models.ExamAttempt.end_time.is_(None)
             )
             .first()
         )
-        
+
         if existing_attempt:
             # Return existing attempt instead of creating a new one
             attempt = existing_attempt
         else:
             # Create a new exam attempt
-            attempt = crud.create_exam_attempt(db, exam_id, current_user.id)
+            attempt = crud.create_exam_attempt(db, exam_id, membership.user_id)
             # Immediately commit to ensure it's in the database
             db.commit()
-        
+
         # Build response without strict validation
         # Remaining time runs from the attempt start, capped at the exam window's end
         deadline = crud.get_attempt_deadline(attempt, exam)
         time_remaining_seconds = max(0, int((deadline - now).total_seconds()))
-        
+
         exam_dict = {
             "id": str(exam.id),
             "title": exam.title,
@@ -209,7 +190,7 @@ def start_exam(
             "time_remaining_seconds": max(0, time_remaining_seconds),
             "exam_end_time": exam.end_time.isoformat(),
         }
-        
+
         attempt_dict = {
             "id": str(attempt.id),
             "exam_id": str(attempt.exam_id),
@@ -219,7 +200,7 @@ def start_exam(
             "score": attempt.score,
             "total_possible_score": attempt.total_possible_score,
         }
-        
+
         return {
             "exam": exam_dict,
             "attempt": attempt_dict,
@@ -239,7 +220,7 @@ def start_exam(
 def resume_exam(
     attempt_id: UUID,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_student_user),
+    membership: models.Membership = Depends(require_candidate),
 ):
     """Resume an existing exam attempt for the current student."""
     # Get the attempt and verify ownership
@@ -247,29 +228,29 @@ def resume_exam(
         db.query(models.ExamAttempt)
         .filter(
             models.ExamAttempt.id == attempt_id,
-            models.ExamAttempt.student_id == current_user.id,
+            models.ExamAttempt.student_id == membership.user_id,
             models.ExamAttempt.end_time.is_(None)  # Must be unfinished
         )
         .first()
     )
-    
+
     if not attempt:
         raise HTTPException(
             status_code=404,
             detail="Unfinished attempt not found or does not belong to you",
         )
-    
+
     # Get the exam
     exam = crud.get_exam_by_id(db, attempt.exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
-    
+
     if not exam.is_published:
         raise HTTPException(
             status_code=400,
             detail="Exam is not published anymore",
         )
-    
+
     # Auto-submit once the attempt's time is up
     now = datetime.now(timezone.utc)
     deadline = crud.get_attempt_deadline(attempt, exam)
@@ -291,10 +272,10 @@ def resume_exam(
                 "total_possible_score": attempt.total_possible_score,
             },
         }
-    
+
     # Return exam details (without correct_answers) and attempt info
     time_remaining_seconds = max(0, int((deadline - now).total_seconds()))
-    
+
     exam_dict = {
         "id": str(exam.id),
         "title": exam.title,
@@ -325,7 +306,7 @@ def resume_exam(
         "score": attempt.score,
         "total_possible_score": attempt.total_possible_score,
     }
-    
+
     return {
         "exam": exam_dict,
         "attempt": attempt_dict,
@@ -337,11 +318,11 @@ def save_answer(
     attempt_id: UUID,
     answer_in: schemas.AnswerCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_student_user),
+    membership: models.Membership = Depends(require_candidate),
 ):
     """Auto-save a student's answer to a question."""
     try:
-        crud.save_answer(db, attempt_id, current_user.id, answer_in)
+        crud.save_answer(db, attempt_id, membership.user_id, answer_in)
         return {"status": "saved"}
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -351,7 +332,7 @@ def save_answer(
 def submit_exam(
     attempt_id: UUID,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_student_user),
+    membership: models.Membership = Depends(require_candidate),
 ):
     """Submit the exam attempt and calculate the score."""
     # Get the attempt and verify ownership
@@ -359,23 +340,23 @@ def submit_exam(
         db.query(models.ExamAttempt)
         .filter(
             models.ExamAttempt.id == attempt_id,
-            models.ExamAttempt.student_id == current_user.id,
+            models.ExamAttempt.student_id == membership.user_id,
         )
         .first()
     )
-    
+
     if not attempt:
         raise HTTPException(
             status_code=404,
             detail="Attempt not found or does not belong to you",
         )
-    
+
     if attempt.end_time is not None:
         raise HTTPException(
             status_code=400,
             detail="Exam already submitted",
         )
-    
+
     # Calculate and save score
     try:
         # Store these values BEFORE calling calculate_and_save_score which may expunge the session
@@ -383,14 +364,14 @@ def submit_exam(
         exam_id = str(attempt.exam_id)
         student_id = str(attempt.student_id)
         start_time = attempt.start_time.isoformat()
-        
+
         updated_attempt = crud.calculate_and_save_score(db, attempt)
-        
+
         # Store the returned values as well
         end_time = updated_attempt.end_time.isoformat() if updated_attempt.end_time else None
         score = updated_attempt.score
         total = updated_attempt.total_possible_score
-        
+
         # Return manually built response instead of using response_model
         return {
             "id": attempt_id,
@@ -411,7 +392,7 @@ def submit_exam(
 def get_attempt_answers(
     attempt_id: UUID,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_student_user),
+    membership: models.Membership = Depends(require_candidate),
 ):
     """Get all answers for a specific exam attempt."""
     # Verify attempt belongs to the current student
@@ -419,7 +400,7 @@ def get_attempt_answers(
         db.query(models.ExamAttempt)
         .filter(
             models.ExamAttempt.id == attempt_id,
-            models.ExamAttempt.student_id == current_user.id,
+            models.ExamAttempt.student_id == membership.user_id,
         )
         .first()
     )
@@ -428,14 +409,14 @@ def get_attempt_answers(
             status_code=404,
             detail="Attempt not found or does not belong to you",
         )
-    
+
     # Fetch student's answers for this attempt
     answers = (
         db.query(models.Answer)
         .filter(models.Answer.attempt_id == attempt_id)
         .all()
     )
-    
+
     return [schemas.Answer.model_validate(a) for a in answers]
 
 
@@ -443,7 +424,7 @@ def get_attempt_answers(
 def get_attempt_results(
     attempt_id: UUID,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_student_user),
+    membership: models.Membership = Depends(require_candidate),
 ):
     """Return the submitted attempt with student's answers and the full exam with correct answers."""
     # Verify attempt belongs to the current student
@@ -451,7 +432,7 @@ def get_attempt_results(
         db.query(models.ExamAttempt)
         .filter(
             models.ExamAttempt.id == attempt_id,
-            models.ExamAttempt.student_id == current_user.id,
+            models.ExamAttempt.student_id == membership.user_id,
         )
         .first()
     )
@@ -486,7 +467,7 @@ def get_attempt_results(
     if exam.published_by:
         publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
         publisher_email = publisher.email if publisher else "Unknown"
-    
+
     # Manually build exam dict to avoid Pydantic validation issues with published_by
     exam_payload = {
         "id": str(exam.id),
@@ -518,19 +499,20 @@ def get_attempt_results(
 @router.get("/completed-exams/")
 def list_completed_exams(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_student_user),
+    membership: models.Membership = Depends(require_candidate),
 ):
-    """List all completed exams for the current student with their scores."""
-    # Get all completed attempts (end_time is not None)
+    """List the current student's completed exams in this organization with their scores."""
     attempts = (
         db.query(models.ExamAttempt)
+        .join(models.Exam, models.ExamAttempt.exam_id == models.Exam.id)
         .filter(
-            models.ExamAttempt.student_id == current_user.id,
-            models.ExamAttempt.end_time.isnot(None)
+            models.ExamAttempt.student_id == membership.user_id,
+            models.ExamAttempt.end_time.isnot(None),
+            models.Exam.organization_id == membership.organization_id,
         )
         .all()
     )
-    
+
     result = []
     for attempt in attempts:
         exam = crud.get_exam_by_id(db, attempt.exam_id)
@@ -541,7 +523,7 @@ def list_completed_exams(
                 .filter(models.Answer.attempt_id == attempt.id)
                 .all()
             )
-            
+
             # Calculate final score with manual evaluations included
             manual_score_total = 0.0
             for answer in answers:
@@ -550,15 +532,15 @@ def list_completed_exams(
                     question = crud.get_question_by_id(db, answer.question_id)
                     if question and question.type in ("text", "image_upload"):
                         manual_score_total += float(eval_record.score_awarded)
-            
+
             # Final score: auto-graded + manual scores (capped at total)
             final_score = min(attempt.score + manual_score_total, attempt.total_possible_score or 0)
-            
+
             # Calculate percentage
             percentage = 0
             if attempt.total_possible_score and attempt.total_possible_score > 0:
                 percentage = (final_score / attempt.total_possible_score) * 100
-            
+
             result.append({
                 "id": str(attempt.id),
                 "exam_id": str(attempt.exam_id),
@@ -568,7 +550,7 @@ def list_completed_exams(
                 "percentage": round(percentage, 2),
                 "end_time": attempt.end_time.isoformat(),
             })
-    
+
     return result
 
 
@@ -576,7 +558,7 @@ def list_completed_exams(
 def get_evaluated_results(
     attempt_id: UUID,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_student_user),
+    membership: models.Membership = Depends(require_candidate),
 ):
     """Get exam results with teacher evaluations for a student."""
     # Get the attempt and verify ownership
@@ -584,27 +566,27 @@ def get_evaluated_results(
         db.query(models.ExamAttempt)
         .filter(
             models.ExamAttempt.id == attempt_id,
-            models.ExamAttempt.student_id == current_user.id,
+            models.ExamAttempt.student_id == membership.user_id,
             models.ExamAttempt.end_time.isnot(None)  # Must be submitted
         )
         .first()
     )
-    
+
     if not attempt:
         raise HTTPException(status_code=404, detail="Exam attempt not found or does not belong to you")
-    
+
     # Get the exam
     exam = crud.get_exam_by_id(db, attempt.exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
-    
+
     # Get student's answers
     answers = (
         db.query(models.Answer)
         .filter(models.Answer.attempt_id == attempt.id)
         .all()
     )
-    
+
     # Get evaluations for all answers
     evaluations_map = {}
     manual_score_total = 0.0  # Sum of manually awarded scores for text/image_upload questions
@@ -618,17 +600,17 @@ def get_evaluated_results(
                 question = crud.get_question_by_id(db, answer.question_id)
                 if question and question.type in ("text", "image_upload"):
                     manual_score_total += float(eval_record.score_awarded)
-    
+
     # Calculate final score: auto-graded questions score + manual evaluation scores
     # Ensure it doesn't exceed total possible score
     final_score = min(attempt.score + manual_score_total, attempt.total_possible_score or 0)
-    
+
     # Build answer details with evaluations
     answers_with_eval = []
     for answer in answers:
         question = crud.get_question_by_id(db, answer.question_id)
         evaluation = evaluations_map.get(str(answer.id))
-        
+
         answers_with_eval.append({
             "id": str(answer.id),
             "question_id": str(answer.question_id),
@@ -637,19 +619,19 @@ def get_evaluated_results(
             "answer_data": answer.answer_data,
             "evaluation": evaluation,
         })
-    
+
     # Calculate percentage using final score
     percentage = 0
     if attempt.total_possible_score and attempt.total_possible_score > 0:
         percentage = (final_score / attempt.total_possible_score) * 100
-    
+
     # Get publisher info
     publisher_email = "Unknown"
     if exam.published_by:  # Use the foreign key ID, not the relationship
         publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
         if publisher:
             publisher_email = publisher.email
-    
+
     return {
         "exam_title": exam.title,
         "score": final_score,

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from uuid import UUID
 from typing import Any, Optional
 from datetime import datetime, date
@@ -6,7 +6,6 @@ from datetime import datetime, date
 
 class UserBase(BaseModel):
     email: EmailStr
-    role: str
 
 
 class UserCreate(UserBase):
@@ -14,8 +13,23 @@ class UserCreate(UserBase):
     full_name: Optional[str] = None
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
-    exam_candidate: Optional[str] = None
     confirm_password: Optional[str] = None
+
+
+class CandidateSignup(UserCreate):
+    """Public signup; a join code also makes the new user a candidate in that organization."""
+    join_code: Optional[str] = None
+
+
+class OrganizationSignup(UserCreate):
+    """Sign up a new organization together with its owner's account."""
+    organization_name: str = Field(min_length=2, max_length=120)
+
+
+class MembershipOut(BaseModel):
+    organization_id: UUID
+    organization_name: str
+    role: str
 
 
 class User(UserBase):
@@ -23,8 +37,11 @@ class User(UserBase):
     full_name: Optional[str] = None
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
-    exam_candidate: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserWithMemberships(User):
+    memberships: list[MembershipOut] = []
 
 
 class UserProfile(BaseModel):
@@ -34,9 +51,43 @@ class UserProfile(BaseModel):
     full_name: Optional[str] = None
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
-    exam_candidate: Optional[str] = None
-    role: str
     model_config = ConfigDict(from_attributes=True)
+
+
+class GroupSummary(BaseModel):
+    id: UUID
+    name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrganizationCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+
+
+class GroupCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+class GroupOut(GroupSummary):
+    join_code: str
+    member_count: int
+
+
+class JoinRequest(BaseModel):
+    join_code: str
+
+
+class MemberAdd(BaseModel):
+    email: EmailStr
+    role: str
+
+
+class MemberUpdate(BaseModel):
+    role: str
+
+
+class GroupMembersUpdate(BaseModel):
+    user_ids: list[UUID]
 
 
 class QuestionBase(BaseModel):
@@ -73,7 +124,7 @@ class ExamCreate(BaseModel):
     end_time: datetime
     duration_minutes: int
     question_ids: list[UUID]
-    target_candidates: str  # 'SSC', 'HSC', 'Admission'
+    group_ids: list[UUID] = []  # empty: open to every candidate in the organization
 
 
 class Exam(BaseModel):
@@ -84,7 +135,7 @@ class Exam(BaseModel):
     duration_minutes: int
     is_published: bool
     published_by: Optional[str] = None  # Admin email who published
-    target_candidates: Optional[str] = None  # 'SSC', 'HSC', 'Admission'
+    groups: list[GroupSummary] = []
     questions: list[Question]
     model_config = ConfigDict(from_attributes=True)
 
@@ -97,7 +148,6 @@ class ExamForStudent(BaseModel):
     end_time: datetime
     duration_minutes: int
     is_published: bool
-    target_candidates: Optional[str] = None  # Show target candidates to students
     questions: list[QuestionForStudent]
     model_config = ConfigDict(from_attributes=True)
 

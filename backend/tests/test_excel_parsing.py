@@ -29,7 +29,7 @@ def create_excel_file(rows_data):
 class TestExcelParsingValidation:
     """Test suite for Excel parsing and validation logic."""
     
-    def test_valid_single_choice_question_parsing(self, test_db):
+    def test_valid_single_choice_question_parsing(self, test_db, org):
         """Test parsing a valid single choice question."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -44,7 +44,7 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.id is not None
@@ -55,7 +55,7 @@ class TestExcelParsingValidation:
         assert question.max_score == 1
     
     
-    def test_valid_multi_choice_question_parsing(self, test_db):
+    def test_valid_multi_choice_question_parsing(self, test_db, org):
         """Test parsing a valid multiple choice question."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -69,7 +69,7 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.type == "multi_choice"
@@ -77,7 +77,7 @@ class TestExcelParsingValidation:
         assert question.max_score == 2
     
     
-    def test_text_question_with_no_options(self, test_db):
+    def test_text_question_with_no_options(self, test_db, org):
         """Test parsing a text question (no options needed)."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -90,7 +90,7 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.type == "text"
@@ -99,7 +99,7 @@ class TestExcelParsingValidation:
         assert question.max_score == 5
     
     
-    def test_image_upload_question_with_no_options(self, test_db):
+    def test_image_upload_question_with_no_options(self, test_db, org):
         """Test parsing an image upload question."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -112,7 +112,7 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.type == "image_upload"
@@ -120,7 +120,7 @@ class TestExcelParsingValidation:
         assert question.correct_answers is None
     
     
-    def test_question_with_all_complexity_levels(self, test_db):
+    def test_question_with_all_complexity_levels(self, test_db, org):
         """Test parsing questions with different complexity levels."""
         # Arrange
         complexities = ["easy", "medium", "hard"]
@@ -135,11 +135,11 @@ class TestExcelParsingValidation:
                 correct_answers="A",
                 max_score=1
             )
-            question = crud.create_question(test_db, question_data)
+            question = crud.create_question(test_db, question_data, org.id)
             assert question.complexity == complexity
     
     
-    def test_question_with_custom_max_score(self, test_db):
+    def test_question_with_custom_max_score(self, test_db, org):
         """Test parsing question with custom max_score."""
         # Arrange
         max_scores = [1, 5, 10, 100]
@@ -154,11 +154,11 @@ class TestExcelParsingValidation:
                 correct_answers="A",
                 max_score=score
             )
-            question = crud.create_question(test_db, question_data)
+            question = crud.create_question(test_db, question_data, org.id)
             assert question.max_score == score
     
     
-    def test_question_with_multiple_tags(self, test_db):
+    def test_question_with_multiple_tags(self, test_db, org):
         """Test parsing question with multiple tags."""
         # Arrange
         tags = ["geography", "history", "science"]
@@ -173,13 +173,13 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert all(tag in question.tags for tag in tags)
     
     
-    def test_question_with_empty_tags(self, test_db):
+    def test_question_with_empty_tags(self, test_db, org):
         """Test parsing question with empty tags."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -193,13 +193,13 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.tags is None or question.tags == []
     
     
-    def test_single_choice_with_string_correct_answer(self, test_db):
+    def test_single_choice_with_string_correct_answer(self, test_db, org):
         """Test single choice with string correct answer."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -212,14 +212,14 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert isinstance(question.correct_answers, str)
         assert question.correct_answers == "Option A"
     
     
-    def test_multi_choice_with_array_correct_answers(self, test_db):
+    def test_multi_choice_with_array_correct_answers(self, test_db, org):
         """Test multi choice with array correct answers."""
         # Arrange
         correct_answers = ["Option A", "Option C"]
@@ -233,14 +233,14 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert isinstance(question.correct_answers, list)
         assert sorted(question.correct_answers) == sorted(correct_answers)
     
     
-    def test_question_with_very_long_title(self, test_db):
+    def test_question_with_very_long_title(self, test_db, org):
         """Test parsing question with very long title."""
         # Arrange
         long_title = "A" * 500  # Very long title
@@ -254,13 +254,13 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.title == long_title
     
     
-    def test_question_with_special_characters(self, test_db):
+    def test_question_with_special_characters(self, test_db, org):
         """Test parsing question with special characters."""
         # Arrange
         special_title = "What is the symbol @ for? £€¥"
@@ -274,13 +274,13 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.title == special_title
     
     
-    def test_question_with_numeric_correct_answer(self, test_db):
+    def test_question_with_numeric_correct_answer(self, test_db, org):
         """Test parsing question where correct answer is numeric."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -293,13 +293,13 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.correct_answers == "4"
     
     
-    def test_multi_choice_with_numeric_answers(self, test_db):
+    def test_multi_choice_with_numeric_answers(self, test_db, org):
         """Test multi-choice with numeric string answers."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -312,13 +312,13 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert sorted(question.correct_answers) == sorted(["2", "4"])
     
     
-    def test_question_retrieval_by_id(self, test_db):
+    def test_question_retrieval_by_id(self, test_db, org):
         """Test retrieving a question by ID."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -329,7 +329,7 @@ class TestExcelParsingValidation:
             correct_answers="A",
             max_score=1
         )
-        created_question = crud.create_question(test_db, question_data)
+        created_question = crud.create_question(test_db, question_data, org.id)
         
         # Act
         retrieved_question = crud.get_question_by_id(test_db, created_question.id)
@@ -340,7 +340,7 @@ class TestExcelParsingValidation:
         assert retrieved_question.title == "Retrieve me"
     
     
-    def test_question_not_found_by_invalid_id(self, test_db):
+    def test_question_not_found_by_invalid_id(self, test_db, org):
         """Test retrieving non-existent question returns None."""
         # Arrange
         import uuid
@@ -353,7 +353,7 @@ class TestExcelParsingValidation:
         assert result is None
     
     
-    def test_multiple_questions_created_sequentially(self, test_db):
+    def test_multiple_questions_created_sequentially(self, test_db, org):
         """Test creating multiple questions in sequence."""
         # Arrange
         questions_data = [
@@ -369,7 +369,7 @@ class TestExcelParsingValidation:
         ]
         
         # Act
-        created_questions = [crud.create_question(test_db, qdata) for qdata in questions_data]
+        created_questions = [crud.create_question(test_db, qdata, org.id) for qdata in questions_data]
         
         # Assert
         assert len(created_questions) == 5
@@ -377,7 +377,7 @@ class TestExcelParsingValidation:
         assert all(q.title == f"Question {i}" for i, q in enumerate(created_questions))
     
     
-    def test_question_with_json_options(self, test_db):
+    def test_question_with_json_options(self, test_db, org):
         """Test parsing question with complex JSON options."""
         # Arrange
         options = [
@@ -394,7 +394,7 @@ class TestExcelParsingValidation:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.options == options
@@ -429,7 +429,7 @@ class TestExcelEdgeCases:
         assert excel_file is not None
     
     
-    def test_excel_with_empty_rows(self, test_db):
+    def test_excel_with_empty_rows(self, test_db, org):
         """Test Excel file with empty/whitespace-only rows."""
         # Arrange
         header = ["title", "complexity", "type", "options", "correct_answers", "max_score"]
@@ -445,7 +445,7 @@ class TestExcelEdgeCases:
         assert excel_file is not None
     
     
-    def test_excel_with_null_tag_values(self, test_db):
+    def test_excel_with_null_tag_values(self, test_db, org):
         """Test that None/null tag values are handled properly."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -459,13 +459,13 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.tags is None or question.tags == []
     
     
-    def test_excel_tag_categorization_known_tags(self, test_db):
+    def test_excel_tag_categorization_known_tags(self, test_db, org):
         """Test that known tags are properly categorized."""
         # Arrange - known tags from the system
         known_tags = ["geography", "history", "science", "world", "literature", "art", "space", "biology", "invention"]
@@ -480,14 +480,14 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert all(tag in question.tags for tag in known_tags[:3])
         assert "others" not in question.tags
     
     
-    def test_excel_tag_categorization_unknown_tags(self, test_db):
+    def test_excel_tag_categorization_unknown_tags(self, test_db, org):
         """Test that unknown tags are categorized as 'others'."""
         # Arrange - mix of known and unknown tags
         unknown_tags = ["unknown_tag1", "unknown_tag2", "random"]
@@ -502,13 +502,13 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert - unknown tags might be handled (depends on implementation)
         assert question.tags is not None
     
     
-    def test_excel_with_mixed_known_unknown_tags(self, test_db):
+    def test_excel_with_mixed_known_unknown_tags(self, test_db, org):
         """Test handling of mixed known and unknown tags."""
         # Arrange
         mixed_tags = ["geography", "unknown_custom", "science", "another_unknown"]
@@ -523,14 +523,14 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert "geography" in question.tags
         assert "science" in question.tags
     
     
-    def test_excel_with_duplicate_tags(self, test_db):
+    def test_excel_with_duplicate_tags(self, test_db, org):
         """Test handling of duplicate tags in same question."""
         # Arrange
         duplicate_tags = ["geography", "geography", "history", "history"]
@@ -545,13 +545,13 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.tags is not None
     
     
-    def test_excel_with_whitespace_in_tags(self, test_db):
+    def test_excel_with_whitespace_in_tags(self, test_db, org):
         """Test that tags with extra whitespace are handled properly."""
         # Arrange
         tags_with_whitespace = ["  geography  ", "history ", " science"]
@@ -566,7 +566,7 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert - should handle stripped tags
         assert "geography" in question.tags
@@ -574,7 +574,7 @@ class TestExcelEdgeCases:
         assert "science" in question.tags
     
     
-    def test_single_choice_with_invalid_correct_answer(self, test_db):
+    def test_single_choice_with_invalid_correct_answer(self, test_db, org):
         """Test single choice where correct answer is not in options."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -587,13 +587,13 @@ class TestExcelEdgeCases:
         )
         
         # Act - should still create but may need validation
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.correct_answers == "D"
     
     
-    def test_multi_choice_with_partial_incorrect_answers(self, test_db):
+    def test_multi_choice_with_partial_incorrect_answers(self, test_db, org):
         """Test multi-choice with correct answers not fully in options."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -606,14 +606,14 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert "A" in question.correct_answers
         assert "D" in question.correct_answers
     
     
-    def test_max_score_zero(self, test_db):
+    def test_max_score_zero(self, test_db, org):
         """Test question with max_score of 0."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -626,13 +626,13 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.max_score == 0
     
     
-    def test_max_score_negative(self, test_db):
+    def test_max_score_negative(self, test_db, org):
         """Test question with negative max_score."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -645,13 +645,13 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert - system should handle gracefully
         assert question.max_score == -5
     
     
-    def test_max_score_very_large_number(self, test_db):
+    def test_max_score_very_large_number(self, test_db, org):
         """Test question with very large max_score."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -664,13 +664,13 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert question.max_score == 999999
     
     
-    def test_excel_single_choice_with_numeric_options(self, test_db):
+    def test_excel_single_choice_with_numeric_options(self, test_db, org):
         """Test single choice with numeric options as strings."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -683,14 +683,14 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert "1" in question.options
         assert question.correct_answers == "2"
     
     
-    def test_excel_options_with_special_characters(self, test_db):
+    def test_excel_options_with_special_characters(self, test_db, org):
         """Test question options containing special characters."""
         # Arrange
         special_options = ["@#$%", "()", "[]{}"]
@@ -704,13 +704,13 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert
         assert all(opt in question.options for opt in special_options)
     
     
-    def test_text_question_type_ignores_options(self, test_db):
+    def test_text_question_type_ignores_options(self, test_db, org):
         """Test that text questions can be created even with options provided."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -723,7 +723,7 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert - backend creates it as-is, frontend won't display options for text type
         assert question.type == "text"
@@ -731,7 +731,7 @@ class TestExcelEdgeCases:
         assert question.correct_answers is None
     
     
-    def test_image_upload_type_ignores_options(self, test_db):
+    def test_image_upload_type_ignores_options(self, test_db, org):
         """Test that image upload questions can be created even with options provided."""
         # Arrange
         question_data = schemas.QuestionBase(
@@ -744,7 +744,7 @@ class TestExcelEdgeCases:
         )
         
         # Act
-        question = crud.create_question(test_db, question_data)
+        question = crud.create_question(test_db, question_data, org.id)
         
         # Assert - backend creates it as-is, frontend won't display options for image_upload type
         assert question.type == "image_upload"

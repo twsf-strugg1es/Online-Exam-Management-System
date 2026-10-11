@@ -1,18 +1,21 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .database import Base, engine, SessionLocal
-from . import models, crud, schemas  # noqa: F401  # ensure models are imported so metadata has tables
-from .routers import admin, auth, student, profile
+from . import models  # noqa: F401  # ensure models are imported so metadata has tables
+from .routers import admin, auth, organizations, student, profile
 
+# The database schema is managed by Alembic migrations: run `alembic upgrade head`.
 app = FastAPI()
 
-# Configure CORS - Restrict to specific origins for production
+# Comma-separated list of frontend origins allowed to call the API
 allowed_origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",
-    # For production, add your domain: "https://yourdomain.com"
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173"
+    ).split(",")
+    if origin.strip()
 ]
 
 app.add_middleware(
@@ -26,22 +29,6 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-def on_startup() -> None:
-    # Create all database tables at startup
-    Base.metadata.create_all(bind=engine)
-    
-    # Note: Initial users should be created via migration or admin commands
-    # because the database schema must be updated first with the new fields
-    db = SessionLocal()
-    try:
-        # Skip automatic user creation - users should be created manually
-        # after database schema is updated
-        pass
-    finally:
-        db.close()
-
-
 @app.get("/")
 async def read_root():
     return {"message": "Hello"}
@@ -50,5 +37,6 @@ async def read_root():
 # Include routers AFTER middleware is configured
 app.include_router(admin.router)
 app.include_router(auth.router)
+app.include_router(organizations.router)
 app.include_router(student.router)
 app.include_router(profile.router)

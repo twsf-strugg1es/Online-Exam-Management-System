@@ -8,22 +8,26 @@ from app.security import create_access_token
 
 
 def auth_headers(user):
-    token = create_access_token({"sub": user.email, "role": user.role})
-    return {"Authorization": f"Bearer {token}"}
+    token = create_access_token({"sub": user.email})
+    headers = {"Authorization": f"Bearer {token}"}
+    if user.memberships:
+        headers["X-Organization-Id"] = str(user.memberships[0].organization_id)
+    return headers
 
 
 def make_exam(db, question, start_offset=timedelta(minutes=-5), window=timedelta(hours=2),
-              duration_minutes=30, target_candidates=None):
+              duration_minutes=30, groups=()):
     now = datetime.now(timezone.utc)
     exam = models.Exam(
+        organization_id=question.organization_id,
         title="Integrity Test Exam",
         start_time=now + start_offset,
         end_time=now + start_offset + window,
         duration_minutes=duration_minutes,
         is_published=True,
-        target_candidates=target_candidates,
     )
     exam.questions.append(question)
+    exam.groups.extend(groups)
     db.add(exam)
     db.commit()
     db.refresh(exam)
@@ -31,8 +35,9 @@ def make_exam(db, question, start_offset=timedelta(minutes=-5), window=timedelta
 
 
 @pytest.fixture
-def question(test_db):
+def question(test_db, org):
     q = models.Question(
+        organization_id=org.id,
         title="Secret question: capital of France?",
         complexity="easy",
         type="single_choice",
@@ -105,7 +110,8 @@ def test_cannot_change_answers_after_time_is_up(client, test_db, sample_student_
 
 def test_cannot_answer_question_from_another_exam(client, test_db, sample_student_user, question):
     exam = make_exam(test_db, question)
-    other = models.Question(title="Other", complexity="easy", type="text", correct_answers=[], max_score=1)
+    other = models.Question(organization_id=question.organization_id, title="Other", complexity="easy",
+                            type="text", correct_answers=[], max_score=1)
     test_db.add(other)
     test_db.commit()
     attempt_id = start(client, sample_student_user, exam)["attempt"]["id"]
@@ -153,12 +159,19 @@ def test_cannot_retake_a_submitted_exam(client, test_db, sample_student_user, qu
     assert "already submitted" in response.json()["detail"]
 
 
-def test_cannot_start_exam_meant_for_other_candidates(client, test_db, sample_student_user, question):
-    exam = make_exam(test_db, question, target_candidates="HSC")  # student is SSC
+def test_group_exam_is_hidden_from_candidates_outside_the_group(client, test_db, sample_student_user, question):
+    hsc = models.Group(organization_id=question.organization_id, name="HSC")
+    exam = make_exam(test_db, question, groups=[hsc])  # student is in no group
+    headers = auth_headers(sample_student_user)
 
-    response = client.post(f"/student/exams/{exam.id}/start", headers=auth_headers(sample_student_user))
+    assert client.get("/student/exams/", headers=headers).json() == []
+    assert client.post(f"/student/exams/{exam.id}/start", headers=headers).status_code == 404
 
-    assert response.status_code == 403
+    sample_student_user.memberships[0].groups.append(hsc)
+    test_db.commit()
+
+    assert len(client.get("/student/exams/", headers=headers).json()) == 1
+    assert client.post(f"/student/exams/{exam.id}/start", headers=headers).status_code == 200
 
 
 def test_token_refresh_issues_a_working_token(client, sample_student_user):

@@ -1,8 +1,16 @@
 # Online Exam Management System
 
-A web-based exam management system built with **FastAPI** (Python) and **React** (JavaScript). Administrators manage questions and exams, while students take exams with auto-save functionality and auto-grading for objective questions.
+A web-based exam management system built with **FastAPI** (Python) and **React** (JavaScript). Organizations (schools, coaching centers, companies) manage their own questions and exams, while students take exams with auto-save functionality and auto-grading for objective questions.
 
 ## Features
+
+### Organizations
+
+- Any number of organizations, each with its own questions, exams, students and results
+- Roles per organization: **owner**, **admin**, **examiner** (questions, exams, grading) and **candidate**
+- One account can belong to several organizations, e.g. a student at two coaching centers
+- **Groups** (batches, classes, hiring rounds) decide which candidates see which exams
+- Students join with an organization or group **join code**
 
 ### Admin
 
@@ -43,6 +51,7 @@ These are the exact commands that were used to run the project:
 ```powershell
 cd d:\Downloads\Online-Exam-Management-System-main\backend
 pip install -r requirements.txt
+alembic upgrade head
 python create_admin.py
 python -m uvicorn app.main:app --reload --port 8000
 ```
@@ -88,6 +97,8 @@ In the `backend/` directory, create a `.env` file with:
 ```
 DATABASE_URL=postgresql://postgres:password@localhost:5432/online_exam_system
 SECRET_KEY=your-super-secret-key-change-this-in-production
+# Optional: comma-separated frontend URLs allowed to call the API
+# CORS_ORIGINS=http://localhost:3000,https://exams.example.com
 ```
 
 **Replace:**
@@ -125,7 +136,17 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### Step 3: Create Admin Account
+#### Step 3: Create the Database Tables
+
+The schema is managed with [Alembic](https://alembic.sqlalchemy.org/) migrations. Run this after installing, and again whenever you pull new code:
+
+```bash
+alembic upgrade head
+```
+
+**Upgrading an existing database from before organizations existed?** The same command works. It keeps all your data and moves it into a "Default Organization": admins become its owners, students its candidates, and each SSC/HSC/Admission value becomes a group. Back up your database first.
+
+#### Step 4: Create an Organization and Its Owner
 
 ```bash
 python create_admin.py
@@ -134,13 +155,16 @@ python create_admin.py
 **Output:**
 
 ```
-Admin user created successfully!
-Email: admin@example.com
-Role: admin
+Organization created successfully!
+Organization: Demo Organization
+Join code for students: K7M2QX9P
+Owner: admin@example.com
 Password: admin123
 ```
 
-#### Step 4: Start Backend Server
+Optionally pass your own details: `python create_admin.py you@example.com yourpassword "Your School"`. New organizations can also sign up from the app.
+
+#### Step 5: Start Backend Server
 
 **Windows:**
 
@@ -199,7 +223,9 @@ After setup completes, use these default credentials to log in:
 
 - **Email**: `admin@example.com`
 - **Password**: `admin123`
-- **Role**: Admin
+- **Role**: Owner of "Demo Organization"
+
+Students sign up on their own and enter the join code printed by `create_admin.py` (or the code of one of your groups).
 
 ## Running Tests
 
