@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './ModernSidebar.css';
 
 function AdminSidebar({ user, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
+  const { currentMembership, isManager } = useAuth();
 
   const menuItems = [
     { path: '/admin-questions', icon: '📋', label: 'Questions' },
     { path: '/admin-exams', icon: '📝', label: 'Exams' },
     { path: '/admin-students', icon: '👥', label: 'Students' },
+    ...(isManager ? [{ path: '/admin-organization', icon: '🏫', label: 'Organization' }] : []),
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -28,7 +31,7 @@ function AdminSidebar({ user, onLogout }) {
           {isExpanded && (
             <div className="modern-sidebar__logo-text">
               <h2>{user?.full_name || 'Admin'}</h2>
-              <p>Admin Panel</p>
+              <p>{currentMembership?.organization_name || 'Admin Panel'}</p>
             </div>
           )}
         </div>
@@ -53,8 +56,16 @@ function AdminSidebar({ user, onLogout }) {
 
       <div className="modern-sidebar__divider"></div>
 
-      {/* Logout */}
+      {/* Switch organization + Logout */}
       <div className="modern-sidebar__footer">
+        <button
+          onClick={() => navigate('/organizations')}
+          className="modern-sidebar__item"
+          title={!isExpanded ? 'Switch organization' : ''}
+        >
+          <span className="modern-sidebar__icon">🔁</span>
+          {isExpanded && <span className="modern-sidebar__label">Switch organization</span>}
+        </button>
         <button
           onClick={onLogout}
           className="modern-sidebar__item modern-sidebar__logout"

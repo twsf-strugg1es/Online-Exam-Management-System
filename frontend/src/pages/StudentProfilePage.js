@@ -8,7 +8,7 @@ import Button from '../components/Button';
 
 
 function StudentProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, currentMembership } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -18,7 +18,6 @@ function StudentProfilePage() {
   const [formData, setFormData] = useState({
     full_name: '',
     gender: '',
-    exam_candidate: '',
   });
   const [passwordData, setPasswordData] = useState({
     old_password: '',
@@ -41,7 +40,6 @@ function StudentProfilePage() {
       setFormData({
         full_name: response.data.full_name || '',
         gender: response.data.gender || '',
-        exam_candidate: response.data.exam_candidate || '',
       });
     } catch (err) {
       setError('Failed to load profile');
@@ -235,37 +233,6 @@ function StudentProfilePage() {
                         </select>
                       </div>
 
-                      <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Exam Candidate:</label>
-                        <select
-                          name="exam_candidate"
-                          value={formData.exam_candidate}
-                          onChange={handleInputChange}
-                          style={{
-                            width: '100%',
-                            padding: '10px',
-                            border: '1px solid #0d6efd',
-                            borderRadius: '4px',
-                            backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                            color: '#0d6efd',
-                            fontFamily: 'Roboto, sans-serif',
-                            transition: 'all 0.3s ease',
-                          }}
-                          onFocus={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = '0 0 8px rgba(135, 206, 235, 0.3)';
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = 'none';
-                          }}
-                        >
-                          <option value="">-- Select Exam Candidate --</option>
-                          <option value="SSC">SSC</option>
-                          <option value="HSC">HSC</option>
-                          <option value="Admission">Admission</option>
-                        </select>
-                      </div>
 
                       <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                         <Button
@@ -417,8 +384,8 @@ function StudentProfilePage() {
                       <div style={{ marginBottom: '25px' }}>
                         <h3 style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Exam Information</h3>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(135, 206, 235, 0.3)', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>
-                          <span style={{ fontWeight: 'bold' }}>Exam Candidate:</span>
-                          <span>{profile.exam_candidate || '-'}</span>
+                          <span style={{ fontWeight: 'bold' }}>Organization:</span>
+                          <span>{currentMembership?.organization_name || '-'}</span>
                         </div>
                       </div>
 

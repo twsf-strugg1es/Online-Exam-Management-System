@@ -5,6 +5,17 @@ const AuthContext = createContext();
 
 const TOKEN_REFRESH_MARGIN = 20 * 60 * 1000; // refresh when less than 20 minutes remain
 
+// Membership roles that can manage questions, exams and grading / members and groups
+const STAFF_ROLES = ['owner', 'admin', 'examiner'];
+const MANAGER_ROLES = ['owner', 'admin'];
+
+// Keep the preferred organization if the user still belongs to it; with exactly one, use that
+const pickOrganization = (memberships, preferredId) => {
+  if (!memberships?.length) return null;
+  if (memberships.some((m) => m.organization_id === preferredId)) return preferredId;
+  return memberships.length === 1 ? memberships[0].organization_id : null;
+};
+
 // Read the expiry (ms since epoch) from a JWT's payload; null if it can't be parsed
 const getTokenExpiry = (jwt) => {
   try {
@@ -28,6 +39,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
+  const [organizationId, setOrganizationId] = useState(null);
   const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   // Check localStorage on initial load
@@ -55,11 +67,15 @@ export const AuthProvider = ({ children }) => {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
       setRememberMe(storedRememberMe);
+      setOrganizationId(localStorage.getItem('organizationId'));
       // Update last activity time
       localStorage.setItem('lastActivityTime', Date.now().toString());
+      // Memberships may have changed since the last visit (joined, removed, new role)
+      refreshUser().finally(() => setIsLoading(false));
+      return;
     }
     setIsLoading(false);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Set up session timeout check
   useEffect(() => {
@@ -99,15 +115,41 @@ export const AuthProvider = ({ children }) => {
     };
   }, [token]);
 
+  const selectOrganization = useCallback((id) => {
+    setOrganizationId(id);
+    if (id) {
+      localStorage.setItem('organizationId', id);
+    } else {
+      localStorage.removeItem('organizationId');
+    }
+  }, []);
+
+  const storeUser = useCallback((newUser) => {
+    setUser(newUser);
+    localStorage.setItem('user', JSON.stringify(newUser));
+    selectOrganization(pickOrganization(newUser.memberships, localStorage.getItem('organizationId')));
+  }, [selectOrganization]);
+
   const login = (newToken, newUser, saveLogin = false) => {
     setToken(newToken);
-    setUser(newUser);
     setRememberMe(saveLogin);
     localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
     localStorage.setItem('rememberMe', saveLogin.toString());
     localStorage.setItem('lastActivityTime', Date.now().toString());
+    storeUser(newUser);
   };
+
+  // Reload the user and their memberships, e.g. after joining or creating an organization
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await api.get('/me');
+      storeUser(response.data);
+      return response.data;
+    } catch (err) {
+      if (err.response?.status === 401) logout();
+      return null;
+    }
+  }, [storeUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keeps a long-running page (e.g. an exam) signed in: counts as activity for the
   // idle timeout and swaps the token for a fresh one before it expires.
@@ -131,11 +173,15 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     setRememberMe(false);
+    setOrganizationId(null);
+    localStorage.removeItem('organizationId');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('rememberMe');
     localStorage.removeItem('lastActivityTime');
   };
+
+  const currentMembership = user?.memberships?.find((m) => m.organization_id === organizationId) || null;
 
   const value = {
     token,
@@ -143,8 +189,15 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     refreshSession,
+    refreshUser,
     isLoading,
     rememberMe,
+    // The organization the user is working in, and their role there
+    currentMembership,
+    selectOrganization,
+    isStaff: STAFF_ROLES.includes(currentMembership?.role),
+    isManager: MANAGER_ROLES.includes(currentMembership?.role),
+    isCandidate: currentMembership?.role === 'candidate',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

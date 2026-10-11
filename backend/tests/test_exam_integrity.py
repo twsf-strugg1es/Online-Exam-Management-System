@@ -157,6 +157,8 @@ def test_cannot_retake_a_submitted_exam(client, test_db, sample_student_user, qu
 
     assert response.status_code == 400
     assert "already submitted" in response.json()["detail"]
+    listed = client.get("/student/exams/", headers=auth_headers(sample_student_user)).json()
+    assert listed[0]["is_submitted"] is True
 
 
 def test_group_exam_is_hidden_from_candidates_outside_the_group(client, test_db, sample_student_user, question):

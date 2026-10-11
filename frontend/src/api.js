@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
 });
 
 // Request interceptor to add token to Authorization header
@@ -10,6 +10,11 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Organization-scoped endpoints act on the organization the user selected
+    const organizationId = localStorage.getItem('organizationId');
+    if (organizationId) {
+      config.headers['X-Organization-Id'] = organizationId;
     }
     // Do NOT set a default Content-Type here; axios will set
     // the appropriate one automatically (e.g., multipart/form-data for FormData).

@@ -288,10 +288,11 @@ function ExamPage() {
     const answerMap = {};
     answersArr.forEach(a => { answerMap[a.question_id] = a.answer_data; });
 
-    const correctCount = attempt.score || 0;
-    const autoGradedCount = Array.isArray(examFull.questions)
-      ? examFull.questions.filter(q => q.type === 'single_choice' || q.type === 'multi_choice').length
-      : 0;
+    // The score is in points (questions can be worth more than one), so compare it with points
+    const score = attempt.score || 0;
+    const autoGradedPoints = (examFull.questions || [])
+      .filter(q => q.type === 'single_choice' || q.type === 'multi_choice')
+      .reduce((sum, q) => sum + (q.max_score || 0), 0);
 
     const isCorrect = (q, studentAns) => {
       if (!q) return null;
@@ -321,7 +322,7 @@ function ExamPage() {
       <div style={styles.container}>
         <div style={styles.header}>
           <h1>{examFull.title || 'Exam Results'}</h1>
-          <h3 style={{ marginTop: 10, color: '#000000' }}>You got {correctCount} out of {autoGradedCount} auto-graded questions correct.</h3>
+          <h3 style={{ marginTop: 10, color: '#000000' }}>You scored {score} out of {autoGradedPoints} points on the auto-graded questions.</h3>
           <Button onClick={() => navigate('/student-account')} style={{ marginTop: '10px' }}>Back to Dashboard</Button>
         </div>
         <div style={styles.content}>

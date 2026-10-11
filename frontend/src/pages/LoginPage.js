@@ -39,13 +39,7 @@ function LoginPage() {
 
       try {
         const userRes = await api.get('/me');
-        const actualUser = {
-          email: userRes.data.email,
-          role: userRes.data.role,
-          id: userRes.data.id,
-        };
-
-        login(access_token, actualUser, saveLogin);
+        login(access_token, userRes.data, saveLogin);
         navigate('/');
       } catch (userErr) {
         localStorage.removeItem('token');
@@ -74,7 +68,7 @@ function LoginPage() {
           <div style={{ width: '100%', maxWidth: '400px' }}>
             {/* Header */}
             <div style={{ marginBottom: '48px', textAlign: 'center', animation: 'fadeInDown 0.5s ease 0.2s both' }}>
-              <h1 style={{ fontSize: '42px', fontWeight: 'bold', margin: '0 0 16px 0', color: theme.primary, fontFamily: 'Roboto, sans-serif' }}>Student Login</h1>
+              <h1 style={{ fontSize: '42px', fontWeight: 'bold', margin: '0 0 16px 0', color: theme.primary, fontFamily: 'Roboto, sans-serif' }}>Login</h1>
               <p style={{ fontSize: '16px', color: theme.secondary, margin: 0 }}>Hey enter your details to sign into your account</p>
             </div>
 
@@ -198,6 +192,12 @@ function LoginPage() {
                 }}
               >
                 {' '}Create an account
+              </Link>
+            </p>
+            <p style={{ textAlign: 'center', marginTop: '12px', color: theme.secondary, fontSize: '14px' }}>
+              Running exams for a school or company?
+              <Link to="/signup/organization" style={{ color: theme.primary, fontWeight: 'bold', textDecoration: 'none' }}>
+                {' '}Register your organization
               </Link>
             </p>
           </div>

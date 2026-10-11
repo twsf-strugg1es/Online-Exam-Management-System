@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './ModernSidebar.css';
 
 function StudentSidebar({ user, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
+  const { currentMembership } = useAuth();
 
   const menuItems = [
     { path: '/student-account', icon: '📊', label: 'Dashboard' },
@@ -28,7 +30,7 @@ function StudentSidebar({ user, onLogout }) {
           {isExpanded && (
             <div className="modern-sidebar__logo-text">
               <h2>{user?.full_name || 'Student'}</h2>
-              <p>Student Portal</p>
+              <p>{currentMembership?.organization_name || 'Student Portal'}</p>
             </div>
           )}
         </div>
@@ -53,8 +55,16 @@ function StudentSidebar({ user, onLogout }) {
 
       <div className="modern-sidebar__divider"></div>
 
-      {/* Logout */}
+      {/* Switch organization + Logout */}
       <div className="modern-sidebar__footer">
+        <button
+          onClick={() => navigate('/organizations')}
+          className="modern-sidebar__item"
+          title={!isExpanded ? 'Switch organization' : ''}
+        >
+          <span className="modern-sidebar__icon">🔁</span>
+          {isExpanded && <span className="modern-sidebar__label">Switch organization</span>}
+        </button>
         <button
           onClick={onLogout}
           className="modern-sidebar__item modern-sidebar__logout"

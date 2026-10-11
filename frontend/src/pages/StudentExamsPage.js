@@ -109,9 +109,9 @@ export default function StudentExamsPage() {
                     padding: '20px',
                   }}>
                     <h3 style={{ color: '#0d6efd', margin: '0 0 10px 0' }}>{exam.title}</h3>
-                    <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Score:</strong> {exam.score} / {exam.total_score}</p>
+                    <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Score:</strong> {exam.score} / {exam.total_possible_score}</p>
                     <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Percentage:</strong> {exam.percentage}%</p>
-                    <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Date:</strong> {new Date(exam.submitted_at).toLocaleDateString()}</p>
+                    <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Date:</strong> {new Date(exam.end_time).toLocaleDateString()}</p>
                     <Button
                       onClick={() => navigate(`/exam-results/${exam.id}`)}
                       style={{ width: '100%', marginTop: '15px' }}

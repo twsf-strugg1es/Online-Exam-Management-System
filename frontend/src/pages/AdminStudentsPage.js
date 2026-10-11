@@ -151,7 +151,7 @@ function AdminStudentsPage() {
                     <tr style={{ backgroundColor: '#0d6efd', color: '#000000' }}>
                       <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Email</th>
                       <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Full Name</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Exam Candidate</th>
+                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Groups</th>
                       <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Overall Performance</th>
                       <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Actions</th>
                     </tr>
@@ -161,7 +161,7 @@ function AdminStudentsPage() {
                       <tr key={student.id} style={{ borderBottom: '1px solid #0d6efd' }}>
                         <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{student.email}</td>
                         <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{student.full_name || '-'}</td>
-                        <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{student.exam_candidate || '-'}</td>
+                        <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{student.groups?.length ? student.groups.map(g => g.name).join(', ') : '-'}</td>
                         <td style={{ padding: '12px' }}>
                           <div style={{
                             padding: '4px 8px',
@@ -238,7 +238,6 @@ function AdminStudentsPage() {
             <h2 style={{ color: '#0d6efd', marginTop: 0, fontFamily: 'Roboto, sans-serif' }}>Student Details</h2>
             <p style={{ color: '#0d6efd' }}><strong>Email:</strong> {selectedStudentProfile.email}</p>
             <p style={{ color: '#0d6efd' }}><strong>Full Name:</strong> {selectedStudentProfile.full_name}</p>
-            <p style={{ color: '#0d6efd' }}><strong>Exam Candidate:</strong> {selectedStudentProfile.exam_candidate}</p>
 
             <Button
               onClick={() => setShowStudentModal(false)}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import api from '../api';
 import Button from '../components/Button';
@@ -10,7 +10,9 @@ function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState('');
-  const [examCandidate, setExamCandidate] = useState('');
+  const [searchParams] = useSearchParams();
+  // An organization can share a signup link that carries its join code: /signup?code=K7M2QX9P
+  const [joinCode, setJoinCode] = useState((searchParams.get('code') || '').toUpperCase());
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,11 +43,6 @@ function SignupPage() {
       return;
     }
 
-    if (!examCandidate) {
-      setError('Exam candidate selection is required');
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -54,8 +51,7 @@ function SignupPage() {
         password: password,
         full_name: fullName,
         gender: gender,
-        exam_candidate: examCandidate,
-        role: 'student',
+        join_code: joinCode.trim() || null,
       });
 
       setSuccess(true);
@@ -234,28 +230,28 @@ function SignupPage() {
                 </div>
               </div>
 
-              {/* Exam Candidate */}
+              {/* Join Code */}
               <div style={{ marginBottom: '24px', animation: 'slideInUp 0.4s ease 0.55s both' }}>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={examCandidate}
-                    onChange={(e) => setExamCandidate(e.target.value)}
-                    required
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                     style={{
-                      width: '100%',
+                      flex: 1,
                       backgroundColor: theme.inputBg,
                       border: `1px solid ${theme.border}`,
                       borderRadius: '24px',
                       padding: '12px 16px',
                       fontSize: '14px',
                       boxSizing: 'border-box',
-                      color: examCandidate ? theme.inputText : theme.secondary,
+                      color: theme.inputText,
                       outline: 'none',
                       transition: 'all 0.3s ease',
-                      appearance: 'none',
-                      cursor: 'pointer',
                       fontFamily: 'Roboto, sans-serif',
+                      letterSpacing: joinCode ? '2px' : 'normal',
                     }}
+                    placeholder="Join code from your school or company (optional)"
                     onFocus={(e) => {
                       e.target.style.borderColor = theme.primary;
                       e.target.style.boxShadow = `0 0 12px ${theme.primary}40`;
@@ -264,13 +260,7 @@ function SignupPage() {
                       e.target.style.borderColor = theme.border;
                       e.target.style.boxShadow = 'none';
                     }}
-                  >
-                    <option value="">Select Exam Candidate</option>
-                    <option value="SSC">SSC</option>
-                    <option value="HSC">HSC</option>
-                    <option value="Admission">Admission</option>
-                  </select>
-                  <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: theme.primary, fontSize: '14px' }}>▼</div>
+                  />
                 </div>
               </div>
 

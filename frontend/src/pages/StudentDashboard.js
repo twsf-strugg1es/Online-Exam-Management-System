@@ -100,7 +100,12 @@ function StudentDashboard() {
                     let buttonDisabled = false;
                     let buttonColor = theme.primary;
 
-                    if (exam.is_expired) {
+                    if (exam.is_submitted) {
+                      statusColor = theme.success;
+                      statusText = 'Submitted';
+                      buttonDisabled = true;
+                      buttonColor = theme.secondary;
+                    } else if (exam.is_expired) {
                       statusColor = theme.danger;
                       statusText = 'Expired';
                       buttonDisabled = true;
@@ -159,7 +164,7 @@ function StudentDashboard() {
                             opacity: buttonDisabled ? 0.6 : 1,
                           }}
                         >
-                          {exam.is_expired ? 'Exam Expired' : exam.is_upcoming ? 'Not Started Yet' : 'Start Exam'}
+                          {exam.is_submitted ? 'Already Submitted' : exam.is_expired ? 'Exam Expired' : exam.is_upcoming ? 'Not Started Yet' : 'Start Exam'}
                         </Button>
                       </div>
                     );

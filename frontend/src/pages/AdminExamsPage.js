@@ -27,8 +27,9 @@ function AdminExamsPage() {
     start_time: '',
     end_time: '',
     duration_minutes: '',
-    target_candidates: '',
   });
+  const [groups, setGroups] = useState([]);
+  const [selectedGroupIds, setSelectedGroupIds] = useState([]);
   const [selectedExamForEvaluation, setSelectedExamForEvaluation] = useState(null);
   const [examAttempts, setExamAttempts] = useState([]);
   const [attemptsLoading, setAttemptsLoading] = useState(false);
@@ -53,6 +54,7 @@ function AdminExamsPage() {
   useEffect(() => {
     fetchExams();
     fetchQuestions();
+    fetchGroups();
   }, []);
 
   const fetchExams = async () => {
@@ -81,6 +83,21 @@ function AdminExamsPage() {
     } catch (err) {
       console.error('Failed to fetch questions:', err);
     }
+  };
+
+  const fetchGroups = async () => {
+    try {
+      const res = await api.get('/org/groups');
+      setGroups(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch groups:', err);
+    }
+  };
+
+  const handleGroupToggle = (groupId) => {
+    setSelectedGroupIds(prev =>
+      prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]
+    );
   };
 
   const fetchExamAttempts = async (examId) => {
@@ -120,7 +137,7 @@ function AdminExamsPage() {
   };
 
   const handleCreateExam = async () => {
-    if (!examForm.title || !examForm.start_time || !examForm.end_time || !examForm.duration_minutes || !examForm.target_candidates) {
+    if (!examForm.title || !examForm.start_time || !examForm.end_time || !examForm.duration_minutes) {
       setExamMessage('Please fill in all required fields');
       return;
     }
@@ -135,6 +152,7 @@ function AdminExamsPage() {
         ...examForm,
         duration_minutes: parseInt(examForm.duration_minutes),
         question_ids: selectedQuestionIds,
+        group_ids: selectedGroupIds,
       });
       setExamMessage('Exam created successfully');
       setExamForm({
@@ -142,9 +160,9 @@ function AdminExamsPage() {
         start_time: '',
         end_time: '',
         duration_minutes: '',
-        target_candidates: '',
       });
       setSelectedQuestionIds([]);
+      setSelectedGroupIds([]);
       fetchExams();
     } catch (err) {
       let msg = 'Failed to create exam';
@@ -368,26 +386,28 @@ function AdminExamsPage() {
                 />
               </div>
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Target Candidates (Required):</label>
-                <select
-                  name="target_candidates"
-                  value={examForm.target_candidates}
-                  onChange={handleExamInputChange}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #0d6efd',
-                    borderRadius: '4px',
-                    backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                    color: '#0d6efd',
-                    fontFamily: 'Roboto, sans-serif',
-                  }}
-                >
-                  <option value="">-- Select Target Candidates --</option>
-                  <option value="SSC">SSC</option>
-                  <option value="HSC">HSC</option>
-                  <option value="Admission">Admission</option>
-                </select>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Who can take it:</label>
+                <p style={{ margin: '0 0 8px 0', color: '#6c757d', fontSize: '14px' }}>
+                  {selectedGroupIds.length === 0
+                    ? 'Every student in the organization. Tick groups to limit it to them.'
+                    : 'Only students in the ticked groups.'}
+                </p>
+                {groups.length === 0 ? (
+                  <p style={{ margin: 0, color: '#6c757d', fontSize: '14px' }}>No groups yet. Create them on the Organization page.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                    {groups.map(group => (
+                      <label key={group.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0d6efd', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedGroupIds.includes(group.id)}
+                          onChange={() => handleGroupToggle(group.id)}
+                        />
+                        {group.name}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Select Questions:</label>
@@ -465,7 +485,8 @@ function AdminExamsPage() {
                         onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                       >
                         <h3 style={{ color: '#0d6efd', margin: '0 0 10px 0' }}>{exam.title}</h3>
-                        <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Questions:</strong> {exam.question_count || 0}</p>
+                        <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>For:</strong> {exam.groups?.length ? exam.groups.map(g => g.name).join(', ') : 'Everyone'}</p>
+                        <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Questions:</strong> {exam.questions?.length ?? exam.question_count ?? 0}</p>
                         <p style={{ color: '#0d6efd', fontSize: '12px', margin: '5px 0' }}>Click to view student attempts</p>
                       </div>
                     ))
@@ -586,7 +607,8 @@ function AdminExamsPage() {
                     }}>
                       <h3 style={{ color: '#0d6efd', margin: '0 0 10px 0' }}>{exam.title}</h3>
                       <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Status:</strong> {exam.is_published ? 'Published' : 'Draft'}</p>
-                      <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Questions:</strong> {exam.question_count || 0}</p>
+                      <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>For:</strong> {exam.groups?.length ? exam.groups.map(g => g.name).join(', ') : 'Everyone'}</p>
+                      <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Questions:</strong> {exam.questions?.length ?? exam.question_count ?? 0}</p>
                       <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Start:</strong> {new Date(exam.start_time).toLocaleString()}</p>
                       <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>End:</strong> {new Date(exam.end_time).toLocaleString()}</p>
                       <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Duration:</strong> {exam.duration_minutes} minutes</p>

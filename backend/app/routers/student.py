@@ -19,6 +19,13 @@ def list_available_exams(
     """List the published exams this candidate may take in the current organization."""
     exams = crud.get_available_exams(db, membership)
     now = datetime.now(timezone.utc)
+    submitted_exam_ids = {
+        exam_id
+        for (exam_id,) in db.query(models.ExamAttempt.exam_id).filter(
+            models.ExamAttempt.student_id == membership.user_id,
+            models.ExamAttempt.end_time.isnot(None),
+        )
+    }
 
     result = []
     for exam in exams:
@@ -45,6 +52,7 @@ def list_available_exams(
             "is_expired": is_expired,
             "is_upcoming": is_upcoming,
             "is_active": is_active,
+            "is_submitted": exam.id in submitted_exam_ids,  # one attempt per exam
             # Only the count: question content is sent when an attempt starts
             "question_count": len(exam.questions or []),
         }

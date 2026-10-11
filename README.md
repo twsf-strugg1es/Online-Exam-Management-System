@@ -192,6 +192,8 @@ npm start
 
 Frontend runs at: `http://localhost:3000`
 
+The frontend calls the API at `http://localhost:8000` by default. To use another address, set `REACT_APP_API_URL` (for example in `frontend/.env`) before `npm start` or `npm run build`.
+
 ## Running Both Servers
 
 Open **two separate terminals** from the project root directory:

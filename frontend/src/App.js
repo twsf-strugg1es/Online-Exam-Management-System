@@ -6,6 +6,9 @@ import { useTheme } from './context/ThemeContext';
 import ThemeSwitch from './components/ThemeSwitch';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import OrgSignupPage from './pages/OrgSignupPage';
+import OrganizationsPage from './pages/OrganizationsPage';
+import AdminOrganizationPage from './pages/AdminOrganizationPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminQuestionsPage from './pages/AdminQuestionsPage';
 import AdminExamsPage from './pages/AdminExamsPage';
@@ -21,7 +24,7 @@ import StudentProfilePage from './pages/StudentProfilePage';
 import ComponentShowcase from './components/ComponentShowcase';
 import NotebookDemo from './pages/NotebookDemo';
 function App() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, currentMembership, isStaff, isManager, isCandidate } = useAuth();
   const { theme, toggleTheme, themeName } = useTheme();
 
   // Show loading screen while checking auth state
@@ -60,134 +63,143 @@ function App() {
           element={
             !user ? (
               <Navigate to="/login" replace />
-            ) : user.role === 'admin' ? (
+            ) : !currentMembership ? (
+              <Navigate to="/organizations" replace />
+            ) : isStaff ? (
               <Navigate to="/admin-questions" replace />
-            ) : user.role === 'student' ? (
-              <Navigate to="/student-account" replace />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/student-account" replace />
             )
           }
         />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/signup/organization" element={<OrgSignupPage />} />
+        <Route
+          path="/organizations"
+          element={user ? <OrganizationsPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/admin-organization"
+          element={isManager ? <AdminOrganizationPage /> : <Navigate to="/" replace />}
+        />
         <Route
           path="/exam/resume/:attemptId"
           element={
-            user && user.role === 'student' ? (
+            isCandidate ? (
               <ExamPage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/exam/:id"
           element={
-            user && user.role === 'student' ? (
+            isCandidate ? (
               <ExamPage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/evaluate/:attemptId"
           element={
-            user && user.role === 'admin' ? (
+            isStaff ? (
               <EvaluationPage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/student-exams"
           element={
-            user && user.role === 'student' ? (
+            isCandidate ? (
               <StudentExamsPage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/exam-results/:attemptId"
           element={
-            user && user.role === 'student' ? (
+            isCandidate ? (
               <StudentResultsPage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/student-profile"
           element={
-            user && user.role === 'student' ? (
+            isCandidate ? (
               <StudentProfilePage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/student-account"
           element={
-            user && user.role === 'student' ? (
+            isCandidate ? (
               <StudentDashboard />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/admin-questions"
           element={
-            user && user.role === 'admin' ? (
+            isStaff ? (
               <AdminQuestionsPage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/admin-exams"
           element={
-            user && user.role === 'admin' ? (
+            isStaff ? (
               <AdminExamsPage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/admin-students"
           element={
-            user && user.role === 'admin' ? (
+            isStaff ? (
               <AdminStudentsPage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/admin-evaluate/:attemptId"
           element={
-            user && user.role === 'admin' ? (
+            isStaff ? (
               <AdminEvaluatePage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
         <Route
           path="/admin-evaluate-answers/:attemptId"
           element={
-            user && user.role === 'admin' ? (
+            isStaff ? (
               <AdminEvaluateAnswersPage />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/" replace />
             )
           }
         />
