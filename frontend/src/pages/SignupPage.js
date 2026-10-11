@@ -1,425 +1,118 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import api from '../api';
-import Button from '../components/Button';
+import AuthLayout from '../components/AuthLayout';
+import { Alert, Button, Field, Input, Select } from '../components/ui';
+import { errorMessage } from '../utils';
 
+// Student signup. A join code (typed, or carried in a /signup?code=... link) adds them to an organization.
 function SignupPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [gender, setGender] = useState('');
   const [searchParams] = useSearchParams();
-  // An organization can share a signup link that carries its join code: /signup?code=K7M2QX9P
-  const [joinCode, setJoinCode] = useState((searchParams.get('code') || '').toUpperCase());
+  const [form, setForm] = useState({
+    fullName: '',
+    email: '',
+    gender: '',
+    joinCode: (searchParams.get('code') || '').toUpperCase(),
+    password: '',
+    confirmPassword: '',
+  });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const codeFromLink = Boolean(searchParams.get('code'));
+
+  const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    if (password !== confirmPassword) {
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
-
-    if (!fullName.trim()) {
-      setError('Full name is required');
-      return;
-    }
-
-    if (!gender) {
-      setError('Gender is required');
-      return;
-    }
-
     setLoading(true);
-
     try {
       await api.post('/signup', {
-        email: email,
-        password: password,
-        full_name: fullName,
-        gender: gender,
-        join_code: joinCode.trim() || null,
+        email: form.email,
+        password: form.password,
+        full_name: form.fullName.trim(),
+        gender: form.gender || null,
+        join_code: form.joinCode.trim() || null,
       });
 
-      setSuccess(true);
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      // Sign the new student straight in
+      const credentials = new URLSearchParams({ username: form.email, password: form.password });
+      const tokenRes = await api.post('/token', credentials, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
+      localStorage.setItem('token', tokenRes.data.access_token);
+      const me = await api.get('/me');
+      login(tokenRes.data.access_token, me.data);
+      navigate('/');
     } catch (err) {
-      let errorMessage = 'Signup failed. Please try again.';
-      if (err.response?.data?.detail) {
-        if (typeof err.response.data.detail === 'string') {
-          errorMessage = err.response.data.detail;
-        } else if (Array.isArray(err.response.data.detail)) {
-          errorMessage = err.response.data.detail.map(e => e.msg).join(', ');
-        }
-      }
-      setError(errorMessage);
+      setError(errorMessage(err, 'Signup failed. Please try again.'));
     } finally {
       setLoading(false);
     }
   };
 
-  if (success) {
-    return (
-      <>
-        <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.background, fontFamily: 'Roboto, sans-serif' }}>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '40px', boxSizing: 'border-box', animation: 'slideInLeft 0.6s ease' }}>
-            <div style={{ maxWidth: '400px', textAlign: 'center', animation: 'fadeIn 0.5s ease 0.3s both' }}>
-              <h2 style={{ color: theme.primary, marginBottom: '16px', fontSize: '32px', fontWeight: 'bold' }}>Signup Successful!</h2>
-              <p style={{ color: theme.secondary, marginBottom: '10px' }}>Your account has been created successfully. Please log in.</p>
-              <p style={{ color: theme.secondary, fontSize: '14px', fontStyle: 'italic' }}>Redirecting to login page...</p>
-            </div>
-          </div>
-          <div style={{ flex: 1, background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.info} 100%)`, display: 'flex', justifyContent: 'center', alignItems: 'center', animation: 'slideInRight 0.6s ease' }}>
-            <h2 style={{ color: '#ffffff', fontSize: '42px', fontWeight: '300', animation: 'fadeIn 0.5s ease 0.3s both' }}>Join PorikkhaKori</h2>
-          </div>
-        </div>
-        <style>{`
-          @keyframes slideInLeft {
-            from { opacity: 0; transform: translateX(-50px); }
-            to { opacity: 1; transform: translateX(0); }
-          }
-          @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(50px); }
-            to { opacity: 1; transform: translateX(0); }
-          }
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-        `}</style>
-      </>
-    );
-  }
-
   return (
-    <>
-      <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.background, fontFamily: 'Roboto, sans-serif' }}>
-        {/* Left Side - Black Sidebar */}
-        <div style={{ flex: 0.3, backgroundColor: theme.background, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: '60px 40px', boxSizing: 'border-box', animation: 'slideInLeft 0.6s ease' }}>
-          <div style={{ width: '100%' }}>
-            <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 12px 0', color: theme.primary, fontFamily: 'Roboto, sans-serif', animation: 'fadeInDown 0.5s ease 0.2s both' }}>Create an account</h1>
-            <p style={{ fontSize: '14px', color: theme.secondary, margin: 0, animation: 'fadeInDown 0.5s ease 0.3s both' }}>Join PorikkhaKori today</p>
-          </div>
+    <AuthLayout
+      title="Create your student account"
+      subtitle={codeFromLink
+        ? "You've been invited to join an organization. Your join code is already filled in."
+        : 'Use the join code your school, coaching center or employer gave you.'}
+      footer={<p>Already have an account? <Link to="/login" className="link">Log in</Link></p>}
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Field label="Full name" htmlFor="fullName">
+          <Input id="fullName" autoComplete="name" value={form.fullName} onChange={update('fullName')} required autoFocus />
+        </Field>
+        <Field label="Email" htmlFor="email">
+          <Input id="email" type="email" autoComplete="email" value={form.email} onChange={update('email')} required />
+        </Field>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Field label="Join code" htmlFor="joinCode" optional>
+            <Input
+              id="joinCode"
+              value={form.joinCode}
+              onChange={(e) => setForm({ ...form, joinCode: e.target.value.toUpperCase() })}
+              className="font-mono tracking-widest"
+              placeholder="K7M2QX9P"
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="Gender" htmlFor="gender" optional>
+            <Select id="gender" value={form.gender} onChange={update('gender')}>
+              <option value="">Prefer not to say</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="other">Other</option>
+            </Select>
+          </Field>
         </div>
+        <Field label="Password" htmlFor="password" hint="At least 6 characters.">
+          <Input id="password" type="password" autoComplete="new-password" value={form.password} onChange={update('password')} required />
+        </Field>
+        <Field label="Confirm password" htmlFor="confirmPassword">
+          <Input id="confirmPassword" type="password" autoComplete="new-password" value={form.confirmPassword} onChange={update('confirmPassword')} required />
+        </Field>
 
-        {/* Right Side - Form */}
-        <div style={{ flex: 0.7, backgroundColor: theme.background, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '60px 80px', boxSizing: 'border-box', overflowY: 'auto', animation: 'slideInRight 0.6s ease' }}>
-          <div style={{ width: '100%', maxWidth: '600px' }}>
-            {/* Form */}
-            <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-              {/* Full Name */}
-              <div style={{ marginBottom: '24px', animation: 'slideInUp 0.4s ease 0.4s both' }}>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    style={{
-                      flex: 1,
-                      backgroundColor: theme.inputBg,
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: '24px',
-                      padding: '12px 16px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      color: theme.inputText,
-                      outline: 'none',
-                      transition: 'all 0.3s ease',
-                      fontFamily: 'Roboto, sans-serif',
-                    }}
-                    placeholder="Enter your name"
-                    onFocus={(e) => {
-                      e.target.style.borderColor = theme.primary;
-                      e.target.style.boxShadow = `0 0 12px ${theme.primary}40`;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = theme.border;
-                      e.target.style.boxShadow = 'none';
-                    }}
-                  />
-                </div>
-              </div>
+        {error && <Alert tone="danger">{error}</Alert>}
 
-              {/* Email */}
-              <div style={{ marginBottom: '24px', animation: 'slideInUp 0.4s ease 0.45s both' }}>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    style={{
-                      flex: 1,
-                      backgroundColor: theme.inputBg,
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: '24px',
-                      padding: '12px 16px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      color: theme.inputText,
-                      outline: 'none',
-                      transition: 'all 0.3s ease',
-                      fontFamily: 'Roboto, sans-serif',
-                    }}
-                    placeholder="Enter your email"
-                    onFocus={(e) => {
-                      e.target.style.borderColor = theme.primary;
-                      e.target.style.boxShadow = `0 0 12px ${theme.primary}40`;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = theme.border;
-                      e.target.style.boxShadow = 'none';
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Gender */}
-              <div style={{ marginBottom: '24px', animation: 'slideInUp 0.4s ease 0.5s both' }}>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      backgroundColor: theme.inputBg,
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: '24px',
-                      padding: '12px 16px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      color: gender ? theme.inputText : theme.secondary,
-                      outline: 'none',
-                      transition: 'all 0.3s ease',
-                      appearance: 'none',
-                      cursor: 'pointer',
-                      fontFamily: 'Roboto, sans-serif',
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = theme.primary;
-                      e.target.style.boxShadow = `0 0 12px ${theme.primary}40`;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = theme.border;
-                      e.target.style.boxShadow = 'none';
-                    }}
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                  <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: theme.primary, fontSize: '14px' }}>▼</div>
-                </div>
-              </div>
-
-              {/* Join Code */}
-              <div style={{ marginBottom: '24px', animation: 'slideInUp 0.4s ease 0.55s both' }}>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                    style={{
-                      flex: 1,
-                      backgroundColor: theme.inputBg,
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: '24px',
-                      padding: '12px 16px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      color: theme.inputText,
-                      outline: 'none',
-                      transition: 'all 0.3s ease',
-                      fontFamily: 'Roboto, sans-serif',
-                      letterSpacing: joinCode ? '2px' : 'normal',
-                    }}
-                    placeholder="Join code from your school or company (optional)"
-                    onFocus={(e) => {
-                      e.target.style.borderColor = theme.primary;
-                      e.target.style.boxShadow = `0 0 12px ${theme.primary}40`;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = theme.border;
-                      e.target.style.boxShadow = 'none';
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div style={{ marginBottom: '24px', animation: 'slideInUp 0.4s ease 0.6s both' }}>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    style={{
-                      flex: 1,
-                      backgroundColor: theme.inputBg,
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: '24px',
-                      padding: '12px 16px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      color: theme.inputText,
-                      outline: 'none',
-                      transition: 'all 0.3s ease',
-                      fontFamily: 'Roboto, sans-serif',
-                    }}
-                    placeholder="Enter your password"
-                    onFocus={(e) => {
-                      e.target.style.borderColor = theme.primary;
-                      e.target.style.boxShadow = `0 0 12px ${theme.primary}40`;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = theme.border;
-                      e.target.style.boxShadow = 'none';
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Confirm Password */}
-              <div style={{ marginBottom: '24px', animation: 'slideInUp 0.4s ease 0.65s both' }}>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    style={{
-                      flex: 1,
-                      backgroundColor: theme.inputBg,
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: '24px',
-                      padding: '12px 16px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      color: theme.inputText,
-                      outline: 'none',
-                      transition: 'all 0.3s ease',
-                      fontFamily: 'Roboto, sans-serif',
-                    }}
-                    placeholder="Confirm your password"
-                    onFocus={(e) => {
-                      e.target.style.borderColor = theme.primary;
-                      e.target.style.boxShadow = `0 0 12px ${theme.primary}40`;
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = theme.border;
-                      e.target.style.boxShadow = 'none';
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Error Message */}
-              {error && (
-                <div style={{ animation: 'slideInDown 0.4s ease', marginBottom: '20px', padding: '12px 14px', backgroundColor: 'rgba(255, 0, 0, 0.1)', borderLeft: `4px solid ${theme.danger}`, color: theme.danger, borderRadius: '4px', fontSize: '13px', fontFamily: 'Roboto, sans-serif' }}>
-                  {error}
-                </div>
-              )}
-
-              {/* Sign Up Button */}
-              <Button
-                type="submit"
-                disabled={loading}
-                style={{
-                  animation: 'slideInUp 0.4s ease 0.7s both, buttonGlow 2s ease-in-out 1.1s infinite',
-                }}
-              >
-                {loading ? 'CREATING ACCOUNT...' : 'SIGN UP'}
-              </Button>
-            </form>
-
-            {/* Login Link */}
-            <p style={{ textAlign: 'center', marginTop: '20px', color: theme.secondary, fontSize: '13px', animation: 'fadeIn 0.5s ease 0.8s both', fontFamily: 'Roboto, sans-serif' }}>
-              Already have an account?
-              <Link to="/login" style={{ color: theme.primary, fontWeight: 'bold', textDecoration: 'none', cursor: 'pointer', marginLeft: '4px', transition: 'all 0.3s ease' }}
-                onMouseEnter={(e) => {
-                  e.target.style.color = theme.warning;
-                  e.target.style.textDecoration = 'underline';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.color = theme.primary;
-                  e.target.style.textDecoration = 'none';
-                }}
-              >
-                Log in
-              </Link>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes slideInUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes buttonGlow {
-          0%, 100% { box-shadow: 0 0 20px rgba(135, 206, 235, 0.3), inset 0 0 20px rgba(135, 206, 235, 0.1); }
-          50% { box-shadow: 0 0 30px rgba(135, 206, 235, 0.5), inset 0 0 25px rgba(135, 206, 235, 0.15); }
-        }
-        @keyframes slideInLeft {
-          from { opacity: 0; transform: translateX(-50px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(50px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes fadeInDown {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes slideInDown {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        input::-webkit-calendar-picker-indicator {
-          filter: invert(1) brightness(1.2);
-          cursor: pointer;
-        }
-        input[type="date"]::-webkit-input-placeholder {
-          color: #888888;
-        }
-        input[type="date"]::placeholder {
-          color: #888888;
-        }
-        select option {
-          background-color: #333333;
-          color: #ffffff;
-        }
-      `}</style>
-    </>
+        <Button type="submit" size="lg" loading={loading} className="w-full">
+          Create account
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }
 
 export default SignupPage;
-
-
-

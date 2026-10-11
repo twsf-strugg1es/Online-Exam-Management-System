@@ -1,454 +1,138 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import StudentSidebar from '../components/StudentSidebar';
 import api from '../api';
-import Button from '../components/Button';
+import AppShell from '../components/AppShell';
+import { Alert, Button, Card, CardHeader, Field, Input, PageHeader, PageLoader, Select } from '../components/ui';
+import { ROLE_LABELS, errorMessage } from '../utils';
 
-
+// Account settings for anyone signed in: name, gender and password
 function StudentProfilePage() {
-  const { user, logout, currentMembership } = useAuth();
-  const { theme } = useTheme();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const { user, refreshUser } = useAuth();
   const [profile, setProfile] = useState(null);
-  const [editMode, setEditMode] = useState(false);
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: '',
-    gender: '',
-  });
-  const [passwordData, setPasswordData] = useState({
-    old_password: '',
-    new_password: '',
-    confirm_password: '',
-  });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [details, setDetails] = useState({ full_name: '', gender: '' });
+  const [passwords, setPasswords] = useState({ old_password: '', new_password: '', confirm_password: '' });
+  const [detailsMessage, setDetailsMessage] = useState(null);
+  const [passwordMessage, setPasswordMessage] = useState(null);
+  const [saving, setSaving] = useState(null); // 'details' | 'password'
 
   useEffect(() => {
-    loadProfile();
+    api.get('/profile/student')
+      .then((res) => {
+        setProfile(res.data);
+        setDetails({ full_name: res.data.full_name || '', gender: res.data.gender || '' });
+      })
+      .catch((err) => setDetailsMessage({ tone: 'danger', text: errorMessage(err, 'Failed to load your profile') }));
   }, []);
 
-  const loadProfile = async () => {
+  const saveDetails = async (e) => {
+    e.preventDefault();
+    setDetailsMessage(null);
+    setSaving('details');
     try {
-      setLoading(true);
-      const response = await api.get('/profile/student');
-      setProfile(response.data);
-      setFormData({
-        full_name: response.data.full_name || '',
-        gender: response.data.gender || '',
-      });
+      const res = await api.put('/profile/student', { full_name: details.full_name.trim(), gender: details.gender || null });
+      setProfile(res.data);
+      await refreshUser(); // the name shows in the sidebar
+      setDetailsMessage({ tone: 'success', text: 'Saved' });
     } catch (err) {
-      setError('Failed to load profile');
+      setDetailsMessage({ tone: 'danger', text: errorMessage(err, 'Could not save') });
     } finally {
-      setLoading(false);
+      setSaving(null);
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSaveProfile = async () => {
-    setError('');
-    setSuccess('');
-    try {
-      setSaving(true);
-      await api.put('/profile/student', formData);
-      setSuccess('Profile updated successfully!');
-      setEditMode(false);
-      loadProfile();
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update profile');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleChangePassword = async () => {
-    if (passwordData.new_password !== passwordData.confirm_password) {
-      setError('Passwords do not match');
+  const changePassword = async (e) => {
+    e.preventDefault();
+    setPasswordMessage(null);
+    if (passwords.new_password.length < 6) {
+      setPasswordMessage({ tone: 'danger', text: 'The new password must be at least 6 characters.' });
       return;
     }
-    if (passwordData.new_password.length < 6) {
-      setError('New password must be at least 6 characters');
+    if (passwords.new_password !== passwords.confirm_password) {
+      setPasswordMessage({ tone: 'danger', text: 'The new passwords do not match.' });
       return;
     }
-
+    setSaving('password');
     try {
-      setSaving(true);
-      setError('');
-      setSuccess('');
-
-      await api.post('/profile/change-password', {
-        old_password: passwordData.old_password,
-        new_password: passwordData.new_password,
-      });
-
-      setSuccess('Password changed successfully!');
-      setShowPasswordChange(false);
-      setPasswordData({
-        old_password: '',
-        new_password: '',
-        confirm_password: '',
-      });
+      await api.post('/profile/change-password', { old_password: passwords.old_password, new_password: passwords.new_password });
+      setPasswords({ old_password: '', new_password: '', confirm_password: '' });
+      setPasswordMessage({ tone: 'success', text: 'Password changed' });
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to change password');
+      setPasswordMessage({ tone: 'danger', text: errorMessage(err, 'Could not change the password') });
     } finally {
-      setSaving(false);
+      setSaving(null);
     }
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#000000', fontFamily: 'Roboto, sans-serif', justifyContent: 'center', alignItems: 'center' }}>
-        <p style={{ color: '#0d6efd', fontSize: '16px' }}>Loading profile...</p>
-      </div>
-    );
-  }
+  if (!profile && !detailsMessage) return <AppShell width="narrow"><PageLoader /></AppShell>;
+
+  const unchanged = profile && details.full_name === (profile.full_name || '') && details.gender === (profile.gender || '');
 
   return (
-    <>
-      <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.background, fontFamily: 'Roboto, sans-serif' }}>
-        {/* Sidebar */}
-      <StudentSidebar user={user} onLogout={logout} />
+    <AppShell width="narrow">
+      <PageHeader title="Account" description="Your name is what examiners see on your results." />
 
-        {/* Main Content */}
-        <div style={{ marginLeft: '70px', flex: 1, padding: '30px', overflow: 'auto' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ backgroundColor: 'rgba(135, 206, 235, 0.05)', border: '2px solid #0d6efd', borderRadius: '8px', padding: '30px', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(135, 206, 235, 0.1)', animation: 'fadeInDown 0.6s ease' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <h2 style={{ margin: 0, color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>My Profile</h2>
-                {!editMode && !showPasswordChange && (
-                  <Button
-                    onClick={() => setEditMode(true)}
-                  >
-                    Edit Profile
-                  </Button>
-                )}
-              </div>
-
-              {error && (
-                <div style={{
-                  backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                  color: '#ff6b6b',
-                  padding: '12px',
-                  borderRadius: '4px',
-                  marginBottom: '20px',
-                  borderLeft: '4px solid #dc3545',
-                  fontFamily: 'Roboto, sans-serif',
-                  animation: 'slideInDown 0.4s ease',
-                }}>
-                  {error}
-                </div>
-              )}
-              {success && (
-                <div style={{
-                  backgroundColor: 'rgba(132, 204, 22, 0.1)',
-                  color: '#84cc16',
-                  padding: '12px',
-                  borderRadius: '4px',
-                  marginBottom: '20px',
-                  borderLeft: '4px solid #84cc16',
-                  fontFamily: 'Roboto, sans-serif',
-                  animation: 'slideInDown 0.4s ease',
-                }}>
-                  {success}
-                </div>
-              )}
-
-              {profile && (
-                <>
-                  {editMode ? (
-                    <div style={{ marginBottom: '20px', animation: 'fadeIn 0.3s ease' }}>
-                      <h3 style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Edit Profile Information</h3>
-                      <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Full Name:</label>
-                        <input
-                          type="text"
-                          name="full_name"
-                          value={formData.full_name}
-                          onChange={handleInputChange}
-                          style={{
-                            width: '100%',
-                            padding: '10px',
-                            border: '1px solid #0d6efd',
-                            borderRadius: '4px',
-                            backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                            color: '#0d6efd',
-                            fontFamily: 'Roboto, sans-serif',
-                            transition: 'all 0.3s ease',
-                          }}
-                          onFocus={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = '0 0 8px rgba(135, 206, 235, 0.3)';
-                            e.currentTarget.style.backgroundColor = 'rgba(135, 206, 235, 0.15)';
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = 'none';
-                            e.currentTarget.style.backgroundColor = 'rgba(135, 206, 235, 0.1)';
-                          }}
-                        />
-                      </div>
-
-                      <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Gender:</label>
-                        <select
-                          name="gender"
-                          value={formData.gender}
-                          onChange={handleInputChange}
-                          style={{
-                            width: '100%',
-                            padding: '10px',
-                            border: '1px solid #0d6efd',
-                            borderRadius: '4px',
-                            backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                            color: '#0d6efd',
-                            fontFamily: 'Roboto, sans-serif',
-                            transition: 'all 0.3s ease',
-                          }}
-                          onFocus={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = '0 0 8px rgba(135, 206, 235, 0.3)';
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = 'none';
-                          }}
-                        >
-                          <option value="">-- Select Gender --</option>
-                          <option value="male">Male</option>
-                          <option value="female">Female</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-
-
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                        <Button
-                          onClick={handleSaveProfile}
-                          disabled={saving}
-                          style={{ flex: 1 }}
-                        >
-                          {saving ? 'Saving...' : 'Save Changes'}
-                        </Button>
-                        <Button
-                          onClick={() => setEditMode(false)}
-                          style={{ flex: 1 }}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : showPasswordChange ? (
-                    <div style={{ marginBottom: '20px', animation: 'fadeIn 0.3s ease' }}>
-                      <h3 style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Change Password</h3>
-                      <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Current Password:</label>
-                        <input
-                          type="password"
-                          name="old_password"
-                          value={passwordData.old_password}
-                          onChange={handlePasswordChange}
-                          style={{
-                            width: '100%',
-                            padding: '10px',
-                            border: '1px solid #0d6efd',
-                            borderRadius: '4px',
-                            backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                            color: '#0d6efd',
-                            fontFamily: 'Roboto, sans-serif',
-                            transition: 'all 0.3s ease',
-                          }}
-                          onFocus={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = '0 0 8px rgba(135, 206, 235, 0.3)';
-                            e.currentTarget.style.backgroundColor = 'rgba(135, 206, 235, 0.15)';
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = 'none';
-                            e.currentTarget.style.backgroundColor = 'rgba(135, 206, 235, 0.1)';
-                          }}
-                        />
-                      </div>
-
-                      <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>New Password:</label>
-                        <input
-                          type="password"
-                          name="new_password"
-                          value={passwordData.new_password}
-                          onChange={handlePasswordChange}
-                          style={{
-                            width: '100%',
-                            padding: '10px',
-                            border: '1px solid #0d6efd',
-                            borderRadius: '4px',
-                            backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                            color: '#0d6efd',
-                            fontFamily: 'Roboto, sans-serif',
-                            transition: 'all 0.3s ease',
-                          }}
-                          onFocus={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = '0 0 8px rgba(135, 206, 235, 0.3)';
-                            e.currentTarget.style.backgroundColor = 'rgba(135, 206, 235, 0.15)';
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = 'none';
-                            e.currentTarget.style.backgroundColor = 'rgba(135, 206, 235, 0.1)';
-                          }}
-                        />
-                      </div>
-
-                      <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Confirm New Password:</label>
-                        <input
-                          type="password"
-                          name="confirm_password"
-                          value={passwordData.confirm_password}
-                          onChange={handlePasswordChange}
-                          style={{
-                            width: '100%',
-                            padding: '10px',
-                            border: '1px solid #0d6efd',
-                            borderRadius: '4px',
-                            backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                            color: '#0d6efd',
-                            fontFamily: 'Roboto, sans-serif',
-                            transition: 'all 0.3s ease',
-                          }}
-                          onFocus={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = '0 0 8px rgba(135, 206, 235, 0.3)';
-                            e.currentTarget.style.backgroundColor = 'rgba(135, 206, 235, 0.15)';
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.borderColor = '#0d6efd';
-                            e.currentTarget.style.boxShadow = 'none';
-                            e.currentTarget.style.backgroundColor = 'rgba(135, 206, 235, 0.1)';
-                          }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                        <Button
-                          onClick={handleChangePassword}
-                          disabled={saving}
-                          style={{ flex: 1 }}
-                        >
-                          {saving ? 'Updating...' : 'Update Password'}
-                        </Button>
-                        <Button
-                          onClick={() => setShowPasswordChange(false)}
-                          style={{ flex: 1 }}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ marginBottom: '20px', animation: 'fadeIn 0.3s ease' }}>
-                      <div style={{ marginBottom: '25px' }}>
-                        <h3 style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Account Information</h3>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(135, 206, 235, 0.3)', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>
-                          <span style={{ fontWeight: 'bold' }}>Email:</span>
-                          <span>{profile.email}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: '25px' }}>
-                        <h3 style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Personal Information</h3>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(135, 206, 235, 0.3)', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>
-                          <span style={{ fontWeight: 'bold' }}>Full Name:</span>
-                          <span>{profile.full_name || '-'}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(135, 206, 235, 0.3)', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>
-                          <span style={{ fontWeight: 'bold' }}>Gender:</span>
-                          <span>{profile.gender || '-'}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: '25px' }}>
-                        <h3 style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Exam Information</h3>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(135, 206, 235, 0.3)', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>
-                          <span style={{ fontWeight: 'bold' }}>Organization:</span>
-                          <span>{currentMembership?.organization_name || '-'}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                        <Button
-                          onClick={() => setShowPasswordChange(true)}
-                          style={{ flex: 1 }}
-                        >
-                          Change Password
-                        </Button>
-                        <Button
-                          onClick={() => navigate(-1)}
-                          style={{ flex: 1 }}
-                        >
-                          Back
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+      <div className="space-y-6">
+        <Card>
+          <CardHeader title="Personal details" />
+          <form onSubmit={saveDetails} className="space-y-5 p-5">
+            <Field label="Email" hint="Your email is your login and can't be changed here.">
+              <Input value={profile?.email || ''} disabled />
+            </Field>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Full name" htmlFor="fullName">
+                <Input id="fullName" value={details.full_name} onChange={(e) => setDetails({ ...details, full_name: e.target.value })} required />
+              </Field>
+              <Field label="Gender" htmlFor="gender" optional>
+                <Select id="gender" value={details.gender} onChange={(e) => setDetails({ ...details, gender: e.target.value })}>
+                  <option value="">Prefer not to say</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                  <option value="other">Other</option>
+                </Select>
+              </Field>
             </div>
-          </div>
-        </div>
+            {detailsMessage && <Alert tone={detailsMessage.tone}>{detailsMessage.text}</Alert>}
+            <div className="flex justify-end">
+              <Button type="submit" loading={saving === 'details'} disabled={unchanged}>Save changes</Button>
+            </div>
+          </form>
+        </Card>
+
+        <Card>
+          <CardHeader title="Password" />
+          <form onSubmit={changePassword} className="space-y-5 p-5">
+            <Field label="Current password" htmlFor="oldPassword">
+              <Input id="oldPassword" type="password" autoComplete="current-password" value={passwords.old_password} onChange={(e) => setPasswords({ ...passwords, old_password: e.target.value })} required />
+            </Field>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="New password" htmlFor="newPassword" hint="At least 6 characters.">
+                <Input id="newPassword" type="password" autoComplete="new-password" value={passwords.new_password} onChange={(e) => setPasswords({ ...passwords, new_password: e.target.value })} required />
+              </Field>
+              <Field label="Confirm new password" htmlFor="confirmPassword">
+                <Input id="confirmPassword" type="password" autoComplete="new-password" value={passwords.confirm_password} onChange={(e) => setPasswords({ ...passwords, confirm_password: e.target.value })} required />
+              </Field>
+            </div>
+            {passwordMessage && <Alert tone={passwordMessage.tone}>{passwordMessage.text}</Alert>}
+            <div className="flex justify-end">
+              <Button type="submit" variant="secondary" loading={saving === 'password'}>Change password</Button>
+            </div>
+          </form>
+        </Card>
+
+        <Card>
+          <CardHeader title="Organizations" description="Switch between them from the sidebar." />
+          <ul className="divide-y divide-line">
+            {(user?.memberships || []).map((m) => (
+              <li key={m.organization_id} className="flex items-center justify-between px-5 py-3 text-sm">
+                <span>{m.organization_name}</span>
+                <span className="text-muted">{ROLE_LABELS[m.role]}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
       </div>
-
-      <style>{`
-        @keyframes fadeInDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideInDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-      `}</style>
-    </>
+    </AppShell>
   );
 }
 
 export default StudentProfilePage;
-
-
-

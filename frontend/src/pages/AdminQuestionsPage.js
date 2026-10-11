@@ -1,685 +1,359 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import AdminSidebar from '../components/AdminSidebar';
-import ConfirmModal from '../components/ConfirmModal';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { LuDownload, LuFileSpreadsheet, LuFileQuestion, LuSearch, LuTrash2, LuUpload, LuEye, LuCheck } from 'react-icons/lu';
 import api from '../api';
-import Button from '../components/Button';
+import AppShell from '../components/AppShell';
+import {
+  Alert, Badge, Button, Card, Checkbox, EmptyState, Input, Modal, PageHeader, PageLoader, Select, cx, useConfirm,
+} from '../components/ui';
+import { QUESTION_TYPE_LABELS, errorMessage } from '../utils';
 
+const COMPLEXITY_TONES = { easy: 'brand', medium: 'warn', hard: 'danger' };
+
+const formatAnswer = (value) => (Array.isArray(value) ? value.join(', ') : value ?? '—');
+
+function ImportDialog({ open, onClose, onImported }) {
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(null); // 'preview' | 'import'
+  const inputRef = useRef(null);
+
+  const reset = () => {
+    setFile(null);
+    setPreview(null);
+    setError('');
+  };
+
+  const close = () => {
+    reset();
+    onClose();
+  };
+
+  const send = async (path) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(path, formData);
+  };
+
+  const handlePreview = async () => {
+    setError('');
+    setBusy('preview');
+    try {
+      setPreview((await send('/admin/preview-questions/')).data);
+    } catch (err) {
+      setError(errorMessage(err, 'Could not read this file'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleImport = async () => {
+    setError('');
+    setBusy('import');
+    try {
+      const res = await send('/admin/upload-questions/');
+      onImported(res.data.rows_imported);
+      close();
+    } catch (err) {
+      setError(errorMessage(err, 'Import failed'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={close}
+      size={preview ? 'lg' : 'md'}
+      title="Import questions from Excel"
+      description="Columns: title, complexity, type, options, correct_answers, max_score, and optionally tags and description. The template shows the format."
+      footer={
+        <>
+          <Button variant="secondary" onClick={close}>Cancel</Button>
+          {!preview ? (
+            <Button onClick={handlePreview} disabled={!file} loading={busy === 'preview'}>Preview</Button>
+          ) : (
+            <Button onClick={handleImport} icon={LuUpload} loading={busy === 'import'}>
+              Import {preview.count} question{preview.count === 1 ? '' : 's'}
+            </Button>
+          )}
+        </>
+      }
+    >
+      {!preview ? (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className={cx(
+            'flex w-full flex-col items-center rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors',
+            file ? 'border-brand/50 bg-brand-soft/40' : 'border-line hover:border-muted/50 hover:bg-sunken/50',
+          )}
+        >
+          <LuFileSpreadsheet className={cx('h-8 w-8', file ? 'text-brand' : 'text-muted')} />
+          <span className="mt-3 text-sm font-medium">{file ? file.name : 'Choose an .xlsx file'}</span>
+          <span className="mt-1 text-xs text-muted">{file ? 'Click to choose a different file' : 'Excel 2007 or newer'}</span>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            className="hidden"
+            onChange={(e) => { setFile(e.target.files[0] || null); setError(''); }}
+          />
+        </button>
+      ) : (
+        <div className="space-y-2">
+          {preview.questions.map((q, i) => (
+            <div key={i} className="rounded-lg border border-line px-4 py-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <p className="text-sm font-medium"><span className="tabular mr-2 text-muted">{i + 1}.</span>{q.title}</p>
+                <div className="flex gap-1.5">
+                  <Badge>{QUESTION_TYPE_LABELS[q.type]}</Badge>
+                  <Badge tone={COMPLEXITY_TONES[q.complexity]}>{q.complexity}</Badge>
+                </div>
+              </div>
+              {Array.isArray(q.options) && (
+                <p className="mt-1.5 text-xs text-muted">
+                  Options: {q.options.join(' · ')} — answer: <span className="font-medium text-ink">{formatAnswer(q.correct_answers)}</span>
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {error && <Alert tone="danger" className="mt-4">{error}</Alert>}
+    </Modal>
+  );
+}
+
+function QuestionDialog({ question, onClose }) {
+  if (!question) return null;
+  const correct = Array.isArray(question.correct_answers) ? question.correct_answers.map(String) : [String(question.correct_answers)];
+  return (
+    <Modal open onClose={onClose} title={question.title} description={question.description} size="md">
+      <div className="mb-4 flex flex-wrap gap-1.5">
+        <Badge>{QUESTION_TYPE_LABELS[question.type]}</Badge>
+        <Badge tone={COMPLEXITY_TONES[question.complexity]}>{question.complexity}</Badge>
+        <Badge tone="info">{question.max_score} point{question.max_score === 1 ? '' : 's'}</Badge>
+        {(question.tags || []).map((tag) => <Badge key={tag}>#{tag}</Badge>)}
+      </div>
+      {Array.isArray(question.options) ? (
+        <ul className="space-y-1.5">
+          {question.options.map((option) => {
+            const isCorrect = correct.includes(String(option));
+            return (
+              <li
+                key={option}
+                className={cx('flex items-center justify-between rounded-lg border px-3 py-2 text-sm', isCorrect ? 'border-brand/40 bg-brand-soft/50' : 'border-line')}
+              >
+                {option}
+                {isCorrect && <span className="flex items-center gap-1 text-xs font-medium text-brand-ink"><LuCheck className="h-3.5 w-3.5" />Correct</span>}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="rounded-lg bg-sunken px-4 py-3 text-sm text-muted">Graded by an examiner after the exam.</p>
+      )}
+    </Modal>
+  );
+}
 
 function AdminQuestionsPage() {
-  const { user, logout } = useAuth();
-  const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState('upload');
-  const [file, setFile] = useState(null);
-  const [uploadMessage, setUploadMessage] = useState('');
-  const [questions, setQuestions] = useState([]);
-  const [filteredQuestions, setFilteredQuestions] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [questionTypeFilter, setQuestionTypeFilter] = useState('');
+  const [questions, setQuestions] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  const [message, setMessage] = useState(null);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [complexityFilter, setComplexityFilter] = useState('');
-  const [tagFilter, setTagFilter] = useState('');
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [showQuestionModal, setShowQuestionModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteQuestionId, setDeleteQuestionId] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [selectedQuestionIds, setSelectedQuestionIds] = useState(new Set());
-  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
-  const [previewData, setPreviewData] = useState(null);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-
-  useEffect(() => {
-    fetchQuestions();
-  }, []);
-
-  useEffect(() => {
-    let filtered = questions;
-
-    if (searchTerm) {
-      filtered = filtered.filter(q =>
-        q.title.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (questionTypeFilter) {
-      filtered = filtered.filter(q => q.type === questionTypeFilter);
-    }
-
-    if (complexityFilter) {
-      filtered = filtered.filter(q => q.complexity === complexityFilter);
-    }
-
-    setFilteredQuestions(filtered);
-  }, [questions, searchTerm, questionTypeFilter, complexityFilter, tagFilter]);
+  const [selected, setSelected] = useState(new Set());
+  const [viewing, setViewing] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [confirmDialog, confirm] = useConfirm();
 
   const fetchQuestions = async () => {
     try {
       const res = await api.get('/admin/questions/');
       setQuestions(res.data || []);
     } catch (err) {
-      console.error('Failed to fetch questions:', err);
+      setLoadError(errorMessage(err, 'Failed to load questions'));
+      setQuestions([]);
     }
   };
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+  useEffect(() => {
+    fetchQuestions();
+  }, []);
+
+  const filtered = useMemo(() => (questions || []).filter((q) =>
+    (!search || q.title.toLowerCase().includes(search.toLowerCase()))
+    && (!typeFilter || q.type === typeFilter)
+    && (!complexityFilter || q.complexity === complexityFilter)), [questions, search, typeFilter, complexityFilter]);
+
+  const allSelected = filtered.length > 0 && filtered.every((q) => selected.has(q.id));
+
+  const toggle = (id) => {
+    const next = new Set(selected);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelected(next);
   };
 
-  const handleUpload = async () => {
-    if (!file) {
-      setUploadMessage('Please select a file');
-      return;
-    }
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(filtered.map((q) => q.id)));
 
-    const formData = new FormData();
-    formData.append('file', file);
-
+  const downloadTemplate = async () => {
     try {
-      await api.post('/admin/upload-questions/', formData);
-      setUploadMessage('Questions uploaded successfully');
-      setFile(null);
+      const res = await api.get('/admin/questions-template', { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'questions_template.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setMessage({ tone: 'danger', text: errorMessage(err, 'Could not download the template') });
+    }
+  };
+
+  const deleteQuestions = async (ids) => {
+    const many = ids.length > 1;
+    const ok = await confirm({
+      title: many ? `Delete ${ids.length} questions?` : 'Delete this question?',
+      description: 'Students’ answers to these questions are deleted too. This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      if (many) {
+        await api.post('/admin/questions/delete-bulk', { question_ids: ids });
+      } else {
+        await api.delete(`/admin/questions/${ids[0]}`);
+      }
+      setMessage({ tone: 'success', text: many ? `${ids.length} questions deleted` : 'Question deleted' });
+      setSelected(new Set());
       fetchQuestions();
     } catch (err) {
-      let msg = 'Failed to upload questions';
-      if (err.response?.data?.detail) {
-        msg = typeof err.response.data.detail === 'string' ? err.response.data.detail : msg;
-      }
-      setUploadMessage(msg);
+      setMessage({ tone: 'danger', text: errorMessage(err, 'Failed to delete') });
     }
   };
 
-  const handlePreviewFile = async () => {
-    if (!file) {
-      setUploadMessage('Please select a file');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const res = await api.post('/admin/preview-questions/', formData);
-      setPreviewData(res.data);
-      setShowPreviewModal(true);
-    } catch (err) {
-      let msg = 'Failed to preview file';
-      if (err.response?.data?.detail) {
-        msg = typeof err.response.data.detail === 'string' ? err.response.data.detail : msg;
-      }
-      setUploadMessage(msg);
-    }
-  };
-
-  const handleToggleSelectQuestion = (questionId) => {
-    const newSelected = new Set(selectedQuestionIds);
-    if (newSelected.has(questionId)) {
-      newSelected.delete(questionId);
-    } else {
-      newSelected.add(questionId);
-    }
-    setSelectedQuestionIds(newSelected);
-  };
-
-  const handleSelectAllQuestions = () => {
-    if (selectedQuestionIds.size === filteredQuestions.length) {
-      // Deselect all
-      setSelectedQuestionIds(new Set());
-    } else {
-      // Select all
-      const allIds = new Set(filteredQuestions.map(q => q.id));
-      setSelectedQuestionIds(allIds);
-    }
-  };
-
-  const handleBulkDelete = () => {
-    if (selectedQuestionIds.size === 0) {
-      setUploadMessage('Please select at least one question to delete');
-      return;
-    }
-    setShowBulkDeleteModal(true);
-  };
-
-  const confirmBulkDelete = async () => {
-    setBulkDeleteLoading(true);
-    try {
-      const idsArray = Array.from(selectedQuestionIds);
-      await api.post('/admin/questions/delete-bulk', {
-        question_ids: idsArray
-      });
-      setUploadMessage(`${selectedQuestionIds.size} question(s) deleted successfully`);
-      setShowBulkDeleteModal(false);
-      setSelectedQuestionIds(new Set());
-      fetchQuestions();
-    } catch (err) {
-      let msg = 'Failed to delete questions';
-      if (err.response?.data?.detail) {
-        msg = typeof err.response.data.detail === 'string' ? err.response.data.detail : msg;
-      }
-      setUploadMessage(msg);
-    } finally {
-      setBulkDeleteLoading(false);
-    }
-  };
-
-  const handleViewQuestion = (question) => {
-    setSelectedQuestion(question);
-    setShowQuestionModal(true);
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setQuestionTypeFilter('');
-    setComplexityFilter('');
-    setTagFilter('');
-  };
-
-  const handleDeleteQuestion = async (questionId) => {
-    setShowDeleteModal(true);
-    setDeleteQuestionId(questionId);
-  };
-
-  const confirmDeleteQuestion = async () => {
-    setDeleteLoading(true);
-    try {
-      await api.delete(`/admin/questions/${deleteQuestionId}`);
-      setUploadMessage('Question deleted successfully');
-      setShowDeleteModal(false);
-      setDeleteQuestionId(null);
-      fetchQuestions();
-    } catch (err) {
-      let msg = 'Failed to delete question';
-      if (err.response?.data?.detail) {
-        msg = typeof err.response.data.detail === 'string' ? err.response.data.detail : msg;
-      }
-      setUploadMessage(msg);
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
+  const filtersActive = search || typeFilter || complexityFilter;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.background, fontFamily: 'Roboto, sans-serif' }}>
-      {/* Sidebar */}
-      <AdminSidebar user={user} onLogout={logout} />
+    <AppShell>
+      <PageHeader
+        title="Question bank"
+        description="Questions you can reuse across exams. Multiple-choice questions are graded automatically; written and image answers are graded by an examiner."
+        actions={
+          <>
+            <Button variant="secondary" icon={LuDownload} onClick={downloadTemplate}>Template</Button>
+            <Button icon={LuUpload} onClick={() => setImportOpen(true)}>Import from Excel</Button>
+          </>
+        }
+      />
 
-      {/* Main Content */}
-      <div style={{ marginLeft: '70px', flex: 1, padding: '30px', overflow: 'auto' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          {/* Header */}
-          <div style={{ marginBottom: '30px' }}>
-            <h1 style={{ margin: '0 0 24px 0', color: '#0d6efd', fontSize: '28px', fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}>Questions Management</h1>
-          </div>
+      {message && <Alert tone={message.tone} className="mb-6" onClose={() => setMessage(null)}>{message.text}</Alert>}
+      {loadError && <Alert tone="danger" className="mb-6">{loadError}</Alert>}
 
-          {/* Tabs */}
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
-            <Button
-              onClick={() => setActiveTab('upload')}
-              style={{
-                backgroundColor: activeTab === 'upload' ? '#0d6efd' : 'transparent',
-                color: activeTab === 'upload' ? '#000000' : '#0d6efd',
-                border: `2px solid #0d6efd`,
-              }}
-            >
-              Upload Questions
-            </Button>
-            <Button
-              onClick={() => setActiveTab('manage')}
-              style={{
-                backgroundColor: activeTab === 'manage' ? '#0d6efd' : 'transparent',
-                color: activeTab === 'manage' ? '#000000' : '#0d6efd',
-                border: `2px solid #0d6efd`,
-              }}
-            >
-              Manage Questions
-            </Button>
-          </div>
-
-          {/* Upload Tab */}
-          {activeTab === 'upload' && (
-            <div style={{ backgroundColor: 'rgba(135, 206, 235, 0.05)', border: '2px solid #0d6efd', borderRadius: '8px', padding: '30px' }}>
-              <h2 style={{ margin: '0 0 20px 0', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Upload Questions</h2>
-              <form onSubmit={(e) => { e.preventDefault(); handleUpload(); }}>
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".xlsx,.xls"
-                  style={{ marginBottom: '20px', display: 'block', width: '100%', color: '#0d6efd' }}
-                />
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <Button
-                    type="button"
-                    onClick={handlePreviewFile}
-                    style={{
-                      flex: 1,
-                      backgroundColor: 'transparent',
-                      color: '#0d6efd',
-                      border: '2px solid #0d6efd',
-                    }}
-                  >
-                    Preview
-                  </Button>
-                  <Button
-                    type="submit"
-                    style={{
-                      flex: 1,
-                      backgroundColor: '#0d6efd',
-                      color: '#000000',
-                      border: 'none',
-                    }}
-                  >
-                    Upload
-                  </Button>
-                </div>
-              </form>
-              {uploadMessage && <p style={{ marginTop: '20px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{uploadMessage}</p>}
-            </div>
-          )}
-
-          {/* Manage Tab */}
-          {activeTab === 'manage' && (
-            <div style={{ backgroundColor: 'rgba(135, 206, 235, 0.05)', border: '2px solid #0d6efd', borderRadius: '8px', padding: '30px' }}>
-              <h2 style={{ margin: '0 0 20px 0', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Manage Questions</h2>
-
-              {/* Filter Controls */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px' }}>
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '1px solid #0d6efd',
-                    backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                    color: '#0d6efd',
-                    fontFamily: 'Roboto, sans-serif',
-                  }}
-                />
-                <select
-                  value={questionTypeFilter}
-                  onChange={(e) => setQuestionTypeFilter(e.target.value)}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '1px solid #0d6efd',
-                    backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                    color: '#0d6efd',
-                    fontFamily: 'Roboto, sans-serif',
-                  }}
-                >
-                  <option value="">All Types</option>
-                  <option value="single_choice">Single Choice</option>
-                  <option value="multi_choice">Multi Choice</option>
-                  <option value="text">Text</option>
-                  <option value="image_upload">Image Upload</option>
-                </select>
-                <select
-                  value={complexityFilter}
-                  onChange={(e) => setComplexityFilter(e.target.value)}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '1px solid #0d6efd',
-                    backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                    color: '#0d6efd',
-                    fontFamily: 'Roboto, sans-serif',
-                  }}
-                >
-                  <option value="">All Complexities</option>
-                  <option value="easy">Easy</option>
-                  <option value="medium">Medium</option>
-                  <option value="hard">Hard</option>
-                </select>
-                <Button
-                  onClick={clearFilters}
-                  style={{
-                    backgroundColor: '#0d6efd',
-                    color: '#000000',
-                    border: 'none',
-                  }}
-                >
-                  Clear Filters
-                </Button>
+      {questions === null ? (
+        <PageLoader />
+      ) : questions.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={LuFileQuestion}
+            title="No questions yet"
+            action={
+              <div className="flex gap-2">
+                <Button variant="secondary" icon={LuDownload} onClick={downloadTemplate}>Download template</Button>
+                <Button icon={LuUpload} onClick={() => setImportOpen(true)}>Import from Excel</Button>
               </div>
+            }
+          >
+            Fill in the Excel template with your questions, then import it. You can import as many files as you like.
+          </EmptyState>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
+            <div className="relative min-w-[200px] flex-1">
+              <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search questions" className="pl-9" />
+            </div>
+            <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="w-auto">
+              <option value="">All types</option>
+              {Object.entries(QUESTION_TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </Select>
+            <Select value={complexityFilter} onChange={(e) => setComplexityFilter(e.target.value)} className="w-auto">
+              <option value="">All difficulties</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </Select>
+            {filtersActive && (
+              <Button variant="ghost" onClick={() => { setSearch(''); setTypeFilter(''); setComplexityFilter(''); }}>Clear</Button>
+            )}
+          </div>
 
-              {/* Questions Table */}
-              {filteredQuestions.length === 0 ? (
-                <p style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>No questions found.</p>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#0d6efd', color: '#000000' }}>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold', width: '40px' }}>
-                        <input
-                          type="checkbox"
-                          checked={selectedQuestionIds.size === filteredQuestions.length && filteredQuestions.length > 0}
-                          onChange={handleSelectAllQuestions}
-                          style={{ cursor: 'pointer' }}
-                          title="Select all questions"
-                        />
-                      </th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Title</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Type</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Complexity</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredQuestions.map((q) => (
-                      <tr key={q.id} style={{ borderBottom: '1px solid #0d6efd', backgroundColor: selectedQuestionIds.has(q.id) ? 'rgba(135, 206, 235, 0.15)' : 'transparent' }}>
-                        <td style={{ padding: '12px' }}>
-                          <input
-                            type="checkbox"
-                            checked={selectedQuestionIds.has(q.id)}
-                            onChange={() => handleToggleSelectQuestion(q.id)}
-                            style={{ cursor: 'pointer' }}
-                          />
-                        </td>
-                        <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{q.title}</td>
-                        <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{q.type}</td>
-                        <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{q.complexity}</td>
-                        <td style={{ padding: '12px' }}>
-                          <Button
-                            onClick={() => handleViewQuestion(q)}
-                            style={{
-                              backgroundColor: 'transparent',
-                              color: '#0d6efd',
-                              border: 'none',
-                              marginRight: '10px',
-                              padding: '4px 8px',
-                              fontSize: '14px'
-                            }}
-                          >
-                            View
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteQuestion(q.id)}
-                            style={{
-                              backgroundColor: 'transparent',
-                              color: '#ff6b6b',
-                              border: 'none',
-                              padding: '4px 8px',
-                              fontSize: '14px'
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-
-              {/* Bulk Delete Section */}
-              {filteredQuestions.length > 0 && (
-                <div style={{ marginTop: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <span style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>
-                    {selectedQuestionIds.size} selected
-                  </span>
-                  {selectedQuestionIds.size > 0 && (
-                    <Button
-                      onClick={handleBulkDelete}
-                      style={{
-                        backgroundColor: '#ff6b6b',
-                        color: '#ffffff',
-                        border: 'none',
-                      }}
-                    >
-                      Delete Selected ({selectedQuestionIds.size})
-                    </Button>
-                  )}
-                </div>
-              )}
+          {selected.size > 0 && (
+            <div className="flex items-center justify-between gap-3 border-b border-line bg-brand-soft/40 px-4 py-2 text-sm">
+              <span className="font-medium">{selected.size} selected</span>
+              <Button variant="danger-ghost" size="sm" icon={LuTrash2} onClick={() => deleteQuestions([...selected])}>Delete</Button>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Question Modal */}
-      {showQuestionModal && selectedQuestion && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: '#000000',
-            border: '2px solid #0d6efd',
-            borderRadius: '8px',
-            padding: '30px',
-            maxWidth: '600px',
-            maxHeight: '80vh',
-            overflowY: 'auto',
-            color: '#0d6efd',
-            fontFamily: 'Roboto, sans-serif',
-          }}>
-            <h2 style={{ margin: '0 0 20px 0', color: '#0d6efd' }}>{selectedQuestion.title}</h2>
-            <p><strong>Type:</strong> {selectedQuestion.type}</p>
-            <p><strong>Complexity:</strong> {selectedQuestion.complexity}</p>
-            <p><strong>Description:</strong> {selectedQuestion.description}</p>
-            <Button
-              onClick={() => setShowQuestionModal(false)}
-              style={{
-                marginTop: '20px',
-                backgroundColor: '#0d6efd',
-                color: '#000000',
-                border: 'none',
-              }}
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Preview Modal */}
-      {showPreviewModal && previewData && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: '#0d6efd',
-            borderRadius: '12px',
-            boxShadow: '0 12px 48px rgba(0, 0, 0, 0.3)',
-            padding: '40px',
-            maxWidth: '800px',
-            width: '90%',
-            maxHeight: '80vh',
-            overflowY: 'auto',
-            fontFamily: 'Roboto, sans-serif',
-          }}>
-            <h2 style={{
-              color: '#000000',
-              fontSize: '24px',
-              fontWeight: 'bold',
-              marginBottom: '24px',
-              marginTop: 0,
-              fontFamily: 'Roboto, sans-serif',
-            }}>
-              File Preview - {previewData.count} Question(s)
-            </h2>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '20px',
-            }}>
-              {previewData.questions && previewData.questions.map((q, idx) => (
-                <div key={idx} style={{
-                  backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                  padding: '16px',
-                  borderRadius: '8px',
-                  borderLeft: '4px solid #000000',
-                }}>
-                  <div style={{
-                    color: '#000000',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    marginBottom: '8px',
-                  }}>
-                    <span>Q{idx + 1}. </span>
-                    <span style={{ fontSize: '12px', backgroundColor: '#000000', color: '#0d6efd', padding: '2px 8px', borderRadius: '4px', marginLeft: '8px' }}>
-                      {q.type === 'single_choice' ? 'Single Choice' : q.type === 'multi_choice' ? 'Multi Choice' : q.type === 'text' ? 'Text' : 'Image Upload'}
-                    </span>
-                    <span style={{ fontSize: '12px', backgroundColor: '#333333', color: '#0d6efd', padding: '2px 8px', borderRadius: '4px', marginLeft: '4px' }}>
-                      {q.complexity}
-                    </span>
-                  </div>
-
-                  <p style={{
-                    color: '#000000',
-                    fontSize: '15px',
-                    fontWeight: '500',
-                    margin: '8px 0',
-                    lineHeight: '1.5',
-                  }}>
-                    {q.title}
-                  </p>
-
-                  {/* Show options and answers only for single_choice and multi_choice */}
-                  {(q.type === 'single_choice' || q.type === 'multi_choice') && q.options && (
-                    <div style={{ marginTop: '12px' }}>
-                      <div style={{
-                        color: '#000000',
-                        fontSize: '13px',
-                        fontWeight: 'bold',
-                        marginBottom: '8px',
-                      }}>
-                        Options:
+          <div className="overflow-x-auto">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th className="w-10"><Checkbox checked={allSelected} onChange={toggleAll} /></th>
+                  <th>Question</th>
+                  <th>Type</th>
+                  <th>Difficulty</th>
+                  <th className="text-right">Points</th>
+                  <th className="w-24" />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((q) => (
+                  <tr key={q.id} className={cx(selected.has(q.id) && 'bg-brand-soft/30')}>
+                    <td><Checkbox checked={selected.has(q.id)} onChange={() => toggle(q.id)} /></td>
+                    <td className="max-w-md">
+                      <button type="button" onClick={() => setViewing(q)} className="text-left font-medium hover:text-brand">{q.title}</button>
+                      {q.tags?.length > 0 && <p className="mt-0.5 text-xs text-muted">{q.tags.map((t) => `#${t}`).join(' ')}</p>}
+                    </td>
+                    <td className="whitespace-nowrap text-muted">{QUESTION_TYPE_LABELS[q.type] || q.type}</td>
+                    <td><Badge tone={COMPLEXITY_TONES[q.complexity]}>{q.complexity}</Badge></td>
+                    <td className="tabular text-right">{q.max_score}</td>
+                    <td>
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="sm" icon={LuEye} onClick={() => setViewing(q)} aria-label="View" />
+                        <Button variant="danger-ghost" size="sm" icon={LuTrash2} onClick={() => deleteQuestions([q.id])} aria-label="Delete" />
                       </div>
-                      <ul style={{
-                        margin: '0 0 12px 20px',
-                        padding: 0,
-                        color: '#000000',
-                        fontSize: '13px',
-                      }}>
-                        {q.options.map((opt, optIdx) => {
-                          const isCorrect = q.type === 'single_choice'
-                            ? opt === q.correct_answers
-                            : Array.isArray(q.correct_answers) && q.correct_answers.includes(opt);
-                          return (
-                            <li key={optIdx} style={{
-                              marginBottom: '6px',
-                              padding: '4px 8px',
-                              backgroundColor: isCorrect ? 'rgba(0, 200, 0, 0.15)' : 'transparent',
-                              borderRadius: '4px',
-                            }}>
-                              {opt}
-                              {isCorrect && (
-                                <span style={{
-                                  marginLeft: '8px',
-                                  color: '#008000',
-                                  fontWeight: 'bold',
-                                  fontSize: '12px',
-                                }}>
-                                  ✓ Correct
-                                </span>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Show message for text and image_upload types */}
-                  {(q.type === 'text' || q.type === 'image_upload') && (
-                    <div style={{
-                      marginTop: '12px',
-                      padding: '8px 12px',
-                      backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                      borderRadius: '4px',
-                      color: '#000000',
-                      fontSize: '13px',
-                      fontStyle: 'italic',
-                    }}>
-                      {q.type === 'text' && '(Answer will be manually evaluated)'}
-                      {q.type === 'image_upload' && '(Image upload - will be manually evaluated)'}
-                    </div>
-                  )}
-
-                  <div style={{
-                    marginTop: '12px',
-                    paddingTop: '12px',
-                    borderTop: '1px solid rgba(0, 0, 0, 0.2)',
-                    fontSize: '12px',
-                    color: '#333333',
-                  }}>
-                    Max Score: {q.max_score}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              justifyContent: 'flex-end',
-              marginTop: '24px',
-            }}>
-              <Button
-                onClick={() => setShowPreviewModal(false)}
-                style={{
-                  backgroundColor: '#000000',
-                  color: '#0d6efd',
-                  border: '2px solid #000000',
-                }}
-              >
-                Close
-              </Button>
-            </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filtered.length === 0 && <EmptyState icon={LuSearch} title="No matching questions">Try a different search or filter.</EmptyState>}
           </div>
-        </div>
+          <div className="border-t border-line px-4 py-2.5 text-xs text-muted">
+            {filtered.length} of {questions.length} question{questions.length === 1 ? '' : 's'}
+          </div>
+        </Card>
       )}
 
-      <ConfirmModal
-        isOpen={showDeleteModal}
-        title="Delete Question"
-        message="Are you sure you want to delete this question? This action cannot be undone."
-        onConfirm={confirmDeleteQuestion}
-        onCancel={() => {
-          setShowDeleteModal(false);
-          setDeleteQuestionId(null);
+      <ImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={(count) => {
+          setMessage({ tone: 'success', text: `Imported ${count} question${count === 1 ? '' : 's'}` });
+          fetchQuestions();
         }}
-        confirmText="Delete"
-        cancelText="Cancel"
-        isLoading={deleteLoading}
       />
-
-      <ConfirmModal
-        isOpen={showBulkDeleteModal}
-        title="Delete Selected Questions"
-        message={`Are you sure you want to delete ${selectedQuestionIds.size} question(s)? This action cannot be undone.`}
-        onConfirm={confirmBulkDelete}
-        onCancel={() => setShowBulkDeleteModal(false)}
-        confirmText="Delete All"
-        cancelText="Cancel"
-        isLoading={bulkDeleteLoading}
-      />
-    </div>
+      <QuestionDialog question={viewing} onClose={() => setViewing(null)} />
+      {confirmDialog}
+    </AppShell>
   );
 }
 
 export default AdminQuestionsPage;
-
-
-

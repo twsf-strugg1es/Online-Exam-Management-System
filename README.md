@@ -12,6 +12,18 @@ A web-based exam management system built with **FastAPI** (Python) and **React**
 - **Groups** (batches, classes, hiring rounds) decide which candidates see which exams
 - Students join with an organization or group **join code**
 
+### Exam integrity
+
+A browser can't stop a student from switching apps, but it can notice, hide the questions, and keep a record. Each exam chooses which protections to use:
+
+- **Fullscreen required**: questions are hidden whenever the student leaves fullscreen
+- **Leaving the exam is recorded**: switching tab, window or app, and exiting fullscreen, count as violations
+- **Automatic submission** after a chosen number of violations, enforced by the server
+- **Copy, paste and right-click blocked**, along with print, save and developer-tool shortcuts; attempts are flagged
+- **Shuffled per student**: question and option order differ for every student and stay stable on reload
+- **Integrity report** per attempt: risk level (clean, review, high), time spent away, and a timeline of every event
+- **One attempt per exam**, with the timer starting only when the student presses Start
+
 ### Admin
 
 - Import questions from Excel files

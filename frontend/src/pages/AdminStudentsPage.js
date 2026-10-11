@@ -1,272 +1,159 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { LuSearch, LuUsers, LuUserMinus, LuLink } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import AdminSidebar from '../components/AdminSidebar';
-import ConfirmModal from '../components/ConfirmModal';
 import api from '../api';
-import Button from '../components/Button';
+import AppShell from '../components/AppShell';
+import { Alert, Badge, Button, Card, EmptyState, Input, PageHeader, PageLoader, Select, useConfirm } from '../components/ui';
+import { errorMessage, formatDate } from '../utils';
 
-
-function getPercentageColor(percentage) {
-  if (percentage >= 80) return '#84cc16';
-  if (percentage >= 70) return '#0d6efd';
-  if (percentage >= 60) return '#fbbf24';
-  return '#ff6b6b';
+function ScoreBar({ value }) {
+  const tone = value >= 80 ? 'bg-brand' : value >= 50 ? 'bg-warn' : 'bg-danger';
+  return (
+    <span className="flex items-center gap-2.5">
+      <span className="h-1.5 w-20 overflow-hidden rounded-full bg-sunken">
+        <span className={`block h-full rounded-full ${tone}`} style={{ width: `${Math.min(100, value)}%` }} />
+      </span>
+      <span className="tabular w-9 text-right text-sm">{value}%</span>
+    </span>
+  );
 }
 
 function AdminStudentsPage() {
-  const { user, logout } = useAuth();
-  const { theme } = useTheme();
-  const [students, setStudents] = useState([]);
-  const [filteredStudents, setFilteredStudents] = useState([]);
-  const [studentsLoading, setStudentsLoading] = useState(false);
-  const [studentsError, setStudentsError] = useState('');
-  const [studentSearchQuery, setStudentSearchQuery] = useState('');
-  const [selectedStudentProfile, setSelectedStudentProfile] = useState(null);
-  const [showStudentModal, setShowStudentModal] = useState(false);
-  const [deleteMessage, setDeleteMessage] = useState('');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteStudentId, setDeleteStudentId] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  const { isManager } = useAuth();
+  const [students, setStudents] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [search, setSearch] = useState('');
+  const [groupFilter, setGroupFilter] = useState('');
+  const [confirmDialog, confirm] = useConfirm();
+
+  const fetchStudents = async () => {
+    try {
+      const res = await api.get('/admin/students/');
+      setStudents(res.data || []);
+    } catch (err) {
+      setMessage({ tone: 'danger', text: errorMessage(err, 'Failed to load students') });
+      setStudents([]);
+    }
+  };
 
   useEffect(() => {
     fetchStudents();
   }, []);
 
-  useEffect(() => {
-    let filtered = students;
-    if (studentSearchQuery.trim()) {
-      filtered = filtered.filter(s =>
-        (s.email && s.email.toLowerCase().includes(studentSearchQuery.toLowerCase())) ||
-        (s.full_name && s.full_name.toLowerCase().includes(studentSearchQuery.toLowerCase()))
-      );
-    }
-    setFilteredStudents(filtered);
-  }, [students, studentSearchQuery]);
+  const groups = useMemo(() => {
+    const byId = new Map();
+    (students || []).forEach((s) => s.groups?.forEach((g) => byId.set(g.id, g.name)));
+    return [...byId.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [students]);
 
-  const fetchStudents = async () => {
-    setStudentsError('');
-    setStudentsLoading(true);
+  const shown = (students || []).filter((s) => {
+    const q = search.toLowerCase();
+    const matches = !q || s.email?.toLowerCase().includes(q) || s.full_name?.toLowerCase().includes(q);
+    const inGroup = !groupFilter || (groupFilter === 'none' ? !s.groups?.length : s.groups?.some((g) => g.id === groupFilter));
+    return matches && inGroup;
+  });
+
+  const remove = async (student) => {
+    const ok = await confirm({
+      title: `Remove ${student.full_name || student.email}?`,
+      description: 'They lose access to your exams. Their account and past results are kept, and they can rejoin with a join code.',
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
     try {
-      const res = await api.get('/admin/students/');
-      setStudents(res.data || []);
-    } catch (err) {
-      let msg = 'Failed to load students';
-      if (err.response?.data?.detail) {
-        msg = typeof err.response.data.detail === 'string' ? err.response.data.detail : msg;
-      }
-      setStudentsError(msg);
-    } finally {
-      setStudentsLoading(false);
-    }
-  };
-
-  const handleViewStudent = (student) => {
-    setSelectedStudentProfile(student);
-    setShowStudentModal(true);
-  };
-
-  const handleDeleteStudent = async (studentId) => {
-    setShowDeleteModal(true);
-    setDeleteStudentId(studentId);
-  };
-
-  const confirmDeleteStudent = async () => {
-    setDeleteLoading(true);
-    try {
-      await api.delete(`/admin/students/${deleteStudentId}`);
-      setDeleteMessage('Student deleted successfully');
-      setShowDeleteModal(false);
-      setDeleteStudentId(null);
+      await api.delete(`/admin/students/${student.id}`);
+      setMessage({ tone: 'success', text: 'Student removed from the organization' });
       fetchStudents();
     } catch (err) {
-      let msg = 'Failed to delete student';
-      if (err.response?.data?.detail) {
-        msg = typeof err.response.data.detail === 'string' ? err.response.data.detail : msg;
-      }
-      setDeleteMessage(msg);
-    } finally {
-      setDeleteLoading(false);
+      setMessage({ tone: 'danger', text: errorMessage(err) });
     }
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.background, fontFamily: 'Roboto, sans-serif' }}>
-      {/* Sidebar */}
-      <AdminSidebar user={user} onLogout={logout} />
-
-      {/* Main Content */}
-      <div style={{ marginLeft: '70px', flex: 1, padding: '30px', overflow: 'auto' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          {/* Header */}
-          <div style={{ marginBottom: '30px' }}>
-            <h1 style={{ margin: '0 0 24px 0', color: '#0d6efd', fontSize: '28px', fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}>Students Management</h1>
-          </div>
-
-          {/* Main Section */}
-          <div style={{ backgroundColor: 'rgba(135, 206, 235, 0.05)', border: '2px solid #0d6efd', borderRadius: '8px', padding: '30px' }}>
-            <h2 style={{ margin: '0 0 20px 0', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Manage Students</h2>
-            {deleteMessage && (
-              <div style={{
-                marginBottom: '20px',
-                padding: '15px',
-                backgroundColor: deleteMessage.includes('success') ? 'rgba(132, 204, 22, 0.1)' : 'rgba(220, 53, 69, 0.1)',
-                borderLeft: `4px solid ${deleteMessage.includes('success') ? '#84cc16' : '#dc3545'}`,
-                color: deleteMessage.includes('success') ? '#84cc16' : '#ff6b6b',
-                borderRadius: '4px',
-                fontFamily: 'Roboto, sans-serif',
-              }}>
-                {deleteMessage}
-              </div>
-            )}
-
-            <div style={{ marginBottom: '20px' }}>
-              <input
-                type="text"
-                placeholder="Search by email or name"
-                value={studentSearchQuery}
-                onChange={(e) => setStudentSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '6px',
-                  border: '1px solid #0d6efd',
-                  backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                  color: '#0d6efd',
-                  fontFamily: 'Roboto, sans-serif',
-                }}
-              />
-            </div>
-
-            {studentsLoading ? (
-              <p style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Loading students...</p>
-            ) : studentsError ? (
-              <p style={{ color: '#ff6b6b', fontFamily: 'Roboto, sans-serif' }}>{studentsError}</p>
-            ) : filteredStudents.length === 0 ? (
-              <p style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>No students found</p>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#0d6efd', color: '#000000' }}>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Email</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Full Name</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Groups</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Overall Performance</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudents.map(student => (
-                      <tr key={student.id} style={{ borderBottom: '1px solid #0d6efd' }}>
-                        <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{student.email}</td>
-                        <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{student.full_name || '-'}</td>
-                        <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{student.groups?.length ? student.groups.map(g => g.name).join(', ') : '-'}</td>
-                        <td style={{ padding: '12px' }}>
-                          <div style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            backgroundColor: getPercentageColor(student.overall),
-                            color: '#000000',
-                            fontWeight: 'bold',
-                            display: 'inline-block',
-                            marginBottom: '5px'
-                          }}>
-                            {student.overall}%
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <Button
-                            onClick={() => handleViewStudent(student)}
-                            style={{
-                              backgroundColor: 'transparent',
-                              color: '#0d6efd',
-                              border: 'none',
-                              marginRight: '10px',
-                              padding: '4px 8px',
-                              fontSize: '14px'
-                            }}
-                          >
-                            View
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteStudent(student.id)}
-                            style={{
-                              backgroundColor: 'transparent',
-                              color: '#ff6b6b',
-                              border: 'none',
-                              padding: '4px 8px',
-                              fontSize: '14px'
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {showStudentModal && selectedStudentProfile && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: '#000000',
-            padding: '30px',
-            borderRadius: '8px',
-            width: '90%',
-            maxWidth: '600px',
-            border: '2px solid #0d6efd',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-          }}>
-            <h2 style={{ color: '#0d6efd', marginTop: 0, fontFamily: 'Roboto, sans-serif' }}>Student Details</h2>
-            <p style={{ color: '#0d6efd' }}><strong>Email:</strong> {selectedStudentProfile.email}</p>
-            <p style={{ color: '#0d6efd' }}><strong>Full Name:</strong> {selectedStudentProfile.full_name}</p>
-
-            <Button
-              onClick={() => setShowStudentModal(false)}
-              style={{ marginTop: '20px' }}
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <ConfirmModal
-        isOpen={showDeleteModal}
-        title="Delete Student"
-        message="Are you sure you want to delete this student? This action cannot be undone."
-        onConfirm={confirmDeleteStudent}
-        onCancel={() => {
-          setShowDeleteModal(false);
-          setDeleteStudentId(null);
-        }}
-        confirmText="Delete"
-        cancelText="Cancel"
-        isLoading={deleteLoading}
+    <AppShell>
+      <PageHeader
+        title="Students"
+        description="Everyone who joined your organization as a student, with their average score across your exams."
+        actions={isManager && (
+          <Link to="/admin-organization" className="btn btn-secondary">
+            <LuLink className="h-4 w-4" /> Invite students
+          </Link>
+        )}
       />
-    </div>
+
+      {message && <Alert tone={message.tone} className="mb-6" onClose={() => setMessage(null)}>{message.text}</Alert>}
+
+      {students === null ? (
+        <PageLoader />
+      ) : students.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={LuUsers}
+            title="No students yet"
+            action={isManager && <Link to="/admin-organization" className="btn btn-primary"><LuLink className="h-4 w-4" />Get a join link</Link>}
+          >
+            Students join by signing up with your organization's join code, or a group's code.
+          </EmptyState>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="flex flex-wrap gap-2 border-b border-line p-3">
+            <div className="relative min-w-[200px] flex-1">
+              <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email" className="pl-9" />
+            </div>
+            {groups.length > 0 && (
+              <Select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="w-auto">
+                <option value="">All groups</option>
+                {groups.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                <option value="none">No group</option>
+              </Select>
+            )}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Groups</th>
+                  <th>Average</th>
+                  <th>Joined</th>
+                  {isManager && <th />}
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((s) => (
+                  <tr key={s.id}>
+                    <td>
+                      <p className="font-medium">{s.full_name || s.email}</p>
+                      {s.full_name && <p className="text-xs text-muted">{s.email}</p>}
+                    </td>
+                    <td>
+                      <div className="flex flex-wrap gap-1">
+                        {s.groups?.length ? s.groups.map((g) => <Badge key={g.id}>{g.name}</Badge>) : <span className="text-muted">—</span>}
+                      </div>
+                    </td>
+                    <td><ScoreBar value={s.overall || 0} /></td>
+                    <td className="whitespace-nowrap text-muted">{formatDate(s.joined_at)}</td>
+                    {isManager && (
+                      <td className="text-right">
+                        <Button variant="danger-ghost" size="sm" icon={LuUserMinus} onClick={() => remove(s)} aria-label="Remove from organization" />
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {shown.length === 0 && <EmptyState icon={LuSearch} title="No matching students" />}
+          </div>
+          <div className="border-t border-line px-4 py-2.5 text-xs text-muted">{shown.length} of {students.length} students</div>
+        </Card>
+      )}
+      {confirmDialog}
+    </AppShell>
   );
 }
 
 export default AdminStudentsPage;
-
-
-

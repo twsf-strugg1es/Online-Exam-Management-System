@@ -1,13 +1,137 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/hind-siliguri/400.css";
+@import "@fontsource/hind-siliguri/600.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme tokens as "R G B" channels so Tailwind can apply opacity (e.g. bg-brand/10) */
+@layer base {
+  :root {
+    --paper: 247 246 242;
+    --surface: 255 255 255;
+    --sunken: 241 240 235;
+    --ink: 22 24 29;
+    --muted: 95 101 112;
+    --line: 227 225 218;
+    --on-brand: 255 255 255;
+    --brand: 11 110 79;
+    --brand-strong: 8 87 63;
+    --brand-soft: 226 241 234;
+    --brand-ink: 6 78 56;
+    --danger: 190 39 50;
+    --danger-soft: 252 233 233;
+    --danger-ink: 150 26 36;
+    --warn: 181 106 0;
+    --warn-soft: 253 243 222;
+    --warn-ink: 130 75 0;
+    --info: 37 99 199;
+    --info-soft: 230 238 251;
+    --info-ink: 28 72 150;
+    color-scheme: light;
+  }
+
+  .dark {
+    --paper: 14 16 18;
+    --surface: 22 25 29;
+    --sunken: 29 33 38;
+    --ink: 236 237 238;
+    --muted: 154 160 170;
+    --line: 44 48 55;
+    --on-brand: 6 38 28;
+    --brand: 52 185 138;
+    --brand-strong: 82 204 160;
+    --brand-soft: 18 52 41;
+    --brand-ink: 140 225 192;
+    --danger: 240 98 106;
+    --danger-soft: 60 22 26;
+    --danger-ink: 255 170 174;
+    --warn: 230 165 60;
+    --warn-soft: 58 42 14;
+    --warn-ink: 245 200 120;
+    --info: 110 160 245;
+    --info-soft: 22 36 62;
+    --info-ink: 170 200 255;
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+    font-feature-settings: "tnum" 0;
+  }
+
+  ::selection {
+    @apply bg-brand/20;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand/50 ring-offset-2 ring-offset-paper;
+  }
+
+  h1, h2, h3, h4 {
+    @apply text-ink;
+    text-wrap: balance;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Shared building blocks; React components in src/components/ui.js wrap most of these */
+@layer components {
+  .btn {
+    @apply inline-flex h-9 select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-sm font-medium
+      transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary { @apply bg-brand text-on-brand hover:bg-brand-strong; }
+  .btn-secondary { @apply border border-line bg-surface text-ink hover:bg-sunken; }
+  .btn-ghost { @apply text-muted hover:bg-sunken hover:text-ink; }
+  .btn-danger { @apply bg-danger text-white hover:bg-danger/90 dark:text-paper; }
+  .btn-danger-ghost { @apply text-danger hover:bg-danger-soft; }
+  .btn-sm { @apply h-8 gap-1.5 rounded-md px-2.5 text-[13px]; }
+  .btn-lg { @apply h-11 px-5 text-[15px]; }
+  .btn-icon { @apply h-9 w-9 px-0; }
+
+  .input {
+    @apply h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink transition-colors
+      placeholder:text-muted/60 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20
+      disabled:bg-sunken disabled:text-muted;
+  }
+  textarea.input { @apply h-auto py-2.5 leading-relaxed; }
+  select.input {
+    @apply cursor-pointer appearance-none bg-no-repeat pr-9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%237d838d' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.7rem center;
+  }
+
+  .label { @apply mb-1.5 block text-sm font-medium text-ink; }
+  .hint { @apply mt-1.5 text-xs leading-relaxed text-muted; }
+
+  .card { @apply rounded-xl border border-line bg-surface shadow-card; }
+
+  .badge { @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium; }
+  .badge-neutral { @apply bg-sunken text-muted; }
+  .badge-brand { @apply bg-brand-soft text-brand-ink; }
+  .badge-danger { @apply bg-danger-soft text-danger-ink; }
+  .badge-warn { @apply bg-warn-soft text-warn-ink; }
+  .badge-info { @apply bg-info-soft text-info-ink; }
+
+  .table { @apply w-full border-collapse text-sm; }
+  .table th {
+    @apply border-b border-line bg-sunken/50 px-4 py-2.5 text-left text-xs font-medium text-muted;
+  }
+  .table td { @apply border-b border-line px-4 py-3 align-middle; }
+  .table tbody tr:last-child td { @apply border-b-0; }
+  .table tbody tr { @apply transition-colors hover:bg-sunken/40; }
+
+  .code-chip { @apply rounded-md border border-line bg-sunken px-1.5 py-0.5 font-mono text-xs tracking-wider text-ink; }
+  .link { @apply font-medium text-brand underline-offset-2 hover:underline; }
+  .eyebrow { @apply text-xs font-medium uppercase tracking-[0.08em] text-muted; }
+  .tabular { font-variant-numeric: tabular-nums; }
 }

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import api from '../api';
-import Button from '../components/Button';
+import AuthLayout from '../components/AuthLayout';
+import { Alert, Button, Field, Input } from '../components/ui';
+import { errorMessage } from '../utils';
 
 // Register a new organization (school, coaching center, company) together with its owner's account
 function OrgSignupPage() {
   const { login } = useAuth();
-  const { theme } = useTheme();
   const navigate = useNavigate();
   const [form, setForm] = useState({ organizationName: '', fullName: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
@@ -19,12 +19,12 @@ function OrgSignupPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
     if (form.password.length < 6) {
       setError('Password must be at least 6 characters long');
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
@@ -47,62 +47,47 @@ function OrgSignupPage() {
       login(tokenRes.data.access_token, me.data);
       navigate('/admin-organization');
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      setError(
-        typeof detail === 'string' ? detail
-          : Array.isArray(detail) ? detail.map((d) => d.msg).join(', ')
-            : 'Registration failed. Please try again.'
-      );
+      setError(errorMessage(err, 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const input = {
-    width: '100%',
-    backgroundColor: theme.inputBg,
-    color: theme.inputText,
-    border: `1px solid ${theme.border}`,
-    borderRadius: '24px',
-    padding: '12px 16px',
-    fontSize: '14px',
-    boxSizing: 'border-box',
-    outline: 'none',
-    marginBottom: '16px',
-    fontFamily: 'Roboto, sans-serif',
-  };
-
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: theme.background, color: theme.text, fontFamily: 'Roboto, sans-serif', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 16px', boxSizing: 'border-box' }}>
-      <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: '420px' }}>
-        <h1 style={{ color: theme.primary, margin: '0 0 8px 0', fontSize: '34px' }}>Register your organization</h1>
-        <p style={{ color: theme.secondary, margin: '0 0 28px 0' }}>
-          Set up a space for your school, coaching center or company to run its own exams.
-        </p>
-
-        <input style={input} value={form.organizationName} onChange={update('organizationName')} placeholder="Organization name" minLength={2} required />
-        <input style={input} value={form.fullName} onChange={update('fullName')} placeholder="Your full name" required />
-        <input style={input} type="email" value={form.email} onChange={update('email')} placeholder="Your email" required />
-        <input style={input} type="password" value={form.password} onChange={update('password')} placeholder="Password" required />
-        <input style={input} type="password" value={form.confirmPassword} onChange={update('confirmPassword')} placeholder="Confirm password" required />
-
-        {error && (
-          <div style={{ marginBottom: '16px', padding: '12px', border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: '8px', fontSize: '14px' }}>
-            {error}
+    <AuthLayout
+      title="Register your organization"
+      subtitle="A private space for your school, coaching center or company: your own question bank, exams, students and results."
+      footer={<p>Already have an account? <Link to="/login" className="link">Log in</Link> and create an organization from there.</p>}
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Field label="Organization name" htmlFor="organizationName" hint="You can change this later.">
+          <Input id="organizationName" value={form.organizationName} onChange={update('organizationName')} minLength={2} required autoFocus placeholder="e.g. Mirpur Science Coaching" />
+        </Field>
+        <div className="border-t border-line pt-5">
+          <p className="eyebrow mb-4">Your account (owner)</p>
+          <div className="space-y-5">
+            <Field label="Full name" htmlFor="fullName">
+              <Input id="fullName" autoComplete="name" value={form.fullName} onChange={update('fullName')} required />
+            </Field>
+            <Field label="Email" htmlFor="email">
+              <Input id="email" type="email" autoComplete="email" value={form.email} onChange={update('email')} required />
+            </Field>
+            <Field label="Password" htmlFor="password" hint="At least 6 characters.">
+              <Input id="password" type="password" autoComplete="new-password" value={form.password} onChange={update('password')} required />
+            </Field>
+            <Field label="Confirm password" htmlFor="confirmPassword">
+              <Input id="confirmPassword" type="password" autoComplete="new-password" value={form.confirmPassword} onChange={update('confirmPassword')} required />
+            </Field>
           </div>
-        )}
+        </div>
 
-        <Button type="submit" disabled={loading} style={{ width: '100%' }}>
-          {loading ? 'CREATING...' : 'CREATE ORGANIZATION'}
+        {error && <Alert tone="danger">{error}</Alert>}
+
+        <Button type="submit" size="lg" loading={loading} className="w-full">
+          Create organization
         </Button>
-
-        <p style={{ textAlign: 'center', marginTop: '24px', color: theme.secondary, fontSize: '14px' }}>
-          Already have an account?{' '}
-          <Link to="/login" style={{ color: theme.primary, fontWeight: 'bold', textDecoration: 'none' }}>Log in</Link>
-          {' '}and create an organization from there.
-        </p>
       </form>
-    </div>
+    </AuthLayout>
   );
 }
 

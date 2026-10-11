@@ -3,6 +3,7 @@ import api from '../api';
 
 const AuthContext = createContext();
 
+const SESSION_TIMEOUT = 5 * 60 * 1000; // idle sign-out after 5 minutes, unless "keep me signed in"
 const TOKEN_REFRESH_MARGIN = 20 * 60 * 1000; // refresh when less than 20 minutes remain
 
 // Membership roles that can manage questions, exams and grading / members and groups
@@ -40,7 +41,6 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
   const [organizationId, setOrganizationId] = useState(null);
-  const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   // Check localStorage on initial load
   useEffect(() => {
