@@ -25,7 +25,7 @@ The product already exists (see "Completed"). Milestones 1–6 take it to a **pa
 | ✓ | ID | Task | Owner | Inputs | Output | Definition of done | Depends on |
 |---|---|---|---|---|---|---|---|
 | [ ] | 1.1 | Rename the product to **TestKori** in the UI | agent (+ owner approves the mark) | 04 UI/UX Brief "Assets" | `Logo` in `ui.js`, `AuthLayout` text, `public/index.html` title, `manifest.json`, favicons | No "PorikkhaKori" string left in `frontend/` (`grep -ri porikkha`); the new mark is used in light and dark | — |
-| [ ] | 1.2 | `.env.example` for backend and frontend | agent | 02 TRD env tables | `backend/.env.example`, `frontend/.env.example` | A fresh clone runs by copying the examples | — |
+| [x] | 1.2 | `.env.example` for backend and frontend | agent | 02 TRD env tables | `backend/.env.example`, `frontend/.env.example` | A fresh clone runs by copying the examples | — |
 | [ ] | 1.3 | Docker setup | agent | — | `backend/Dockerfile`, `frontend/Dockerfile` (nginx), `docker-compose.yml` (api, web, postgres, minio) | `docker compose up` → app works at localhost with a seeded demo organization | 1.2 |
 | [ ] | 1.4 | `/health` endpoint; remove the "Hello" root | agent | — | `GET /health` checks the DB connection | Returns 200 / 503; test added | — |
 | [ ] | 1.5 | CI (GitHub Actions) | agent | — | `.github/workflows/ci.yml` | On every PR: pytest (SQLite), pytest + `alembic upgrade head` on a Postgres service, frontend test + build | 1.3 |

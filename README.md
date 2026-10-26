@@ -106,14 +106,13 @@ cd Online-Exam-Management-System
 
 #### Step 1: Create `.env` file
 
-In the `backend/` directory, create a `.env` file with:
+Copy the example and fill in your values:
 
+```bash
+cp backend/.env.example backend/.env
 ```
-DATABASE_URL=postgresql://postgres:password@localhost:5432/online_exam_system
-SECRET_KEY=your-super-secret-key-change-this-in-production
-# Optional: comma-separated frontend URLs allowed to call the API
-# CORS_ORIGINS=http://localhost:3000,https://exams.example.com
-```
+
+It contains `DATABASE_URL`, `SECRET_KEY` (generate one with `python -c "import secrets; print(secrets.token_urlsafe(48))"`) and an optional `CORS_ORIGINS`. For a different API address on the frontend, copy `frontend/.env.example` to `frontend/.env`.
 
 **Replace:**
 
