@@ -21,6 +21,7 @@ Before implementing, flag any contradiction between these documents and the code
    - what's left or blocked, and why
    - decisions needed from the owner
    - anything in the docs you think is wrong
+   - **visuals** when the milestone changed anything the user can see: screenshots of the affected screens (desktop and 360 px phone width) from the running app
 
    Wait for the owner's reply before continuing.
 6. **End of the plan: draft the next version, then wait.** When every task in Milestones 1–6 is ticked (or the owner asks), write drafts of the next version's six documents in `docs/next/` (same template and file names). Base them on the PRD's remaining planned features, the plan's Milestones 7–8, the open issues, and what you learned. Then **stop and ask the owner to review**. Don't implement anything from `docs/next/` until the owner approves it. On approval, move the current docs to `docs/archive/v<N>/` and `docs/next/` to `docs/`.
