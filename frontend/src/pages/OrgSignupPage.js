@@ -5,10 +5,12 @@ import api from '../api';
 import AuthLayout from '../components/AuthLayout';
 import { Alert, Button, Field, Input } from '../components/ui';
 import { errorMessage } from '../utils';
+import { useI18n } from '../i18n';
 
 // Register a new organization (school, coaching center, company) together with its owner's account
 function OrgSignupPage() {
   const { login } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [form, setForm] = useState({ organizationName: '', fullName: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
@@ -20,11 +22,11 @@ function OrgSignupPage() {
     e.preventDefault();
     setError('');
     if (form.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError(t('Password must be at least 6 characters long'));
       return;
     }
     if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('Passwords do not match'));
       return;
     }
 
@@ -55,28 +57,28 @@ function OrgSignupPage() {
 
   return (
     <AuthLayout
-      title="Register your organization"
+      title={t('Register your organization')}
       label="New organization"
-      subtitle="A private space for your school, coaching center or company: your own question bank, exams, students and results."
-      footer={<p>Already have an account? <Link to="/login" className="link">Log in</Link> and create an organization from there.</p>}
+      subtitle={t('A private space for your school, coaching center or company: your own question bank, exams, students and results.')}
+      footer={<p>{t('Already have an account?')} <Link to="/login" className="link">{t('Log in')}</Link> {t('and create an organization from there.')}</p>}
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        <Field label="Organization name" htmlFor="organizationName" hint="You can change this later.">
-          <Input id="organizationName" value={form.organizationName} onChange={update('organizationName')} minLength={2} required autoFocus placeholder="e.g. Mirpur Science Coaching" />
+        <Field label={t('Organization name')} htmlFor="organizationName" hint={t('You can change this later.')}>
+          <Input id="organizationName" value={form.organizationName} onChange={update('organizationName')} minLength={2} required autoFocus placeholder={t('e.g. Mirpur Science Coaching')} />
         </Field>
         <div className="border-t border-line pt-5">
-          <p className="eyebrow mb-4">Your account (owner)</p>
+          <p className="eyebrow mb-4">{t('Your account (owner)')}</p>
           <div className="space-y-5">
-            <Field label="Full name" htmlFor="fullName">
+            <Field label={t('Full name')} htmlFor="fullName">
               <Input id="fullName" autoComplete="name" value={form.fullName} onChange={update('fullName')} required />
             </Field>
-            <Field label="Email" htmlFor="email">
+            <Field label={t('Email')} htmlFor="email">
               <Input id="email" type="email" autoComplete="email" value={form.email} onChange={update('email')} required />
             </Field>
-            <Field label="Password" htmlFor="password" hint="At least 6 characters.">
+            <Field label={t('Password')} htmlFor="password" hint={t('At least 6 characters.')}>
               <Input id="password" type="password" autoComplete="new-password" value={form.password} onChange={update('password')} required />
             </Field>
-            <Field label="Confirm password" htmlFor="confirmPassword">
+            <Field label={t('Confirm password')} htmlFor="confirmPassword">
               <Input id="confirmPassword" type="password" autoComplete="new-password" value={form.confirmPassword} onChange={update('confirmPassword')} required />
             </Field>
           </div>
@@ -85,7 +87,7 @@ function OrgSignupPage() {
         {error && <Alert tone="danger">{error}</Alert>}
 
         <Button type="submit" size="lg" loading={loading} className="w-full">
-          Create organization
+          {t('Create organization')}
         </Button>
       </form>
     </AuthLayout>

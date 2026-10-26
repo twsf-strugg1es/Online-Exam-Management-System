@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useI18n } from '../i18n';
 import { Button, Logo } from './ui';
 
 const QUERY = '(min-width: 1024px)';
@@ -25,6 +26,7 @@ export default function DesktopOnly({ children }) {
   const wide = useWideEnough();
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const inExam = pathname.startsWith('/exam/');
   const covered = !wide && !PHONE_FRIENDLY.includes(pathname);
@@ -37,17 +39,17 @@ export default function DesktopOnly({ children }) {
           <div className="flex min-h-full flex-col px-6 py-6">
             <Logo />
             <div className="my-auto max-w-sm py-12">
-              <p className="eyebrow">{inExam ? 'Your exam is still running' : 'Use a computer'}</p>
+              <p className="eyebrow">{inExam ? t('Your exam is still running') : t('Use a computer')}</p>
               <h1 id="desktop-only-title" className="mt-3 text-[1.7rem] font-semibold leading-tight tracking-[-0.02em]">
-                {inExam ? 'Make this window wider to keep going' : 'TestKori works on a computer'}
+                {inExam ? t('Make this window wider to keep going') : t('TestKori works on a computer')}
               </h1>
               <p className="mt-3 text-[15px] leading-relaxed text-muted">
                 {inExam
-                  ? 'The timer has not stopped. Widen the window (at least 1024 pixels) or rotate your tablet and your exam comes back exactly as you left it.'
-                  : 'Exams need a full desktop browser for their timer and protections. Open TestKori on a laptop or desktop and sign in there.'}
+                  ? t('The timer has not stopped. Widen the window (at least 1024 pixels) or rotate your tablet and your exam comes back exactly as you left it.')
+                  : t('Exams need a full desktop browser for their timer and protections. Open TestKori on a laptop or desktop and sign in there.')}
               </p>
               {user && !inExam && (
-                <Button variant="secondary" className="mt-8" onClick={() => { logout(); navigate('/login'); }}>Sign out</Button>
+                <Button variant="secondary" className="mt-8" onClick={() => { logout(); navigate('/login'); }}>{t('Sign out')}</Button>
               )}
             </div>
           </div>

@@ -1,4 +1,5 @@
 import React, { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
+import { useI18n } from '../i18n';
 import { LuX, LuLoaderCircle, LuCircleAlert, LuCircleCheck, LuTriangleAlert, LuInfo } from 'react-icons/lu';
 
 const cx = (...classes) => classes.filter(Boolean).join(' ');
@@ -68,12 +69,13 @@ export const Button = forwardRef(function Button(
 // --- Form controls ---
 
 export function Field({ label, hint, error, htmlFor, children, className, optional }) {
+  const { t } = useI18n();
   return (
     <div className={className}>
       {label && (
         <label htmlFor={htmlFor} className="label">
           {label}
-          {optional && <span className="ml-1.5 font-normal text-muted">optional</span>}
+          {optional && <span className="ml-1.5 font-normal text-muted">{t('optional')}</span>}
         </label>
       )}
       {children}
@@ -182,6 +184,7 @@ const ALERT_STYLES = {
 };
 
 export function Alert({ tone = 'info', title, children, onClose, className }) {
+  const { t } = useI18n();
   const [style, Icon] = ALERT_STYLES[tone];
   return (
     <div role={tone === 'danger' ? 'alert' : 'status'} className={cx('flex gap-3 rounded-lg px-4 py-3 text-sm', style, className)}>
@@ -191,7 +194,7 @@ export function Alert({ tone = 'info', title, children, onClose, className }) {
         {children && <div className={cx('leading-relaxed', title && 'mt-0.5 opacity-90')}>{children}</div>}
       </div>
       {onClose && (
-        <button type="button" onClick={onClose} className="-m-1 rounded p-1 opacity-70 hover:opacity-100" aria-label="Dismiss">
+        <button type="button" onClick={onClose} className="-m-1 rounded p-1 opacity-70 hover:opacity-100" aria-label={t('Dismiss')}>
           <LuX className="h-4 w-4" />
         </button>
       )}
@@ -218,11 +221,12 @@ export function Spinner({ className }) {
   return <LuLoaderCircle className={cx('h-5 w-5 animate-spin text-muted', className)} />;
 }
 
-export function PageLoader({ label = 'Loading…' }) {
+export function PageLoader({ label }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center justify-center gap-3 py-24 text-sm text-muted">
       <Spinner />
-      {label}
+      {label || t('Loading…')}
     </div>
   );
 }
@@ -278,6 +282,7 @@ export function Tabs({ tabs, value, onChange, className }) {
 // --- Dialogs ---
 
 export function Modal({ open, onClose, title, description, children, footer, size = 'md' }) {
+  const { t } = useI18n();
   const panelRef = useRef(null);
 
   useEffect(() => {
@@ -308,7 +313,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
             {description && <p className="mt-1 text-sm leading-relaxed text-muted">{description}</p>}
           </div>
           {onClose && (
-            <button type="button" onClick={onClose} className="-mr-1 rounded-md p-1 text-muted hover:bg-sunken hover:text-ink" aria-label="Close">
+            <button type="button" onClick={onClose} className="-mr-1 rounded-md p-1 text-muted hover:bg-sunken hover:text-ink" aria-label={t('Close')}>
               <LuX className="h-4 w-4" />
             </button>
           )}
@@ -322,6 +327,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
 // Promise-based confirmation: `if (await confirm({ title, ... })) doIt();`
 export function useConfirm() {
+  const { t } = useI18n();
   const [state, setState] = useState(null);
 
   const confirm = useCallback(
@@ -343,9 +349,9 @@ export function useConfirm() {
       size="sm"
       footer={
         <>
-          <Button variant="secondary" onClick={() => close(false)}>Cancel</Button>
+          <Button variant="secondary" onClick={() => close(false)}>{t('Cancel')}</Button>
           <Button variant={state?.danger ? 'danger' : 'primary'} onClick={() => close(true)}>
-            {state?.confirmLabel || 'Confirm'}
+            {state?.confirmLabel || t('Confirm')}
           </Button>
         </>
       }

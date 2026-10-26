@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { LuChevronsUpDown, LuMoon, LuSun, LuLogOut, LuMenu, LuX } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useI18n } from '../i18n';
 import { Logo, cx } from './ui';
 import { ROLE_LABELS } from '../utils';
 
@@ -20,6 +21,7 @@ const STUDENT_NAV = [
 
 // Menu items carry an answer-bubble dot: filled for the current page
 function NavItem({ to, label }) {
+  const { t } = useI18n();
   return (
     <NavLink
       to={to}
@@ -33,7 +35,7 @@ function NavItem({ to, label }) {
       {({ isActive }) => (
         <>
           <span className={cx('status-dot', isActive ? 'bg-brand text-brand' : 'text-faint group-hover:text-muted')} />
-          {label}
+          {t(label)}
         </>
       )}
     </NavLink>
@@ -43,6 +45,7 @@ function NavItem({ to, label }) {
 function Sidebar({ onNavigate }) {
   const { user, currentMembership, isStaff, isManager, logout } = useAuth();
   const { themeName, toggleTheme } = useTheme();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const items = [...(isStaff ? [...STAFF_NAV, ...(isManager ? MANAGER_NAV : [])] : STUDENT_NAV), ...ACCOUNT_NAV];
   const displayName = user?.full_name || user?.email;
@@ -61,7 +64,7 @@ function Sidebar({ onNavigate }) {
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-ink">{currentMembership?.organization_name}</span>
-          <span className="eyebrow mt-1 block">{ROLE_LABELS[currentMembership?.role]} · switch</span>
+          <span className="eyebrow mt-1 block">{t(ROLE_LABELS[currentMembership?.role] || '')} · {t('switch')}</span>
         </span>
         <LuChevronsUpDown className="h-4 w-4 shrink-0 text-muted group-hover:text-ink" />
       </button>
@@ -82,10 +85,10 @@ function Sidebar({ onNavigate }) {
             type="button"
             onClick={toggleTheme}
             className="btn btn-ghost btn-sm flex-1"
-            aria-label={themeName === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            aria-label={themeName === 'dark' ? t('Switch to light theme') : t('Switch to dark theme')}
           >
             {themeName === 'dark' ? <LuSun className="h-4 w-4" /> : <LuMoon className="h-4 w-4" />}
-            {themeName === 'dark' ? 'Light' : 'Dark'}
+            {themeName === 'dark' ? t('Light') : t('Dark')}
           </button>
           <button
             type="button"
@@ -93,7 +96,7 @@ function Sidebar({ onNavigate }) {
             className="btn btn-ghost btn-sm flex-1"
           >
             <LuLogOut className="h-4 w-4" />
-            Log out
+            {t('Log out')}
           </button>
         </div>
       </div>
@@ -103,6 +106,7 @@ function Sidebar({ onNavigate }) {
 
 // Signed-in layout: sidebar on wide screens, a top bar with a slide-in menu on phones
 export default function AppShell({ children, width = 'default' }) {
+  const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
 
@@ -116,7 +120,7 @@ export default function AppShell({ children, width = 'default' }) {
 
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-paper px-4 py-3 lg:hidden">
         <Logo />
-        <button type="button" className="btn btn-ghost btn-icon" onClick={() => setMenuOpen(true)} aria-label="Open menu">
+        <button type="button" className="btn btn-ghost btn-icon" onClick={() => setMenuOpen(true)} aria-label={t('Open menu')}>
           <LuMenu className="h-5 w-5" />
         </button>
       </header>
@@ -129,7 +133,7 @@ export default function AppShell({ children, width = 'default' }) {
               type="button"
               className="btn btn-ghost btn-icon absolute right-3 top-4"
               onClick={() => setMenuOpen(false)}
-              aria-label="Close menu"
+              aria-label={t('Close menu')}
             >
               <LuX className="h-5 w-5" />
             </button>

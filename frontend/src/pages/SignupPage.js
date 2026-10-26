@@ -5,6 +5,7 @@ import api from '../api';
 import AuthLayout from '../components/AuthLayout';
 import { Alert, Button, Field, Input, Select } from '../components/ui';
 import { errorMessage } from '../utils';
+import { useI18n } from '../i18n';
 
 // Student signup. A join code (typed, or carried in a /signup?code=... link) adds them to an organization.
 function SignupPage() {
@@ -20,6 +21,7 @@ function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const codeFromLink = Boolean(searchParams.get('code'));
 
@@ -29,11 +31,11 @@ function SignupPage() {
     e.preventDefault();
     setError('');
     if (form.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError(t('Password must be at least 6 characters long'));
       return;
     }
     if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('Passwords do not match'));
       return;
     }
 
@@ -65,22 +67,22 @@ function SignupPage() {
 
   return (
     <AuthLayout
-      title="Create your student account"
+      title={t('Create your student account')}
       label="New student"
       subtitle={codeFromLink
-        ? "You've been invited to join an organization. Your join code is already filled in."
-        : 'Use the join code your school, coaching center or employer gave you.'}
-      footer={<p>Already have an account? <Link to="/login" className="link">Log in</Link></p>}
+        ? t("You've been invited to join an organization. Your join code is already filled in.")
+        : t('Use the join code your school, coaching center or employer gave you.')}
+      footer={<p>{t('Already have an account?')} <Link to="/login" className="link">{t('Log in')}</Link></p>}
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        <Field label="Full name" htmlFor="fullName">
+        <Field label={t('Full name')} htmlFor="fullName">
           <Input id="fullName" autoComplete="name" value={form.fullName} onChange={update('fullName')} required autoFocus />
         </Field>
-        <Field label="Email" htmlFor="email">
+        <Field label={t('Email')} htmlFor="email">
           <Input id="email" type="email" autoComplete="email" value={form.email} onChange={update('email')} required />
         </Field>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Field label="Join code" htmlFor="joinCode" optional>
+          <Field label={t('Join code')} htmlFor="joinCode" optional>
             <Input
               id="joinCode"
               value={form.joinCode}
@@ -90,26 +92,26 @@ function SignupPage() {
               autoComplete="off"
             />
           </Field>
-          <Field label="Gender" htmlFor="gender" optional>
+          <Field label={t('Gender')} htmlFor="gender" optional>
             <Select id="gender" value={form.gender} onChange={update('gender')}>
-              <option value="">Prefer not to say</option>
-              <option value="female">Female</option>
-              <option value="male">Male</option>
-              <option value="other">Other</option>
+              <option value="">{t('Prefer not to say')}</option>
+              <option value="female">{t('Female')}</option>
+              <option value="male">{t('Male')}</option>
+              <option value="other">{t('Other')}</option>
             </Select>
           </Field>
         </div>
-        <Field label="Password" htmlFor="password" hint="At least 6 characters.">
+        <Field label={t('Password')} htmlFor="password" hint={t('At least 6 characters.')}>
           <Input id="password" type="password" autoComplete="new-password" value={form.password} onChange={update('password')} required />
         </Field>
-        <Field label="Confirm password" htmlFor="confirmPassword">
+        <Field label={t('Confirm password')} htmlFor="confirmPassword">
           <Input id="confirmPassword" type="password" autoComplete="new-password" value={form.confirmPassword} onChange={update('confirmPassword')} required />
         </Field>
 
         {error && <Alert tone="danger">{error}</Alert>}
 
         <Button type="submit" size="lg" loading={loading} className="w-full">
-          Create account
+          {t('Create account')}
         </Button>
       </form>
     </AuthLayout>

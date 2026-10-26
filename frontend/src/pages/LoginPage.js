@@ -5,6 +5,7 @@ import api from '../api';
 import AuthLayout from '../components/AuthLayout';
 import { Alert, Button, Checkbox, Field, Input } from '../components/ui';
 import { errorMessage } from '../utils';
+import { useI18n } from '../i18n';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
@@ -13,6 +14,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [saveLogin, setSaveLogin] = useState(false);
   const { login } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -48,32 +50,32 @@ function LoginPage() {
 
   return (
     <AuthLayout
-      title="Log in"
-      subtitle="Students, teachers and recruiters all sign in here."
+      title={t('Log in')}
+      subtitle={t('Students, teachers and recruiters all sign in here.')}
       footer={
         <>
           <p>
-            New here? <Link to="/signup" className="link">Create a student account</Link>
+            {t('New here?')} <Link to="/signup" className="link">{t('Create a student account')}</Link>
           </p>
           <p>
-            Running exams for a school or company? <Link to="/signup/organization" className="link">Register your organization</Link>
+            {t('Running exams for a school or company?')} <Link to="/signup/organization" className="link">{t('Register your organization')}</Link>
           </p>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        <Field label="Email" htmlFor="email">
+        <Field label={t('Email')} htmlFor="email">
           <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
         </Field>
-        <Field label="Password" htmlFor="password">
+        <Field label={t('Password')} htmlFor="password">
           <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </Field>
-        <Checkbox checked={saveLogin} onChange={setSaveLogin}>Keep me signed in on this device</Checkbox>
+        <Checkbox checked={saveLogin} onChange={setSaveLogin}>{t('Keep me signed in on this device')}</Checkbox>
 
         {error && <Alert tone="danger">{error}</Alert>}
 
         <Button type="submit" size="lg" loading={loading} className="w-full">
-          Log in
+          {t('Log in')}
         </Button>
       </form>
     </AuthLayout>

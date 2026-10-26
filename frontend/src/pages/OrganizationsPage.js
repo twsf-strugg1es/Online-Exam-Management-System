@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { LuArrowRight, LuBuilding2, LuCheck, LuLogOut, LuPlus } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
-import { Alert, Button, Card, Input, Logo, cx } from '../components/ui';
+import { Alert, Button, Card, Input, Logo } from '../components/ui';
 import { ROLE_LABELS, errorMessage } from '../utils';
+import { useI18n } from '../i18n';
 
 // Pick which organization to work in, join one with a code, or create a new one
 function OrganizationsPage() {
   const { user, logout, refreshUser, selectOrganization, currentMembership } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [joinCode, setJoinCode] = useState('');
   const [orgName, setOrgName] = useState('');
@@ -45,19 +47,19 @@ function OrganizationsPage() {
         <div className="flex items-center gap-3 text-sm text-muted">
           <span className="hidden sm:inline">{user?.email}</span>
           <Button variant="ghost" size="sm" icon={LuLogOut} onClick={() => { logout(); navigate('/login'); }}>
-            Log out
+            {t('Log out')}
           </Button>
         </div>
       </header>
 
       <main className="mx-auto max-w-lg px-5 pb-16 pt-8 sm:pt-14">
         <h1 className="text-2xl font-semibold tracking-tight">
-          {memberships.length ? 'Choose an organization' : 'Join your organization'}
+          {memberships.length ? t('Choose an organization') : t('Join your organization')}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           {memberships.length
-            ? 'You can switch between them any time from the sidebar.'
-            : "You're signed in but not part of an organization yet. Enter the join code your school, coaching center or employer gave you."}
+            ? t('You can switch between them any time from the sidebar.')
+            : t("You're signed in but not part of an organization yet. Enter the join code your school, coaching center or employer gave you.")}
         </p>
 
         {error && <Alert tone="danger" className="mt-6" onClose={() => setError('')}>{error}</Alert>}
@@ -78,7 +80,7 @@ function OrganizationsPage() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{m.organization_name}</span>
-                    <span className="block text-xs text-muted">{ROLE_LABELS[m.role] || m.role}</span>
+                    <span className="block text-xs text-muted">{t(ROLE_LABELS[m.role] || m.role)}</span>
                   </span>
                   {active ? (
                     <LuCheck className="h-4 w-4 text-brand" />
@@ -93,7 +95,7 @@ function OrganizationsPage() {
 
         <Card className="mt-6 p-5">
           <form onSubmit={(e) => submit(e, 'join', () => api.post('/organizations/join', { join_code: joinCode.trim() }), 'Could not join')}>
-            <label htmlFor="joinCode" className="label">Join with a code</label>
+            <label htmlFor="joinCode" className="label">{t('Join with a code')}</label>
             <div className="flex gap-2">
               <Input
                 id="joinCode"
@@ -104,9 +106,9 @@ function OrganizationsPage() {
                 autoComplete="off"
                 required
               />
-              <Button type="submit" loading={busy === 'join'}>Join</Button>
+              <Button type="submit" loading={busy === 'join'}>{t('Join')}</Button>
             </div>
-            <p className="hint">Joining as a student. Staff are added by an organization admin.</p>
+            <p className="hint">{t('Joining as a student. Staff are added by an organization admin.')}</p>
           </form>
         </Card>
 
@@ -114,20 +116,20 @@ function OrganizationsPage() {
           {!showCreate ? (
             <button type="button" onClick={() => setShowCreate(true)} className="btn btn-ghost w-full border border-dashed border-line">
               <LuPlus className="h-4 w-4" />
-              Create a new organization
+              {t('Create a new organization')}
             </button>
           ) : (
-            <Card className={cx('animate-rise-in p-5')}>
+            <Card className="p-5">
               <form onSubmit={(e) => submit(e, 'create', () => api.post('/organizations', { name: orgName.trim() }), 'Could not create the organization')}>
                 <div className="mb-3 flex items-center gap-2">
                   <LuBuilding2 className="h-4 w-4 text-muted" />
-                  <label htmlFor="orgName" className="text-sm font-medium">New organization</label>
+                  <label htmlFor="orgName" className="text-sm font-medium">{t('New organization')}</label>
                 </div>
                 <div className="flex gap-2">
-                  <Input id="orgName" value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Organization name" minLength={2} required autoFocus />
-                  <Button type="submit" loading={busy === 'create'}>Create</Button>
+                  <Input id="orgName" value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder={t('Organization name')} minLength={2} required autoFocus />
+                  <Button type="submit" loading={busy === 'create'}>{t('Create')}</Button>
                 </div>
-                <p className="hint">For schools, coaching centers and companies that run their own exams. You'll be its owner.</p>
+                <p className="hint">{t("For schools, coaching centers and companies that run their own exams. You'll be its owner.")}</p>
               </form>
             </Card>
           )}
