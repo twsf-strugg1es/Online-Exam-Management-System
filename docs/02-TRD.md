@@ -176,5 +176,5 @@ cd frontend && npm start | npm test -- --watchAll=false | npm run build
 5. ~~Debug prints and no structured logging~~ Done: JSON logs to stdout via `app/logging_config.py` (one `app.request` line per request with `request_id`, `method`, `path`, `status`, `duration_ms`, `user_id`, `organization_id`, `role`); every response has an `X-Request-ID` header; unexpected 500s return a generic message with that reference instead of exception text. Health check: `GET /health` (200, or 503 when the database is unreachable).
 6. Unused legacy grading endpoints in `admin.py`: `/exams/attempts/{id}`, `/exams/attempts/{id}/evaluate`, `/answers/{id}/evaluate`, `/answers/{id}/evaluation`, `/attempts/{id}/results`. The frontend doesn't call them; remove them after confirming.
 7. Naive `datetime.utcnow` defaults in several models; prefer timezone-aware values.
-8. JWT in `localStorage`; JWT subject is the email (changing an email would invalidate sessions).
+8. JWT in `localStorage`. ~~JWT subject is the email~~ Fixed in 2.8: the subject is the user ID; tokens with an email subject are still accepted until the next release (remove the fallback in `security.get_current_user`).
 9. ~~README project structure stale~~ Fixed in 1.7.

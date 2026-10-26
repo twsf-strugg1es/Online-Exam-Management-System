@@ -47,7 +47,7 @@ The product already exists (see "Completed"). Milestones 1–6 take it to a **pa
 | [ ] | 2.5 | Email verification (soft) | agent | 2.3 | `users.email_verified_at`; verify link; banner until verified | Unverified users can still take exams (pilot) | 2.3 |
 | [ ] | 2.6 | Rate limiting on `/token`, signup, reset | agent | — | `slowapi` limits | Exceeding the limit → 429; test | — |
 | [x] | 2.7 | Archive instead of destroy | agent | 05 Schema "Retention" | `questions.archived_at`, `exams.archived_at`; delete = archive once used | Deleting a used question never removes answers; past results still render; tests | 2.1 |
-| [ ] | 2.8 | JWT subject = user ID (accept old email tokens for one release) | agent | — | `security.py` | Changing an email doesn't log the user out; test | — |
+| [x] | 2.8 | JWT subject = user ID (accept old email tokens for one release) | agent | — | `security.py`, `routers/auth.py`; `test_jwt_subject.py` | Changing an email doesn't log the user out; test | — |
 
 ## Milestone 3: Core journey (pilot-ready exam operations)
 
@@ -148,3 +148,5 @@ The product already exists (see "Completed"). Milestones 1–6 take it to a **pa
 Record anything unresolved at a milestone checkpoint here: date, issue, decision needed, owner.
 
 - 2026-10-12: Owner decisions pending: email provider (2.3), SMS gateway (3.9), hosting region (6.1), TestKori logo mark (1.1), negative-total policy (4.1), retakes (PRD open question 7), first global market and global pricing (PRD open questions 8–9), waitlist sender address (3.13), YouTube link for the product video (3.14).
+- 2026-10-26: Remove the email-subject fallback for old tokens in `security.get_current_user` in the release after 2.8 ships (agent; no owner decision).
+- 2026-10-26: The logo mark from 1.1 (option B, bubble + check) is in use; the owner picked it, so it's no longer pending.

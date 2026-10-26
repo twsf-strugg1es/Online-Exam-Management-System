@@ -8,7 +8,7 @@ from app.security import create_access_token
 
 
 def headers_for(user, org=None):
-    headers = {"Authorization": f"Bearer {create_access_token({'sub': user.email})}"}
+    headers = {"Authorization": f"Bearer {create_access_token({'sub': str(user.id)})}"}
     if org is not None:
         headers["X-Organization-Id"] = str(org.id)
     return headers

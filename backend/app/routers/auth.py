@@ -35,8 +35,9 @@ def refresh_access_token(current_user: models.User = Depends(get_current_user)):
 
 
 def _issue_token(user: models.User) -> dict:
-    # Roles are per organization, so the token only identifies the user
-    access_token = create_access_token(data={"sub": user.email}, expires_delta=ACCESS_TOKEN_EXPIRES)
+    # Roles are per organization, so the token only identifies the user, by ID so that
+    # changing the email doesn't sign them out
+    access_token = create_access_token(data={"sub": str(user.id)}, expires_delta=ACCESS_TOKEN_EXPIRES)
     return {"access_token": access_token, "token_type": "bearer"}
 
 
