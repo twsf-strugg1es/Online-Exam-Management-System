@@ -147,5 +147,5 @@
   .tag { @apply inline-flex items-center whitespace-nowrap rounded-sm border border-line-strong px-1.5 py-[3px] font-mono text-[11px] font-medium tracking-[0.03em] text-muted; }
   .sheet { @apply relative border border-line bg-surface; }
   /* Red margin line, as on exam paper */
-  .sheet-margin::before { content: ""; @apply absolute inset-y-0 left-7 w-px bg-danger/35; }
+  .sheet-margin::before { content: ""; @apply absolute inset-y-0 left-3 w-px bg-danger/35 sm:left-7; }
 }

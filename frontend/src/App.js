@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { PageLoader } from './components/ui';
+import DesktopOnly from './components/DesktopOnly';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import OrgSignupPage from './pages/OrgSignupPage';
@@ -31,6 +32,7 @@ function App() {
   const only = (allowed, element) => (allowed ? element : <Navigate to="/" replace />);
 
   return (
+    <DesktopOnly>
     <Routes>
       <Route
         path="/"
@@ -67,6 +69,7 @@ function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </DesktopOnly>
   );
 }
 
