@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useI18n } from '../i18n';
 import { Logo, cx } from './ui';
 import { ROLE_LABELS } from '../utils';
+import VerifyEmailBanner from './VerifyEmailBanner';
 
 const STAFF_NAV = [
   { to: '/admin-exams', label: 'Exams' },
@@ -144,6 +145,7 @@ export default function AppShell({ children, width = 'default' }) {
 
       <main className="lg:ps-64">
         <div className={cx('mx-auto px-4 py-8 sm:px-8 lg:px-12 lg:py-10', width === 'narrow' ? 'max-w-3xl' : 'max-w-6xl')}>
+          <VerifyEmailBanner />
           {children}
         </div>
       </main>

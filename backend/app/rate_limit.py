@@ -23,6 +23,7 @@ JOIN_PER_USER = (20, 10 * 60)
 RESET_REQUEST_PER_IP = (20, 10 * 60)
 RESET_EMAILS_PER_ACCOUNT = (3, 60 * 60)  # beyond this, requests succeed but send nothing
 RESET_CONFIRM_PER_IP = (30, 10 * 60)
+VERIFY_RESEND_PER_USER = (3, 60 * 60)
 
 _MAX_KEYS = 50_000  # prune expired entries beyond this, so memory stays bounded
 

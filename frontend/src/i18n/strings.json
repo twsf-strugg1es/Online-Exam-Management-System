@@ -41,6 +41,7 @@
   "{{count}} violations have been recorded.": {
     "plural": true
   },
+  "{{email}} is confirmed.": {},
   "{{n}} archived (used in exams, kept for results)": {},
   "{{n}} deleted": {},
   "{{n}} min": {},
@@ -145,10 +146,13 @@
     "source": "server"
   },
   "Confirm": {},
+  "Confirm email": {},
   "Confirm new password": {},
   "Confirm password": {},
+  "Confirm your email address": {},
   "Continue": {},
   "Continue exam": {},
+  "Continue to TestKori": {},
   "Continue where you left off": {},
   "Copied": {},
   "Copy and paste blocked": {},
@@ -507,6 +511,8 @@
   "Select all that apply": {},
   "Select shown": {},
   "Send reset link": {},
+  "Send the link again": {},
+  "Sent. Check {{email}}, including the spam folder.": {},
   "Set a duration in minutes.": {},
   "Set a new password": {},
   "Settings": {},
@@ -590,6 +596,9 @@
   "They lose access to this organization. Their account is kept.": {},
   "They lose access to your exams. Their account and past results are kept, and they can rejoin with a join code.": {},
   "This attempt has no written or image answers. Multiple-choice questions were graded automatically.": {},
+  "This confirmation link is invalid or has expired. Sign in and send a new one.": {
+    "source": "server"
+  },
   "This exam is not available to you.": {},
   "This reset link is invalid or has expired. Ask for a new one.": {
     "source": "server"
@@ -648,6 +657,7 @@
   "Violation recorded ({{n}}).": {},
   "Violations": {},
   "Violations are recorded and shown to your examiner.": {},
+  "We sent a link to {{email}}. Confirming it lets you reset your password by email if you forget it.": {},
   "What the exam page enforces and records.": {},
   "When {{org}} publishes an exam for you, it appears here.": {},
   "Who can take it": {},

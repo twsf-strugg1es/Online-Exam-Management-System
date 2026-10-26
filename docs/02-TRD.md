@@ -72,7 +72,8 @@ Backend environment (`backend/.env`):
 - **Organization context:** every organization-scoped request sends `X-Organization-Id`. `permissions.get_current_membership` resolves it to the caller's membership or returns 403. Route guards: `require_staff`, `require_manager`, `require_candidate`.
 - **Rate limits (2.6):** `app/rate_limit.py`, in-process counters (one API instance; several instances need Redis or Postgres). `POST /token`: 100/min per IP, and 10 failed sign-ins per account per 15 min (counted for unknown emails too; a success clears it). `/signup`: 60 per 10 min per IP; `/signup/organization`: 10/hour per IP; `/organizations/join`: 20 per 10 min per user. Over the limit → 429 with `Retry-After`. Per-IP limits are generous because a class signs in together from one school network. The client IP is `request.client.host`; uvicorn `--proxy-headers` trusts `X-Forwarded-For` only from `FORWARDED_ALLOW_IPS` (default 127.0.0.1), so set that to the load balancer's address in production.
 - **Password reset (2.4):** `routers/password_reset.py`. Tokens are 32 random bytes (URL-safe), stored only as SHA-256, valid 30 minutes, single use; a new request or a successful reset invalidates every open link. Known gap: tokens already issued (60 min JWTs) stay valid after a reset until they expire.
-- *(planned)* Email verification, Google sign-in.
+- **Email verification (2.5, soft):** `routers/email_verification.py`. Both signups email a link; the token is a signed JWT with `purpose: verify-email` and the email, so changing the address kills old links and nothing is stored. `security.get_current_user` refuses any token with a `purpose`, so an emailed link can never act as a session. Signed-in pages show `VerifyEmailBanner` (dismissible per visit) until confirmed.
+- *(planned)* Google sign-in.
 
 ## External services and APIs
 

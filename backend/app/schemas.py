@@ -108,6 +108,7 @@ class User(UserBase):
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
     language: Optional[str] = None
+    email_verified_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -366,3 +367,7 @@ class PasswordResetRequest(BaseModel):
 class PasswordResetConfirm(BaseModel):
     token: str = Field(min_length=20, max_length=200)
     new_password: str = Field(min_length=6, max_length=200)
+
+
+class EmailVerification(BaseModel):
+    token: str = Field(min_length=20, max_length=2000)

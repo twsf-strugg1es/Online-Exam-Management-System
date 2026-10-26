@@ -79,7 +79,9 @@ def get_current_user(
     if not payload:
         raise credentials_exception
     subject = payload.get("sub")
-    if not subject:
+    # Emailed links (e.g. email confirmation) are signed with the same key but carry a
+    # purpose; they must never work as a sign-in token
+    if not subject or payload.get("purpose"):
         raise credentials_exception
     try:
         user = db.query(models.User).filter(models.User.id == uuid.UUID(subject)).first()

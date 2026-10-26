@@ -49,6 +49,7 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | date_of_birth | date | | | |
 | gender | text | | | `male` / `female` / `other` |
 | language | text | | null (use the organization's) | One of `models.LANGUAGES`; set from Account |
+| email_verified_at | timestamptz | | null | Set by the emailed confirmation link (or a completed password reset). Null shows a banner; nothing is blocked |
 | *(planned)* phone | text | | | E.164, e.g. `+8801XXXXXXXXX` |
 
 ### memberships
@@ -218,7 +219,8 @@ Added in `0007_indexes_unique_answers`: unique `answers (attempt_id, question_id
 
 | Step | Today | Planned |
 |---|---|---|
-| Sign up (candidate) | `POST /signup` (+ optional join code) → then `POST /token` | Email verification link |
+| Sign up (candidate) | `POST /signup` (+ optional join code) → then `POST /token`. Both signups email a confirmation link | — |
+| Confirm email | `POST /verify-email` {token}: a signed JWT (`purpose: verify-email`, names the email, 7 days, not stored) sets `email_verified_at`; repeat clicks are fine. `POST /verify-email/resend` (signed in, 3/hour). Tokens with a `purpose` are refused as sign-in tokens | Require confirmation for staff (after pilot) |
 | Sign up (organization) | `POST /signup/organization` creates the user + organization + owner membership | — |
 | Sign in | `POST /token` (form: username = email, password) → JWT (60 min, subject = user ID). Rate limited: 100/min per IP, 10 failures per account per 15 min → 429 | Google sign-in |
 | Session | `Authorization: Bearer`; `GET /me` returns the user + memberships; `POST /token/refresh` renews | httpOnly refresh cookie |

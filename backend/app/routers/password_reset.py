@@ -74,6 +74,8 @@ def confirm_reset(data: schemas.PasswordResetConfirm, db: Session = Depends(get_
 
     user = record.user
     user.hashed_password = get_password_hash(data.new_password)
+    if user.email_verified_at is None:
+        user.email_verified_at = now  # the link arrived at this inbox, so the address works
     db.query(models.PasswordResetToken).filter(
         models.PasswordResetToken.user_id == user.id, models.PasswordResetToken.used_at.is_(None)
     ).update({models.PasswordResetToken.used_at: now})

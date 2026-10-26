@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -9,6 +9,7 @@ from .. import crud, schemas, models
 from ..security import verify_password, create_access_token, get_current_user
 from .. import rate_limit
 from ..rate_limit import limiter, per_ip
+from .email_verification import send_verification
 
 router = APIRouter(tags=["Auth"])
 
@@ -78,7 +79,7 @@ def _ensure_email_free(db: Session, email: str) -> None:
     "/signup", response_model=schemas.UserWithMemberships, status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(per_ip("signup", rate_limit.SIGNUP_PER_IP))],
 )
-def signup(user_data: schemas.CandidateSignup, db: Session = Depends(get_db)):
+def signup(user_data: schemas.CandidateSignup, background: BackgroundTasks, db: Session = Depends(get_db)):
     """Public signup. With a join code, the new user also becomes a candidate in that organization."""
     _ensure_email_free(db, user_data.email)
 
@@ -90,6 +91,7 @@ def signup(user_data: schemas.CandidateSignup, db: Session = Depends(get_db)):
     if user_data.join_code:
         crud.join_with_code(db, new_user, user_data.join_code)
         db.refresh(new_user)
+    send_verification(new_user, background)
     return _user_with_memberships(new_user)
 
 
@@ -97,10 +99,11 @@ def signup(user_data: schemas.CandidateSignup, db: Session = Depends(get_db)):
     "/signup/organization", response_model=schemas.UserWithMemberships, status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(per_ip("org-signup", rate_limit.ORG_SIGNUP_PER_IP))],
 )
-def signup_organization(data: schemas.OrganizationSignup, db: Session = Depends(get_db)):
+def signup_organization(data: schemas.OrganizationSignup, background: BackgroundTasks, db: Session = Depends(get_db)):
     """Create a new organization together with its owner's account."""
     _ensure_email_free(db, data.email)
     owner = crud.create_user(db, data, commit=False)
     crud.create_organization(db, data.organization_name.strip(), owner, locale=data)
     db.refresh(owner)
+    send_verification(owner, background)
     return _user_with_memberships(owner)

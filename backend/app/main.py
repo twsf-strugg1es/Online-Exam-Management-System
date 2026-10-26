@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from . import models, notify  # noqa: F401  # models: ensure metadata has tables
 from .database import get_db
 from .logging_config import configure_logging, request_logging_middleware
-from .routers import admin, auth, organizations, password_reset, student, profile
+from .routers import admin, auth, email_verification, organizations, password_reset, student, profile
 
 configure_logging()
 notify.warn_if_not_sending()
@@ -54,6 +54,7 @@ def health(db: Session = Depends(get_db)):
 app.include_router(admin.router)
 app.include_router(auth.router)
 app.include_router(password_reset.router)
+app.include_router(email_verification.router)
 app.include_router(organizations.router)
 app.include_router(student.router)
 app.include_router(profile.router)

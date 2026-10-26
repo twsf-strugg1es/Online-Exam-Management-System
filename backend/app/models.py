@@ -105,6 +105,7 @@ class User(Base):
     date_of_birth = Column(Date, nullable=True)
     gender = Column(String, nullable=True)  # 'male', 'female', 'other'
     language = Column(String, nullable=True)  # BCP 47; null = the organization's default
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)  # set by the emailed link
 
     memberships = relationship("Membership", back_populates="user", cascade="all, delete-orphan")
 
