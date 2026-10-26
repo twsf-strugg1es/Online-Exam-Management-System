@@ -6,12 +6,14 @@ import {
   Alert, Badge, Button, Card, Checkbox, EmptyState, Input, Modal, PageHeader, PageLoader, Select, cx, useConfirm,
 } from '../components/ui';
 import { QUESTION_TYPE_LABELS, errorMessage } from '../utils';
+import { useI18n } from '../i18n';
 
 const COMPLEXITY_TONES = { easy: 'brand', medium: 'warn', hard: 'danger' };
 
 const formatAnswer = (value) => (Array.isArray(value) ? value.join(', ') : value ?? '—');
 
 function ImportDialog({ open, onClose, onImported }) {
+  const { t, tn } = useI18n();
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
@@ -66,16 +68,16 @@ function ImportDialog({ open, onClose, onImported }) {
       open={open}
       onClose={close}
       size={preview ? 'lg' : 'md'}
-      title="Import questions from Excel"
-      description="Columns: title, complexity, type, options, correct_answers, max_score, and optionally tags and description. The template shows the format."
+      title={t('Import questions from Excel')}
+      description={t('Columns: title, complexity, type, options, correct_answers, max_score, and optionally tags and description. The template shows the format.')}
       footer={
         <>
-          <Button variant="secondary" onClick={close}>Cancel</Button>
+          <Button variant="secondary" onClick={close}>{t('Cancel')}</Button>
           {!preview ? (
-            <Button onClick={handlePreview} disabled={!file} loading={busy === 'preview'}>Preview</Button>
+            <Button onClick={handlePreview} disabled={!file} loading={busy === 'preview'}>{t('Preview')}</Button>
           ) : (
             <Button onClick={handleImport} icon={LuUpload} loading={busy === 'import'}>
-              Import {preview.count} question{preview.count === 1 ? '' : 's'}
+              {tn(preview.count, 'Import {{count}} question', 'Import {{count}} questions')}
             </Button>
           )}
         </>
@@ -91,8 +93,8 @@ function ImportDialog({ open, onClose, onImported }) {
           )}
         >
           <LuFileSpreadsheet className={cx('h-8 w-8', file ? 'text-brand' : 'text-muted')} />
-          <span className="mt-3 text-sm font-medium">{file ? file.name : 'Choose an .xlsx file'}</span>
-          <span className="mt-1 text-xs text-muted">{file ? 'Click to choose a different file' : 'Excel 2007 or newer'}</span>
+          <span className="mt-3 text-sm font-medium">{file ? file.name : t('Choose an .xlsx file')}</span>
+          <span className="mt-1 text-xs text-muted">{file ? t('Click to choose a different file') : t('Excel 2007 or newer')}</span>
           <input
             ref={inputRef}
             type="file"
@@ -108,13 +110,13 @@ function ImportDialog({ open, onClose, onImported }) {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <p className="text-sm font-medium"><span className="tabular mr-2 text-muted">{i + 1}.</span>{q.title}</p>
                 <div className="flex gap-1.5">
-                  <Badge>{QUESTION_TYPE_LABELS[q.type]}</Badge>
-                  <Badge tone={COMPLEXITY_TONES[q.complexity]}>{q.complexity}</Badge>
+                  <Badge>{t(QUESTION_TYPE_LABELS[q.type] || '')}</Badge>
+                  <Badge tone={COMPLEXITY_TONES[q.complexity]}>{t(q.complexity)}</Badge>
                 </div>
               </div>
               {Array.isArray(q.options) && (
                 <p className="mt-1.5 text-xs text-muted">
-                  Options: {q.options.join(' · ')}. Answer: <span className="font-medium text-ink">{formatAnswer(q.correct_answers)}</span>
+                  {t('Options:')} {q.options.join(' · ')}. {t('Answer:')} <span className="font-medium text-ink">{formatAnswer(q.correct_answers)}</span>
                 </p>
               )}
             </div>
@@ -127,14 +129,15 @@ function ImportDialog({ open, onClose, onImported }) {
 }
 
 function QuestionDialog({ question, onClose }) {
+  const { t, tn } = useI18n();
   if (!question) return null;
   const correct = Array.isArray(question.correct_answers) ? question.correct_answers.map(String) : [String(question.correct_answers)];
   return (
     <Modal open onClose={onClose} title={question.title} description={question.description} size="md">
       <div className="mb-4 flex flex-wrap gap-1.5">
-        <Badge>{QUESTION_TYPE_LABELS[question.type]}</Badge>
-        <Badge tone={COMPLEXITY_TONES[question.complexity]}>{question.complexity}</Badge>
-        <Badge tone="info">{question.max_score} point{question.max_score === 1 ? '' : 's'}</Badge>
+        <Badge>{t(QUESTION_TYPE_LABELS[question.type] || '')}</Badge>
+        <Badge tone={COMPLEXITY_TONES[question.complexity]}>{t(question.complexity)}</Badge>
+        <Badge tone="info">{tn(question.max_score, '{{count}} point', '{{count}} points')}</Badge>
         {(question.tags || []).map((tag) => <Badge key={tag}>#{tag}</Badge>)}
       </div>
       {Array.isArray(question.options) ? (
@@ -147,19 +150,20 @@ function QuestionDialog({ question, onClose }) {
                 className={cx('flex items-center justify-between rounded-lg border px-3 py-2 text-sm', isCorrect ? 'border-brand/40 bg-brand-soft/50' : 'border-line')}
               >
                 {option}
-                {isCorrect && <span className="flex items-center gap-1 text-xs font-medium text-brand-ink"><LuCheck className="h-3.5 w-3.5" />Correct</span>}
+                {isCorrect && <span className="flex items-center gap-1 text-xs font-medium text-brand-ink"><LuCheck className="h-3.5 w-3.5" />{t('Correct')}</span>}
               </li>
             );
           })}
         </ul>
       ) : (
-        <p className="rounded-lg bg-sunken px-4 py-3 text-sm text-muted">Graded by an examiner after the exam.</p>
+        <p className="rounded-lg bg-sunken px-4 py-3 text-sm text-muted">{t('Graded by an examiner after the exam.')}</p>
       )}
     </Modal>
   );
 }
 
 function AdminQuestionsPage() {
+  const { t, tn } = useI18n();
   const [questions, setQuestions] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [message, setMessage] = useState(null);
@@ -217,9 +221,9 @@ function AdminQuestionsPage() {
   const deleteQuestions = async (ids) => {
     const many = ids.length > 1;
     const ok = await confirm({
-      title: many ? `Delete ${ids.length} questions?` : 'Delete this question?',
-      description: 'Questions used in an exam are archived instead: they leave the bank, but past results keep them. Unused questions are deleted.',
-      confirmLabel: 'Delete',
+      title: many ? t('Delete {{n}} questions?', { n: ids.length }) : t('Delete this question?'),
+      description: t('Questions used in an exam are archived instead: they leave the bank, but past results keep them. Unused questions are deleted.'),
+      confirmLabel: t('Delete'),
       danger: true,
     });
     if (!ok) return;
@@ -227,10 +231,10 @@ function AdminQuestionsPage() {
       let text;
       if (many) {
         const { data } = await api.post('/admin/questions/delete-bulk', { question_ids: ids });
-        text = [data.deleted && `${data.deleted} deleted`, data.archived && `${data.archived} archived (used in exams, kept for results)`]
-          .filter(Boolean).join(', ') || 'Nothing changed';
+        text = [data.deleted && t('{{n}} deleted', { n: data.deleted }), data.archived && t('{{n}} archived (used in exams, kept for results)', { n: data.archived })]
+          .filter(Boolean).join(', ') || t('Nothing changed');
       } else {
-        text = (await api.delete(`/admin/questions/${ids[0]}`)).data.message;
+        text = t((await api.delete(`/admin/questions/${ids[0]}`)).data.message);
       }
       setMessage({ tone: 'success', text });
       setSelected(new Set());
@@ -245,12 +249,12 @@ function AdminQuestionsPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Question bank"
-        description="Questions you can reuse across exams. Multiple-choice questions are graded automatically; written and image answers are graded by an examiner."
+        title={t('Question bank')}
+        description={t('Questions you can reuse across exams. Multiple-choice questions are graded automatically; written and image answers are graded by an examiner.')}
         actions={
           <>
-            <Button variant="secondary" icon={LuDownload} onClick={downloadTemplate}>Template</Button>
-            <Button icon={LuUpload} onClick={() => setImportOpen(true)}>Import from Excel</Button>
+            <Button variant="secondary" icon={LuDownload} onClick={downloadTemplate}>{t('Template')}</Button>
+            <Button icon={LuUpload} onClick={() => setImportOpen(true)}>{t('Import from Excel')}</Button>
           </>
         }
       />
@@ -264,15 +268,15 @@ function AdminQuestionsPage() {
         <Card>
           <EmptyState
             icon={LuFileQuestion}
-            title="No questions yet"
+            title={t('No questions yet')}
             action={
               <div className="flex gap-2">
-                <Button variant="secondary" icon={LuDownload} onClick={downloadTemplate}>Download template</Button>
-                <Button icon={LuUpload} onClick={() => setImportOpen(true)}>Import from Excel</Button>
+                <Button variant="secondary" icon={LuDownload} onClick={downloadTemplate}>{t('Download template')}</Button>
+                <Button icon={LuUpload} onClick={() => setImportOpen(true)}>{t('Import from Excel')}</Button>
               </div>
             }
           >
-            Fill in the Excel template with your questions, then import it. You can import as many files as you like.
+            {t('Fill in the Excel template with your questions, then import it. You can import as many files as you like.')}
           </EmptyState>
         </Card>
       ) : (
@@ -280,27 +284,27 @@ function AdminQuestionsPage() {
           <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
             <div className="relative min-w-[200px] flex-1">
               <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search questions" className="pl-9" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search questions')} className="pl-9" />
             </div>
             <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="w-auto">
-              <option value="">All types</option>
-              {Object.entries(QUESTION_TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              <option value="">{t('All types')}</option>
+              {Object.entries(QUESTION_TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{t(label)}</option>)}
             </Select>
             <Select value={complexityFilter} onChange={(e) => setComplexityFilter(e.target.value)} className="w-auto">
-              <option value="">All difficulties</option>
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
+              <option value="">{t('All difficulties')}</option>
+              <option value="easy">{t('Easy')}</option>
+              <option value="medium">{t('Medium')}</option>
+              <option value="hard">{t('Hard')}</option>
             </Select>
             {filtersActive && (
-              <Button variant="ghost" onClick={() => { setSearch(''); setTypeFilter(''); setComplexityFilter(''); }}>Clear</Button>
+              <Button variant="ghost" onClick={() => { setSearch(''); setTypeFilter(''); setComplexityFilter(''); }}>{t('Clear')}</Button>
             )}
           </div>
 
           {selected.size > 0 && (
             <div className="flex items-center justify-between gap-3 border-b border-line bg-brand-soft/40 px-4 py-2 text-sm">
-              <span className="font-medium">{selected.size} selected</span>
-              <Button variant="danger-ghost" size="sm" icon={LuTrash2} onClick={() => deleteQuestions([...selected])}>Delete</Button>
+              <span className="font-medium">{t('{{n}} selected', { n: selected.size })}</span>
+              <Button variant="danger-ghost" size="sm" icon={LuTrash2} onClick={() => deleteQuestions([...selected])}>{t('Delete')}</Button>
             </div>
           )}
 
@@ -309,10 +313,10 @@ function AdminQuestionsPage() {
               <thead>
                 <tr>
                   <th className="w-10"><Checkbox checked={allSelected} onChange={toggleAll} /></th>
-                  <th>Question</th>
-                  <th>Type</th>
-                  <th>Difficulty</th>
-                  <th className="text-right">Points</th>
+                  <th>{t('Question')}</th>
+                  <th>{t('Type')}</th>
+                  <th>{t('Difficulty')}</th>
+                  <th className="text-right">{t('Points')}</th>
                   <th className="w-24" />
                 </tr>
               </thead>
@@ -322,25 +326,25 @@ function AdminQuestionsPage() {
                     <td><Checkbox checked={selected.has(q.id)} onChange={() => toggle(q.id)} /></td>
                     <td className="max-w-md">
                       <button type="button" onClick={() => setViewing(q)} className="text-left font-medium hover:text-brand">{q.title}</button>
-                      {q.tags?.length > 0 && <p className="mt-0.5 text-xs text-muted">{q.tags.map((t) => `#${t}`).join(' ')}</p>}
+                      {q.tags?.length > 0 && <p className="mt-0.5 text-xs text-muted">{q.tags.map((tag) => `#${tag}`).join(' ')}</p>}
                     </td>
-                    <td className="whitespace-nowrap text-muted">{QUESTION_TYPE_LABELS[q.type] || q.type}</td>
-                    <td><Badge tone={COMPLEXITY_TONES[q.complexity]}>{q.complexity}</Badge></td>
+                    <td className="whitespace-nowrap text-muted">{t(QUESTION_TYPE_LABELS[q.type] || q.type)}</td>
+                    <td><Badge tone={COMPLEXITY_TONES[q.complexity]}>{t(q.complexity)}</Badge></td>
                     <td className="tabular text-right">{q.max_score}</td>
                     <td>
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" icon={LuEye} onClick={() => setViewing(q)} aria-label="View" />
-                        <Button variant="danger-ghost" size="sm" icon={LuTrash2} onClick={() => deleteQuestions([q.id])} aria-label="Delete" />
+                        <Button variant="ghost" size="sm" icon={LuEye} onClick={() => setViewing(q)} aria-label={t('View')} />
+                        <Button variant="danger-ghost" size="sm" icon={LuTrash2} onClick={() => deleteQuestions([q.id])} aria-label={t('Delete')} />
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {filtered.length === 0 && <EmptyState icon={LuSearch} title="No matching questions">Try a different search or filter.</EmptyState>}
+            {filtered.length === 0 && <EmptyState icon={LuSearch} title={t('No matching questions')}>{t('Try a different search or filter.')}</EmptyState>}
           </div>
           <div className="border-t border-line px-4 py-2.5 text-xs text-muted">
-            {filtered.length} of {questions.length} question{questions.length === 1 ? '' : 's'}
+            {tn(questions.length, '{{n}} of {{count}} question', '{{n}} of {{count}} questions', { n: filtered.length })}
           </div>
         </Card>
       )}
@@ -349,7 +353,7 @@ function AdminQuestionsPage() {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onImported={(count) => {
-          setMessage({ tone: 'success', text: `Imported ${count} question${count === 1 ? '' : 's'}` });
+          setMessage({ tone: 'success', text: tn(count, 'Imported {{count}} question', 'Imported {{count}} questions') });
           fetchQuestions();
         }}
       />

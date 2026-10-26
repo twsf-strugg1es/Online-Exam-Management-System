@@ -38,8 +38,8 @@ Status: living document · Last updated 2026-10-12 · Describes the system **as 
 
 | Concern | Requirement |
 |---|---|
-| UI text | No user-facing strings hardcoded in components once the i18n framework lands (`react-i18next`, `src/locales/<lang>.json`). English is the source language; Bengali is the first translation |
-| API messages | Error `detail` messages stay English; add a stable machine `code` (e.g. `exam_not_started`) so the frontend can translate them |
+| UI text | **Done (1.8):** every visible string goes through `t('English text')` / `tn(count, one, other)` from `src/i18n/` (`useI18n()`). English text is the key, so a missing translation falls back to English. Translations live in the catalogs in `src/i18n/index.js` (Bengali is task 4.13). `npm run i18n:extract` lists every string in `src/i18n/strings.json` for translators; CI fails if it's out of date. `?lang=en-XA` renders a pseudo-language to find strings that skipped `t()` |
+| API messages | Error `detail` and `message` strings stay English and are translated on the client: `errorMessage()` passes them through `t()`, and the extractor collects them from `backend/app`. Messages with variable parts (f-strings) are not translatable yet; give them a fixed sentence when they matter |
 | Dates, numbers, currency | Formatted with `Intl` APIs and the user's locale; stored as UTC timestamps / integer minor units + ISO 4217 currency code |
 | Settings | Organization: default language, timezone (IANA name), currency, country. User: language override. *(planned columns, see Schema)* |
 | Scripts | Font stack covers Latin and Bengali today; add Noto fallbacks for other scripts. Layout must work right-to-left (CSS logical properties: `ms-`/`me-`, `ps-`/`pe-`) for Arabic and Urdu |
@@ -163,6 +163,7 @@ cd frontend && npm start | npm test -- --watchAll=false | npm run build
 | Tests on SQLite | Fast, no setup | Postgres in CI: planned, since JSON/constraint behavior differs |
 | Global product, Bangladesh launch | One codebase; local conventions are settings. Gets a paying pilot fast without hardcoding one country | Separate BD and global products: double the maintenance |
 | Region per deployment (not one global database) | Simple data-residency story for EU customers | Multi-region single database: complex, unnecessary at this scale |
+| Translations without a library (`src/i18n/`, ~100 lines on `Intl`) | `react-i18next` and `i18next` declare a TypeScript 5 peer that conflicts with CRA's TypeScript 4.9 (needs `--legacy-peer-deps` everywhere), and they add bundle weight the performance budget doesn't allow | `react-i18next` with forced peer resolution: hides real conflicts in every install |
 | CRA kept for now | Works; migrating isn't urgent | Vite: faster builds; a reasonable later task |
 | CSS-variable tokens + a small component set (`ui.js`) | One consistent look in light and dark; replaced several competing style systems | Component library (MUI/shadcn): heavier, generic look |
 

@@ -175,7 +175,7 @@ Rules that follow from the budget:
 
 ## Internationalization rules (global audience)
 
-- **No hardcoded copy.** Every visible string goes through the translation function once i18n lands. Keep sentences whole (no concatenation); plurals via i18n rules.
+- **No hardcoded copy.** Every visible string goes through `t()` / `tn()` (task 1.8 done). Keep sentences whole (no concatenation); plurals via i18n rules.
 - **Allow ~40% text expansion.** No fixed widths on text; buttons wrap gracefully.
 - **Right-to-left ready.** Logical utilities (`ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`); directional icons flip.
 - **Fonts per script**, loaded only when that language is used.

@@ -9,18 +9,31 @@ import AppShell from '../components/AppShell';
 import { Alert, Badge, Card, CardHeader, EmptyState, PageLoader, Stat, cx } from '../components/ui';
 import { RISK, SUBMIT_REASONS } from './ExamResultsPage';
 import { errorMessage, formatClock, formatDateTime, formatDuration } from '../utils';
+import { useI18n } from '../i18n';
+
+const PASTE_ACTIONS = {
+  copy: 'Tried to copy (blocked)',
+  cut: 'Tried to cut (blocked)',
+  paste: 'Tried to paste (blocked)',
+  drop: 'Tried to drop text in (blocked)',
+  middle_click: 'Tried a middle-click paste (blocked)',
+  insertFromPaste: 'Tried to paste from the menu (blocked)',
+  insertFromPasteAsQuotation: 'Tried to paste from the menu (blocked)',
+  insertFromDrop: 'Tried to drop text in (blocked)',
+  insertFromYank: 'Tried to paste (blocked)',
+};
 
 const EVENT_INFO = {
   focus_lost: {
     icon: LuMonitorOff,
-    label: (d) => (d?.tab_hidden ? 'Switched tab or minimized the browser' : 'Switched to another window or app'),
+    label: (d, t) => (d?.tab_hidden ? t('Switched tab or minimized the browser') : t('Switched to another window or app')),
   },
-  focus_returned: { icon: LuHistory, label: (d) => `Came back after ${formatDuration((d?.away_ms || 0) / 1000)}` },
-  fullscreen_exit: { icon: LuMinimize, label: () => 'Exited fullscreen' },
-  copy_paste: { icon: LuClipboard, label: (d) => `Tried to ${d?.action || 'copy or paste'} (blocked)` },
-  context_menu: { icon: LuMousePointerClick, label: () => 'Right-clicked (blocked)' },
-  blocked_shortcut: { icon: LuKeyboard, label: (d) => `Pressed ${d?.key || 'a blocked shortcut'}` },
-  multiple_screens: { icon: LuMonitorSmartphone, label: () => 'More than one screen connected' },
+  focus_returned: { icon: LuHistory, label: (d, t) => t('Came back after {{time}}', { time: formatDuration((d?.away_ms || 0) / 1000) }) },
+  fullscreen_exit: { icon: LuMinimize, label: (d, t) => t('Exited fullscreen') },
+  copy_paste: { icon: LuClipboard, label: (d, t) => t(PASTE_ACTIONS[d?.action] || 'Tried to copy or paste (blocked)') },
+  context_menu: { icon: LuMousePointerClick, label: (d, t) => t('Right-clicked (blocked)') },
+  blocked_shortcut: { icon: LuKeyboard, label: (d, t) => (d?.key ? t('Pressed {{key}}', { key: d.key }) : t('Pressed a blocked shortcut')) },
+  multiple_screens: { icon: LuMonitorSmartphone, label: (d, t) => t('More than one screen connected') },
 };
 
 const RISK_EXPLANATIONS = {
@@ -31,6 +44,7 @@ const RISK_EXPLANATIONS = {
 
 function IntegrityReportPage() {
   const { attemptId } = useParams();
+  const { t } = useI18n();
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
 
@@ -46,10 +60,10 @@ function IntegrityReportPage() {
   const { summary, student, exam, attempt, events } = report;
   const risk = RISK[summary.risk];
   const settings = [
-    exam.require_fullscreen && 'Fullscreen required',
-    exam.block_copy_paste && 'Copy/paste blocked',
-    (exam.shuffle_questions || exam.shuffle_options) && 'Shuffled',
-    exam.max_violations ? `Auto-submit after ${exam.max_violations}` : 'No auto-submit',
+    exam.require_fullscreen && t('Fullscreen required'),
+    exam.block_copy_paste && t('Copy/paste blocked'),
+    (exam.shuffle_questions || exam.shuffle_options) && t('Shuffled'),
+    exam.max_violations ? t('Auto-submit after {{n}}', { n: exam.max_violations }) : t('No auto-submit'),
   ].filter(Boolean);
 
   return (
@@ -60,45 +74,45 @@ function IntegrityReportPage() {
 
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="eyebrow mb-1.5">Integrity report</p>
+          <p className="eyebrow mb-1.5">{t('Integrity report')}</p>
           <h1 className="text-2xl font-semibold tracking-tight">{student.full_name || student.email}</h1>
-          <p className="mt-1 text-sm text-muted">{student.full_name && `${student.email} · `}Started {formatDateTime(attempt.start_time)}</p>
+          <p className="mt-1 text-sm text-muted">{student.full_name && `${student.email} · `}{t('Started {{date}}', { date: formatDateTime(attempt.start_time) })}</p>
         </div>
-        <Badge tone={risk.tone} className="px-3 py-1 text-sm">{risk.label}</Badge>
+        <Badge tone={risk.tone} className="px-3 py-1 text-sm">{t(risk.label)}</Badge>
       </div>
 
       <Card className="mb-6">
         <div className="grid grid-cols-2 gap-6 p-5 sm:grid-cols-4">
-          <Stat label="Violations" value={summary.violations} tone={summary.violations ? 'danger' : undefined} hint={exam.max_violations ? `limit ${exam.max_violations}` : 'no limit'} />
-          <Stat label="Flags" value={summary.flags} hint="copy, right-click, keys" />
-          <Stat label="Time away" value={formatDuration(summary.seconds_away)} />
+          <Stat label={t('Violations')} value={summary.violations} tone={summary.violations ? 'danger' : undefined} hint={exam.max_violations ? t('limit {{n}}', { n: exam.max_violations }) : t('no limit')} />
+          <Stat label={t('Flags')} value={summary.flags} hint={t('copy, right-click, keys')} />
+          <Stat label={t('Time away')} value={formatDuration(summary.seconds_away)} />
           <Stat
-            label="Ended"
-            value={<span className="text-base">{attempt.end_time ? SUBMIT_REASONS[attempt.submit_reason] || 'Submitted' : 'In progress'}</span>}
+            label={t('Ended')}
+            value={<span className="text-base">{attempt.end_time ? t(SUBMIT_REASONS[attempt.submit_reason] || 'Submitted') : t('In progress')}</span>}
             hint={attempt.end_time ? formatDateTime(attempt.end_time) : undefined}
           />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-3">
-          <p className="text-sm text-muted">{RISK_EXPLANATIONS[summary.risk]}</p>
+          <p className="text-sm text-muted">{t(RISK_EXPLANATIONS[summary.risk])}</p>
           <div className="flex flex-wrap gap-1.5">{settings.map((s) => <Badge key={s}>{s}</Badge>)}</div>
         </div>
       </Card>
 
       <Card>
         <CardHeader
-          title="Timeline"
-          description="Times are minutes:seconds after the attempt started, by the server's clock."
+          title={t('Timeline')}
+          description={t("Times are minutes:seconds after the attempt started, by the server's clock.")}
           action={
             attempt.end_time && (
               <Link to={`/admin-evaluate-answers/${attempt.id}`} className="btn btn-secondary btn-sm">
-                <LuPencil className="h-4 w-4" /> Answers
+                <LuPencil className="h-4 w-4" /> {t('Answers')}
               </Link>
             )
           }
         />
         {events.length === 0 ? (
-          <EmptyState icon={LuShieldCheck} title="No events recorded">
-            The student stayed in the exam, in fullscreen, the whole time.
+          <EmptyState icon={LuShieldCheck} title={t('No events recorded')}>
+            {t('The student stayed in the exam, in fullscreen, the whole time.')}
           </EmptyState>
         ) : (
           <ol className="relative px-5 py-4">
@@ -118,8 +132,8 @@ function IntegrityReportPage() {
                   </span>
                   <span className="min-w-0 flex-1 pt-0.5">
                     <span className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className={event.is_violation ? 'font-medium' : ''}>{info.label(event.details)}</span>
-                      {event.is_violation && <Badge tone="danger">Violation</Badge>}
+                      <span className={event.is_violation ? 'font-medium' : ''}>{info.label(event.details, t)}</span>
+                      {event.is_violation && <Badge tone="danger">{t('Violation')}</Badge>}
                     </span>
                   </span>
                   <span className="tabular pt-1 font-mono text-xs text-muted">{formatClock(event.seconds_into_attempt)}</span>
@@ -132,7 +146,7 @@ function IntegrityReportPage() {
 
       <p className="mt-6 flex gap-2 text-xs leading-relaxed text-muted">
         <LuInfo className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        These are signals, not proof. A notification or an accidental key press can take focus away too. Use the report together with the answers before deciding anything.
+        {t('These are signals, not proof. A notification or an accidental key press can take focus away too. Use the report together with the answers before deciding anything.')}
       </p>
     </AppShell>
   );

@@ -90,6 +90,8 @@ jobs:
       - run: npm ci
       - run: npm test -- --watchAll=false
       - run: npm run build
+      - name: Translation strings list is up to date
+        run: npm run i18n:extract && git diff --exit-code -- src/i18n/strings.json
 
   security:
     name: Security scan (Semgrep)

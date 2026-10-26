@@ -5,10 +5,12 @@ import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Badge, Button, Card, CardHeader, EmptyState, Input, PageHeader, PageLoader, Select, Tabs, useConfirm } from '../components/ui';
 import { ROLE_LABELS, errorMessage } from '../utils';
+import { useI18n } from '../i18n';
 
 const signupLink = (code) => `${window.location.origin}/signup?code=${code}`;
 
-function CopyButton({ text, label = 'Copy link' }) {
+function CopyButton({ text, label }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -16,12 +18,12 @@ function CopyButton({ text, label = 'Copy link' }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      window.prompt('Copy this link:', text);
+      window.prompt(t('Copy this link:'), text);
     }
   };
   return (
     <Button variant="secondary" size="sm" icon={copied ? LuCheck : LuCopy} onClick={copy}>
-      {copied ? 'Copied' : label}
+      {copied ? t('Copied') : label || t('Copy link')}
     </Button>
   );
 }
@@ -29,6 +31,7 @@ function CopyButton({ text, label = 'Copy link' }) {
 // Organization settings for owners and admins: join codes, groups and members
 function AdminOrganizationPage() {
   const { user, currentMembership, refreshUser } = useAuth();
+  const { t } = useI18n();
   const [org, setOrg] = useState(null);
   const [groups, setGroups] = useState([]);
   const [members, setMembers] = useState([]);
@@ -87,7 +90,7 @@ function AdminOrganizationPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Organization" description="Invite students, organize them into groups, and manage who can run exams." />
+      <PageHeader title={t('Organization')} description={t('Invite students, organize them into groups, and manage who can run exams.')} />
 
       {message && <Alert tone={message.tone} className="mb-6" onClose={() => setMessage(null)}>{message.text}</Alert>}
 
@@ -96,17 +99,17 @@ function AdminOrganizationPage() {
         onChange={setTab}
         className="mb-6"
         tabs={[
-          { value: 'invite', label: 'Invite & groups', count: groups.length },
-          { value: 'students', label: 'Students', count: candidates.length },
-          { value: 'staff', label: 'Staff', count: staff.length },
-          { value: 'settings', label: 'Settings' },
+          { value: 'invite', label: t('Invite & groups'), count: groups.length },
+          { value: 'students', label: t('Students'), count: candidates.length },
+          { value: 'staff', label: t('Staff'), count: staff.length },
+          { value: 'settings', label: t('Settings') },
         ]}
       />
 
       {tab === 'invite' && (
         <div className="space-y-6">
           <Card>
-            <CardHeader title="Organization join code" description="Anyone with this code can join as a student. Share the code, or the signup link that already contains it." />
+            <CardHeader title={t('Organization join code')} description={t('Anyone with this code can join as a student. Share the code, or the signup link that already contains it.')} />
             <div className="flex flex-wrap items-center gap-3 p-5">
               <span className="rounded-lg border border-dashed border-brand/50 bg-brand-soft/40 px-4 py-2 font-mono text-xl tracking-[0.25em] text-ink">
                 {org.join_code}
@@ -117,28 +120,28 @@ function AdminOrganizationPage() {
                 size="sm"
                 icon={LuRefreshCw}
                 onClick={() => confirmThen(
-                  { title: 'Create a new join code?', description: 'The current code and links stop working. Students who already joined are not affected.', confirmLabel: 'New code' },
+                  { title: t('Create a new join code?'), description: t('The current code and links stop working. Students who already joined are not affected.'), confirmLabel: t('New code') },
                   () => api.post('/org/join-code/regenerate'),
-                  'New join code created',
+                  t('New join code created'),
                 )}
               >
-                New code
+                {t('New code')}
               </Button>
             </div>
           </Card>
 
           <Card className="overflow-hidden">
             <CardHeader
-              title="Groups"
-              description="Batches, classes or hiring rounds. Each group has its own code that also puts students into the group. Exams can be limited to groups."
+              title={t('Groups')}
+              description={t('Batches, classes or hiring rounds. Each group has its own code that also puts students into the group. Exams can be limited to groups.')}
             />
             {groups.length === 0 ? (
-              <EmptyState title="No groups yet">Students who join with the organization code are in no group, and see exams open to everyone.</EmptyState>
+              <EmptyState title={t('No groups yet')}>{t('Students who join with the organization code are in no group, and see exams open to everyone.')}</EmptyState>
             ) : (
               <div className="overflow-x-auto">
                 <table className="table">
                   <thead>
-                    <tr><th>Group</th><th>Join code</th><th className="text-right">Students</th><th /></tr>
+                    <tr><th>{t('Group')}</th><th>{t('Join code')}</th><th className="text-right">{t('Students')}</th><th /></tr>
                   </thead>
                   <tbody>
                     {groups.map((g) => (
@@ -148,28 +151,28 @@ function AdminOrganizationPage() {
                         <td className="tabular text-right">{g.member_count}</td>
                         <td>
                           <div className="flex justify-end gap-1">
-                            <CopyButton text={signupLink(g.join_code)} label="Link" />
+                            <CopyButton text={signupLink(g.join_code)} label={t('Link')} />
                             <Button
                               variant="ghost"
                               size="sm"
                               icon={LuRefreshCw}
-                              aria-label="New code"
-                              title="New code"
+                              aria-label={t('New code')}
+                              title={t('New code')}
                               onClick={() => confirmThen(
-                                { title: `New join code for ${g.name}?`, description: 'The current code and links for this group stop working.', confirmLabel: 'New code' },
+                                { title: t('New join code for {{name}}?', { name: g.name }), description: t('The current code and links for this group stop working.'), confirmLabel: t('New code') },
                                 () => api.post(`/org/groups/${g.id}/join-code/regenerate`),
-                                'New group code created',
+                                t('New group code created'),
                               )}
                             />
                             <Button
                               variant="danger-ghost"
                               size="sm"
                               icon={LuTrash2}
-                              aria-label="Delete group"
+                              aria-label={t('Delete group')}
                               onClick={() => confirmThen(
-                                { title: `Delete ${g.name}?`, description: 'Its students stay in the organization. Exams limited to only this group become open to everyone.', confirmLabel: 'Delete group', danger: true },
+                                { title: t('Delete {{name}}?', { name: g.name }), description: t('Its students stay in the organization. Exams limited to only this group become open to everyone.'), confirmLabel: t('Delete group'), danger: true },
                                 () => api.delete(`/org/groups/${g.id}`),
-                                'Group deleted',
+                                t('Group deleted'),
                               )}
                             />
                           </div>
@@ -184,11 +187,11 @@ function AdminOrganizationPage() {
               className="flex gap-2 border-t border-line p-4"
               onSubmit={(e) => {
                 e.preventDefault();
-                act(() => api.post('/org/groups', { name: newGroup.trim() }), 'Group created').then((ok) => ok && setNewGroup(''));
+                act(() => api.post('/org/groups', { name: newGroup.trim() }), t('Group created')).then((ok) => ok && setNewGroup(''));
               }}
             >
-              <Input value={newGroup} onChange={(e) => setNewGroup(e.target.value)} placeholder="New group, e.g. HSC 2027 Batch A" required />
-              <Button type="submit" icon={LuPlus}>Add</Button>
+              <Input value={newGroup} onChange={(e) => setNewGroup(e.target.value)} placeholder={t('New group, e.g. HSC 2027 Batch A')} required />
+              <Button type="submit" icon={LuPlus}>{t('Add')}</Button>
             </form>
           </Card>
         </div>
@@ -196,13 +199,13 @@ function AdminOrganizationPage() {
 
       {tab === 'students' && (
         <Card className="overflow-hidden">
-          <CardHeader title="Students and their groups" description="Put students into groups so they see the right exams." />
+          <CardHeader title={t('Students and their groups')} description={t('Put students into groups so they see the right exams.')} />
           {candidates.length === 0 ? (
-            <EmptyState icon={LuLink} title="No students yet">Share the join code from the Invite tab.</EmptyState>
+            <EmptyState icon={LuLink} title={t('No students yet')}>{t('Share the join code from the Invite tab.')}</EmptyState>
           ) : (
             <div className="overflow-x-auto">
               <table className="table">
-                <thead><tr><th>Student</th><th>Groups</th><th className="w-48">Add to group</th></tr></thead>
+                <thead><tr><th>{t('Student')}</th><th>{t('Groups')}</th><th className="w-48">{t('Add to group')}</th></tr></thead>
                 <tbody>
                   {candidates.map((m) => {
                     const available = groups.filter((g) => !m.groups.some((mg) => mg.id === g.id));
@@ -220,7 +223,7 @@ function AdminOrganizationPage() {
                                 {g.name}
                                 <button
                                   type="button"
-                                  title={`Remove from ${g.name}`}
+                                  title={t('Remove from {{name}}', { name: g.name })}
                                   className="rounded-full p-0.5 hover:bg-brand/20"
                                   onClick={() => act(() => api.delete(`/org/groups/${g.id}/members/${m.user_id}`))}
                                 >
@@ -237,7 +240,7 @@ function AdminOrganizationPage() {
                               className="h-8 text-xs"
                               onChange={(e) => act(() => api.post(`/org/groups/${e.target.value}/members`, { user_ids: [m.user_id] }))}
                             >
-                              <option value="">Choose a group…</option>
+                              <option value="">{t('Choose a group…')}</option>
                               {available.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                             </Select>
                           )}
@@ -255,12 +258,12 @@ function AdminOrganizationPage() {
       {tab === 'staff' && (
         <Card className="overflow-hidden">
           <CardHeader
-            title="Staff"
-            description="Examiners manage questions, exams and grading. Admins can also manage students, groups and staff. Only owners can manage other owners."
+            title={t('Staff')}
+            description={t('Examiners manage questions, exams and grading. Admins can also manage students, groups and staff. Only owners can manage other owners.')}
           />
           <div className="overflow-x-auto">
             <table className="table">
-              <thead><tr><th>Member</th><th className="w-44">Role</th><th /></tr></thead>
+              <thead><tr><th>{t('Member')}</th><th className="w-44">{t('Role')}</th><th /></tr></thead>
               <tbody>
                 {staff.map((m) => {
                   const locked = m.role === 'owner' && !isOwner;
@@ -268,7 +271,7 @@ function AdminOrganizationPage() {
                   return (
                     <tr key={m.user_id}>
                       <td>
-                        <p className="font-medium">{m.full_name || m.email}{isMe && <span className="ml-2 text-xs font-normal text-muted">you</span>}</p>
+                        <p className="font-medium">{m.full_name || m.email}{isMe && <span className="ml-2 text-xs font-normal text-muted">{t('you')}</span>}</p>
                         {m.full_name && <p className="text-xs text-muted">{m.email}</p>}
                       </td>
                       <td>
@@ -276,9 +279,9 @@ function AdminOrganizationPage() {
                           value={m.role}
                           disabled={locked}
                           className="h-8 text-xs"
-                          onChange={(e) => act(() => api.patch(`/org/members/${m.user_id}`, { role: e.target.value }), 'Role updated')}
+                          onChange={(e) => act(() => api.patch(`/org/members/${m.user_id}`, { role: e.target.value }), t('Role updated'))}
                         >
-                          {(locked ? ['owner'] : assignableRoles).map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                          {(locked ? ['owner'] : assignableRoles).map((r) => <option key={r} value={r}>{t(ROLE_LABELS[r])}</option>)}
                         </Select>
                       </td>
                       <td className="text-right">
@@ -287,11 +290,11 @@ function AdminOrganizationPage() {
                             variant="danger-ghost"
                             size="sm"
                             icon={LuTrash2}
-                            aria-label="Remove"
+                            aria-label={t('Remove')}
                             onClick={() => confirmThen(
-                              { title: `Remove ${m.email}?`, description: 'They lose access to this organization. Their account is kept.', confirmLabel: 'Remove', danger: true },
+                              { title: t('Remove {{name}}?', { name: m.email }), description: t('They lose access to this organization. Their account is kept.'), confirmLabel: t('Remove'), danger: true },
                               () => api.delete(`/org/members/${m.user_id}`),
-                              'Member removed',
+                              t('Member removed'),
                             )}
                           />
                         )}
@@ -306,28 +309,28 @@ function AdminOrganizationPage() {
             className="flex flex-wrap gap-2 border-t border-line p-4"
             onSubmit={(e) => {
               e.preventDefault();
-              act(() => api.post('/org/members', newMember), 'Member added').then((ok) => ok && setNewMember({ email: '', role: 'examiner' }));
+              act(() => api.post('/org/members', newMember), t('Member added')).then((ok) => ok && setNewMember({ email: '', role: 'examiner' }));
             }}
           >
             <Input
               type="email"
               value={newMember.email}
               onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-              placeholder="Email of someone with an account"
+              placeholder={t('Email of someone with an account')}
               className="min-w-[220px] flex-1"
               required
             />
             <Select value={newMember.role} onChange={(e) => setNewMember({ ...newMember, role: e.target.value })} className="w-36">
-              {assignableRoles.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+              {assignableRoles.map((r) => <option key={r} value={r}>{t(ROLE_LABELS[r])}</option>)}
             </Select>
-            <Button type="submit" icon={LuPlus}>Add</Button>
+            <Button type="submit" icon={LuPlus}>{t('Add')}</Button>
           </form>
         </Card>
       )}
 
       {tab === 'settings' && (
         <Card>
-          <CardHeader title="Organization name" description="Shown to your staff and students." />
+          <CardHeader title={t('Organization name')} description={t('Shown to your staff and students.')} />
           <form
             className="flex gap-2 p-5"
             onSubmit={(e) => {
@@ -335,11 +338,11 @@ function AdminOrganizationPage() {
               act(async () => {
                 await api.patch('/org', { name: orgName.trim() });
                 await refreshUser(); // the name shows in the sidebar and organization picker
-              }, 'Organization renamed');
+              }, t('Organization renamed'));
             }}
           >
             <Input value={orgName} onChange={(e) => setOrgName(e.target.value)} minLength={2} required />
-            <Button type="submit" disabled={orgName.trim() === org.name}>Save</Button>
+            <Button type="submit" disabled={orgName.trim() === org.name}>{t('Save')}</Button>
           </form>
         </Card>
       )}

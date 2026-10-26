@@ -1,0 +1,645 @@
+{
+  "{{count}} mark": {
+    "plural_of": "{{count}} marks"
+  },
+  "{{count}} marks": {
+    "plural": true
+  },
+  "{{count}} point": {
+    "plural_of": "{{count}} points"
+  },
+  "{{count}} points": {
+    "plural": true
+  },
+  "{{count}} pt": {
+    "plural_of": "{{count}} pts"
+  },
+  "{{count}} pts": {
+    "plural": true
+  },
+  "{{count}} question": {
+    "plural_of": "{{count}} questions"
+  },
+  "{{count}} question is unanswered.": {
+    "plural_of": "{{count}} questions are unanswered."
+  },
+  "{{count}} questions": {
+    "plural": true
+  },
+  "{{count}} questions are unanswered.": {
+    "plural": true
+  },
+  "{{count}} violation": {
+    "plural_of": "{{count}} violations"
+  },
+  "{{count}} violation has been recorded.": {
+    "plural_of": "{{count}} violations have been recorded."
+  },
+  "{{count}} violations": {
+    "plural": true
+  },
+  "{{count}} violations have been recorded.": {
+    "plural": true
+  },
+  "{{n}} archived (used in exams, kept for results)": {},
+  "{{n}} deleted": {},
+  "{{n}} min": {},
+  "{{n}} more and your exam is submitted automatically.": {},
+  "{{n}} of {{count}} question": {
+    "plural_of": "{{n}} of {{count}} questions"
+  },
+  "{{n}} of {{count}} questions": {
+    "plural": true
+  },
+  "{{n}} of {{total}}": {},
+  "{{n}} of {{total}} graded": {},
+  "{{n}} of {{total}} students": {},
+  "{{n}} points awarded": {},
+  "{{n}} pts": {},
+  "{{n}} Q": {},
+  "{{n}} selected": {},
+  "{{time}} left": {},
+  "A group with that name already exists": {
+    "source": "server"
+  },
+  "A private space for your school, coaching center or company: your own question bank, exams, students and results.": {},
+  "A violation is leaving the exam (another tab, window or app) or exiting fullscreen. Every violation is recorded either way.": {},
+  "Account": {},
+  "Actions": {},
+  "Add": {},
+  "Add to group": {},
+  "Admin": {},
+  "After {{count}} violation your exam is submitted automatically.": {
+    "plural_of": "After {{count}} violations your exam is submitted automatically."
+  },
+  "After {{count}} violations your exam is submitted automatically.": {
+    "plural": true
+  },
+  "All": {},
+  "All difficulties": {},
+  "All groups": {},
+  "All questions were graded automatically.": {},
+  "All types": {},
+  "Already a member of this organization": {
+    "source": "server"
+  },
+  "Already have an account?": {},
+  "An exam picks questions from your question bank and runs in a time window you choose.": {},
+  "and create an organization from there.": {},
+  "Answer": {},
+  "Answer does not belong to this attempt": {
+    "source": "server"
+  },
+  "Answer not found": {
+    "source": "server"
+  },
+  "Answer:": {},
+  "answered": {},
+  "Answered": {},
+  "Answers": {},
+  "Answers save automatically as you go.": {},
+  "Anyone with this code can join as a student. Share the code, or the signup link that already contains it.": {},
+  "At least 6 characters.": {},
+  "Attempt not found": {
+    "source": "server"
+  },
+  "Attempt not found or does not belong to you": {
+    "source": "server"
+  },
+  "Attempts are blocked, recorded, and the clipboard is emptied during the exam.": {},
+  "Auto-submit after {{n}}": {},
+  "Auto-submitted for violations": {},
+  "Auto-submitted, three or more violations, or at least a minute spent away from the exam.": {},
+  "Average": {},
+  "Average score": {},
+  "Awaiting grading": {},
+  "away {{time}}": {},
+  "Back": {},
+  "Back to exams": {},
+  "Batches, classes or hiring rounds. Each group has its own code that also puts students into the group. Exams can be limited to groups.": {},
+  "Best": {},
+  "Block copy and paste": {},
+  "Came back after {{time}}": {},
+  "Cancel": {},
+  "Change password": {},
+  "choose": {},
+  "Choose a different image": {},
+  "Choose a group…": {},
+  "Choose an .xlsx file": {},
+  "Choose an organization": {},
+  "Clear": {},
+  "Click to choose a different file": {},
+  "Close": {},
+  "Close menu": {},
+  "Closed": {},
+  "Closes": {},
+  "Columns: title, complexity, type, options, correct_answers, max_score, and optionally tags and description. The template shows the format.": {},
+  "Comment must be 100 characters or less": {
+    "source": "server"
+  },
+  "Confirm": {},
+  "Confirm new password": {},
+  "Confirm password": {},
+  "Continue": {},
+  "Continue exam": {},
+  "Continue where you left off": {},
+  "Copied": {},
+  "Copy and paste blocked": {},
+  "Copy link": {},
+  "Copy this link:": {},
+  "Copy, paste and right-click are disabled. Your clipboard is emptied when you start and each time you come back.": {},
+  "copy, right-click, keys": {},
+  "Copy/paste blocked": {},
+  "Correct": {},
+  "Correct answer:": {},
+  "Correct answers are shown after the exam closes for everyone ({{date}}).": {},
+  "Could not validate credentials": {
+    "source": "server"
+  },
+  "Create": {},
+  "Create a new join code?": {},
+  "Create a new organization": {},
+  "Create a student account": {},
+  "Create account": {},
+  "Create and publish": {},
+  "create groups": {},
+  "Create organization": {},
+  "Create your first exam": {},
+  "Create your student account": {},
+  "Current password": {},
+  "Dark": {},
+  "Delete": {},
+  "Delete “{{title}}”?": {},
+  "Delete {{n}} questions?": {},
+  "Delete {{name}}?": {},
+  "Delete exam": {},
+  "Delete group": {},
+  "Delete this question?": {},
+  "Details and schedule": {},
+  "Difficulty": {},
+  "Dismiss": {},
+  "Done": {},
+  "Download template": {},
+  "Duration (minutes)": {},
+  "e.g. Mirpur Science Coaching": {},
+  "e.g. Physics, chapter 3 test": {},
+  "Each student gets their own order.": {},
+  "Easy": {},
+  "Email": {},
+  "Email already registered": {
+    "source": "server"
+  },
+  "Email of someone with an account": {},
+  "Ended": {},
+  "Every student in your organization. To limit it,": {},
+  "Everyone": {},
+  "Everyone who joined your organization as a student, with their average score across your exams.": {},
+  "Exam": {},
+  "Exam already submitted": {
+    "source": "server"
+  },
+  "Exam attempt not found or does not belong to you": {
+    "source": "server"
+  },
+  "Exam deleted": {
+    "source": "server"
+  },
+  "Exam is not published anymore": {
+    "source": "server"
+  },
+  "Exam is not published yet": {
+    "source": "server"
+  },
+  "Exam not found": {
+    "source": "server"
+  },
+  "Exam not submitted": {
+    "source": "server"
+  },
+  "Exam published.": {},
+  "Exam time has expired. You can no longer take this exam": {
+    "source": "server"
+  },
+  "Exam unpublished. Students can no longer see it.": {},
+  "Examiner": {},
+  "Examiners manage questions, exams and grading. Admins can also manage students, groups and staff. Only owners can manage other owners.": {},
+  "Exams": {},
+  "Exams need a full desktop browser for their timer and protections. Open TestKori on a laptop or desktop and sign in there.": {},
+  "Exams taken": {},
+  "Excel 2007 or newer": {},
+  "Excel file is empty": {
+    "source": "server"
+  },
+  "Exited fullscreen": {},
+  "Fair exams in any browser": {},
+  "Feedback for the student (optional)": {},
+  "Female": {},
+  "File name is required": {
+    "source": "server"
+  },
+  "Fill in the Excel template with your questions, then import it. You can import as many files as you like.": {},
+  "first, then come back to build the exam.": {},
+  "flag": {},
+  "Flag for review": {},
+  "Flagged": {},
+  "flagged for review": {},
+  "Flagged for review": {},
+  "Flags": {},
+  "For schools, coaching centers and companies that run their own exams. You'll be its owner.": {},
+  "Full name": {},
+  "Fullscreen": {},
+  "Fullscreen is required": {},
+  "Fullscreen required": {},
+  "Gender": {},
+  "Get a join link": {},
+  "Give the exam a title.": {},
+  "Good afternoon": {},
+  "Good evening": {},
+  "Good morning": {},
+  "Grade": {},
+  "Graded by an examiner after the exam.": {},
+  "Graded later": {},
+  "Grading": {},
+  "Group": {},
+  "Group created": {},
+  "Group deleted": {},
+  "Group not found": {
+    "source": "server"
+  },
+  "Groups": {},
+  "Hard": {},
+  "Hello, {{name}}": {},
+  "If students have started it, it is archived instead: hidden from lists and closed, with their results and integrity records kept.": {},
+  "Image answer": {},
+  "Image upload": {},
+  "Image uploaded": {},
+  "Import {{count}} question": {
+    "plural_of": "Import {{count}} questions"
+  },
+  "Import {{count}} questions": {
+    "plural": true
+  },
+  "Import from Excel": {},
+  "Import questions": {},
+  "Import questions from Excel": {},
+  "Imported {{count}} question": {
+    "plural_of": "Imported {{count}} questions"
+  },
+  "Imported {{count}} questions": {
+    "plural": true
+  },
+  "In progress": {},
+  "In progress, timer running": {},
+  "Incorrect": {},
+  "Incorrect old password": {
+    "source": "server"
+  },
+  "Incorrect username or password": {
+    "source": "server"
+  },
+  "Instructions": {},
+  "Integrity": {},
+  "Integrity flags or violations": {},
+  "Integrity report": {},
+  "Internal server error": {
+    "source": "server"
+  },
+  "Invalid join code": {
+    "source": "server"
+  },
+  "Invite & groups": {},
+  "Invite students": {},
+  "Invite students, organize them into groups, and manage who can run exams.": {},
+  "It started when you first opened the exam and doesn't pause. Violations recorded earlier still count.": {},
+  "Its students stay in the organization. Exams limited to only this group become open to everyone.": {},
+  "Join": {},
+  "Join code": {},
+  "Join with a code": {},
+  "Join your organization": {},
+  "Joined": {},
+  "Joining as a student. Staff are added by an organization admin.": {},
+  "JPG or PNG, up to 2 MB": {},
+  "Keep me signed in on this device": {},
+  "Keep working": {},
+  "Left": {},
+  "LEFT EXAM": {},
+  "Light": {},
+  "limit {{n}}": {},
+  "Limit {{n}}": {},
+  "Link": {},
+  "Loading…": {},
+  "Log in": {},
+  "Log out": {},
+  "Make this window wider to keep going": {},
+  "Male": {},
+  "Medium": {},
+  "Member": {},
+  "Member added": {},
+  "Member not found": {
+    "source": "server"
+  },
+  "Member removed": {},
+  "More actions": {},
+  "More than one screen connected": {},
+  "move": {},
+  "Multiple answers": {},
+  "Multiple choice": {},
+  "Multiple-choice questions are graded. Written and image answers are graded by your examiner; check Results later for your final score.": {},
+  "Need review": {},
+  "Needs review": {},
+  "Never (only record violations)": {},
+  "New code": {},
+  "New exam": {},
+  "New group code created": {},
+  "New group, e.g. HSC 2027 Batch A": {},
+  "New here?": {},
+  "New join code created": {},
+  "New join code for {{name}}?": {},
+  "New organization": {},
+  "New password": {},
+  "Next": {},
+  "No account with that email. Ask them to sign up first": {
+    "source": "server"
+  },
+  "no answer": {},
+  "No answer given.": {},
+  "No attempts match this filter.": {},
+  "No attempts yet": {},
+  "No auto-submit": {},
+  "No events recorded": {},
+  "No exams are open right now.": {},
+  "No exams yet": {},
+  "No group": {},
+  "No groups yet": {},
+  "No image uploaded": {},
+  "no limit": {},
+  "No matching questions": {},
+  "No matching students": {},
+  "No paste": {},
+  "No protections": {},
+  "No questions yet": {},
+  "No results yet": {},
+  "No students yet": {},
+  "No.": {},
+  "None ticked: every student in your organization.": {},
+  "Not answered": {},
+  "Not graded yet": {},
+  "Not saved": {},
+  "Nothing changed": {},
+  "Nothing here": {},
+  "Nothing to grade": {},
+  "Nothing was recorded during this attempt.": {},
+  "Once you start, the timer runs even if you close the page.": {},
+  "One more and your exam is submitted automatically.": {},
+  "One more violation and your exam is submitted automatically.": {},
+  "Only Excel files (.xlsx or .xls) are accepted. Please upload a valid Excel file.": {
+    "source": "server"
+  },
+  "Only owners can manage owners": {
+    "source": "server"
+  },
+  "Only students in the ticked groups.": {},
+  "Open menu": {},
+  "Open now": {},
+  "Opens": {},
+  "Opens {{date}}": {},
+  "Opens in {{n}} h": {},
+  "Opens in {{n}} min": {},
+  "optional": {},
+  "Options:": {},
+  "Organization": {},
+  "Organization join code": {},
+  "Organization name": {},
+  "Organization renamed": {},
+  "Organizations": {},
+  "Other": {},
+  "Owner": {},
+  "Password": {},
+  "Password changed": {},
+  "Password must be at least 6 characters long": {},
+  "Passwords do not match": {},
+  "Personal details": {},
+  "Pick at least one question.": {},
+  "Pick from your question bank.": {},
+  "Points": {},
+  "Prefer not to say": {},
+  "Pressed {{key}}": {},
+  "Pressed a blocked shortcut": {},
+  "Preview": {},
+  "Previous": {},
+  "Protections": {},
+  "Publish": {},
+  "Publish “{{title}}”?": {},
+  "Put students into groups so they see the right exams.": {},
+  "Qs": {},
+  "Question": {},
+  "Question {{n}}": {},
+  "Question {{n}} of {{total}}": {},
+  "Question bank": {},
+  "Question deleted": {
+    "source": "server"
+  },
+  "Question not found": {
+    "source": "server"
+  },
+  "Questions": {},
+  "Questions and options are in a different order for every student.": {},
+  "Questions are hidden whenever the student leaves fullscreen.": {},
+  "Questions used in an exam are archived instead: they leave the bank, but past results keep them. Unused questions are deleted.": {},
+  "Questions you can reuse across exams. Multiple-choice questions are graded automatically; written and image answers are graded by an examiner.": {},
+  "Recorded": {},
+  "Register your organization": {},
+  "Remove": {},
+  "Remove {{name}}?": {},
+  "Remove from {{name}}": {},
+  "Remove from organization": {},
+  "Report": {},
+  "Require fullscreen": {},
+  "Results": {},
+  "Return to the exam": {},
+  "Right-clicked (blocked)": {},
+  "Role": {},
+  "Role updated": {},
+  "Running exams for a school or company?": {},
+  "Runs in fullscreen": {},
+  "Save": {},
+  "Save as draft": {},
+  "Save changes": {},
+  "Save grade": {},
+  "Saved": {},
+  "Saving": {},
+  "Schedule an exam from your question bank, then share it with one or more groups.": {},
+  "Score": {},
+  "Score so far": {},
+  "Scores include written answers once your examiner has graded them.": {},
+  "Search by name or email": {},
+  "Search questions": {},
+  "Search students": {},
+  "Select all": {},
+  "Select all that apply": {},
+  "Select shown": {},
+  "Set a duration in minutes.": {},
+  "Settings": {},
+  "Share the join code from the Invite tab.": {},
+  "Shown to your staff and students.": {},
+  "Shuffle": {},
+  "Shuffle answer options": {},
+  "Shuffle question order": {},
+  "Shuffled": {},
+  "Shuffled per student": {},
+  "Sign in": {},
+  "Sign out": {},
+  "Single answer": {},
+  "Single choice": {},
+  "Some activity was recorded. Look at the timeline to judge whether it matters.": {},
+  "Staff": {},
+  "Start": {},
+  "Start exam": {},
+  "Start exam in fullscreen": {},
+  "Started": {},
+  "Started {{date}}": {},
+  "Status": {},
+  "Student": {},
+  "Student not found": {
+    "source": "server"
+  },
+  "Student removed from the organization": {},
+  "Student's answer": {},
+  "Students": {},
+  "Students and their groups": {},
+  "Students can start any time in the window. Each attempt lasts the duration, but never past the closing time.": {},
+  "Students in {{groups}} will see it and can start it from {{date}}.": {},
+  "Students in your organization will see it and can start it from {{date}}.": {},
+  "Students join by signing up with your organization's join code, or a group's code.": {},
+  "Students who join with the organization code are in no group, and see exams open to everyone.": {},
+  "Students, teachers and recruiters all sign in here.": {},
+  "Students' attempts appear here as soon as they start the exam.": {},
+  "Submit automatically after": {},
+  "Submit exam": {},
+  "Submit your exam?": {},
+  "Submitted": {},
+  "Submitted {{date}}": {},
+  "Submitted automatically after {{count}} violation": {
+    "plural_of": "Submitted automatically after {{count}} violations"
+  },
+  "Submitted automatically after {{count}} violations": {
+    "plural": true
+  },
+  "Submitting…": {},
+  "switch": {},
+  "Switch between them from the sidebar.": {},
+  "Switch to dark theme": {},
+  "Switch to light theme": {},
+  "Switched tab or minimized the browser": {},
+  "Switched to another window or app": {},
+  "Switching to another tab, window or app is recorded and counted as a violation.": {},
+  "Template": {},
+  "TestKori home": {},
+  "TestKori works on a computer": {},
+  "That image is larger than 2 MB. Take a smaller photo or crop it.": {},
+  "The current code and links for this group stop working.": {},
+  "The current code and links stop working. Students who already joined are not affected.": {},
+  "The exam must close after it opens.": {},
+  "The exam runs in fullscreen. Questions are hidden whenever you leave fullscreen.": {},
+  "The new password must be at least 6 characters.": {},
+  "The new passwords do not match.": {},
+  "The organization must keep at least one owner": {
+    "source": "server"
+  },
+  "The questions are hidden until you come back to fullscreen.": {},
+  "The questions are hidden until you come back.": {},
+  "The student stayed in the exam, in fullscreen, the whole time.": {},
+  "The timer has not stopped. Widen the window (at least 1024 pixels) or rotate your tablet and your exam comes back exactly as you left it.": {},
+  "The timer keeps running while you're away": {},
+  "The window is only {{w}} minutes, so students who start late get less time than {{d}} minutes.": {},
+  "These are signals, not proof. A notification or an accidental key press can take focus away too. Use the report together with the answers before deciding anything.": {},
+  "They lose access to this organization. Their account is kept.": {},
+  "They lose access to your exams. Their account and past results are kept, and they can rejoin with a join code.": {},
+  "This attempt has no written or image answers. Multiple-choice questions were graded automatically.": {},
+  "This exam is not available to you.": {},
+  "Time": {},
+  "Time away": {},
+  "Time left": {},
+  "Time ran out": {},
+  "Timed exam": {},
+  "Timeline": {},
+  "Times are minutes:seconds after the attempt started, by the server's clock.": {},
+  "Times you left the exam": {},
+  "Title": {},
+  "Today": {},
+  "Tried a middle-click paste (blocked)": {},
+  "Tried to copy (blocked)": {},
+  "Tried to cut (blocked)": {},
+  "Tried to drop text in (blocked)": {},
+  "Tried to paste (blocked)": {},
+  "Tried to paste from the menu (blocked)": {},
+  "Try a different search or filter.": {},
+  "Type": {},
+  "Type your answer here": {},
+  "Unfinished attempt not found or does not belong to you": {
+    "source": "server"
+  },
+  "Unpublish": {},
+  "Upcoming": {},
+  "Update grade": {},
+  "Upload an image of your answer": {},
+  "Uploaded answer": {},
+  "Use a computer": {},
+  "Use the join code your school, coaching center or employer gave you.": {},
+  "User not found": {
+    "source": "server"
+  },
+  "View": {},
+  "Violation": {},
+  "Violation recorded ({{n}} of {{max}}).": {},
+  "Violation recorded ({{n}}).": {},
+  "Violations": {},
+  "Violations are recorded and shown to your examiner.": {},
+  "What the exam page enforces and records.": {},
+  "When {{org}} publishes an exam for you, it appears here.": {},
+  "Who can take it": {},
+  "Window": {},
+  "Written": {},
+  "Written answer": {},
+  "X-Organization-Id header is required": {
+    "source": "server"
+  },
+  "you": {},
+  "You are not a member of this organization": {
+    "source": "server"
+  },
+  "You can change this later.": {},
+  "You can switch between them any time from the sidebar.": {},
+  "You can't change your answers after submitting.": {},
+  "You have {{count}} exam you can take right now.": {
+    "plural_of": "You have {{count}} exams you can take right now."
+  },
+  "You have {{count}} exams you can take right now.": {
+    "plural": true
+  },
+  "You have already submitted this exam": {
+    "source": "server"
+  },
+  "You left the exam": {},
+  "You're signed in but not part of an organization yet. Enter the join code your school, coaching center or employer gave you.": {},
+  "You've already submitted this exam.": {},
+  "You've been invited to join an organization. Your join code is already filled in.": {},
+  "Your account (owner)": {},
+  "Your answer": {},
+  "Your answer:": {},
+  "Your answers": {},
+  "Your email is your login and can't be changed here.": {},
+  "Your exam is still running": {},
+  "Your name is what examiners see on your results.": {},
+  "Your next exam: {{when}}.": {},
+  "your organization": {},
+  "Your question bank is empty": {},
+  "Your role does not allow this action": {
+    "source": "server"
+  },
+  "Your saved answers are restored.": {},
+  "Your score": {},
+  "Your scores appear here after you submit an exam.": {},
+  "Your timer has been running": {},
+  "Your uploaded answer": {}
+}

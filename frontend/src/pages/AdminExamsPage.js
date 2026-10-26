@@ -4,7 +4,8 @@ import { LuPlus, LuClipboardList, LuEllipsis, LuTrash2, LuEyeOff, LuSend } from 
 import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Button, Card, EmptyState, PageHeader, PageLoader, useConfirm } from '../components/ui';
-import { errorMessage, formatDateTime } from '../utils';
+import { errorMessage, formatDateTime, formatShortDate } from '../utils';
+import { useI18n } from '../i18n';
 
 // Draft until published; then scheduled, live or closed depending on the exam window
 export function examStatus(exam, now = new Date()) {
@@ -23,25 +24,27 @@ const STATUS_STYLE = {
 };
 
 export function StatusBadge({ exam }) {
+  const { t } = useI18n();
   const { label } = examStatus(exam);
   const [text, dot] = STATUS_STYLE[label];
   return (
     <span className={`inline-flex items-center gap-2 text-sm ${text}`}>
       <span className={`status-dot ${dot}`} aria-hidden="true" />
-      {label}
+      {t(label)}
     </span>
   );
 }
 
 // Printed tags naming the protections an exam uses
 export function ProtectionIcons({ exam }) {
+  const { t, tn } = useI18n();
   const items = [
-    exam.require_fullscreen && ['Fullscreen', 'Fullscreen required'],
-    (exam.shuffle_questions || exam.shuffle_options) && ['Shuffle', 'Shuffled per student'],
-    exam.block_copy_paste && ['No paste', 'Copy and paste blocked'],
-    exam.max_violations && [`Limit ${exam.max_violations}`, `Submitted automatically after ${exam.max_violations} violations`],
+    exam.require_fullscreen && [t('Fullscreen'), t('Fullscreen required')],
+    (exam.shuffle_questions || exam.shuffle_options) && [t('Shuffle'), t('Shuffled per student')],
+    exam.block_copy_paste && [t('No paste'), t('Copy and paste blocked')],
+    exam.max_violations && [t('Limit {{n}}', { n: exam.max_violations }), tn(exam.max_violations, 'Submitted automatically after {{count}} violation', 'Submitted automatically after {{count}} violations')],
   ].filter(Boolean);
-  if (!items.length) return <span className="text-xs text-faint">No protections</span>;
+  if (!items.length) return <span className="text-xs text-faint">{t('No protections')}</span>;
   return (
     <span className="flex flex-wrap items-center gap-1">
       {items.map(([tag, label]) => (
@@ -55,10 +58,11 @@ export function ProtectionIcons({ exam }) {
 }
 
 function ExamMenu({ exam, onPublishToggle, onDelete }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
-      <Button variant="ghost" size="sm" icon={LuEllipsis} onClick={() => setOpen(!open)} aria-label="More actions" />
+      <Button variant="ghost" size="sm" icon={LuEllipsis} onClick={() => setOpen(!open)} aria-label={t('More actions')} />
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
@@ -69,7 +73,7 @@ function ExamMenu({ exam, onPublishToggle, onDelete }) {
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sunken"
             >
               {exam.is_published ? <LuEyeOff className="h-4 w-4 text-muted" /> : <LuSend className="h-4 w-4 text-muted" />}
-              {exam.is_published ? 'Unpublish' : 'Publish'}
+              {exam.is_published ? t('Unpublish') : t('Publish')}
             </button>
             <button
               type="button"
@@ -77,7 +81,7 @@ function ExamMenu({ exam, onPublishToggle, onDelete }) {
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-danger hover:bg-danger-soft"
             >
               <LuTrash2 className="h-4 w-4" />
-              Delete
+              {t('Delete')}
             </button>
           </div>
         </>
@@ -88,10 +92,11 @@ function ExamMenu({ exam, onPublishToggle, onDelete }) {
 
 // Date on one line, times on the next; both dates when the window spans days
 function ExamWindow({ exam }) {
+  const { t, locale } = useI18n();
   const start = new Date(exam.start_time);
   const end = new Date(exam.end_time);
-  const time = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-  const day = (d) => (d.toDateString() === new Date().toDateString() ? 'Today' : d.toLocaleDateString([], { day: 'numeric', month: 'short' }));
+  const time = (d) => d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const day = (d) => (d.toDateString() === new Date().toDateString() ? t('Today') : formatShortDate(d));
   const sameDay = start.toDateString() === end.toDateString();
   return (
     <>
@@ -103,6 +108,7 @@ function ExamWindow({ exam }) {
 
 function AdminExamsPage() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [exams, setExams] = useState(null);
   const [message, setMessage] = useState(null);
   const [confirmDialog, confirm] = useConfirm();
@@ -125,15 +131,17 @@ function AdminExamsPage() {
   const togglePublish = async (exam) => {
     if (!exam.is_published) {
       const ok = await confirm({
-        title: `Publish “${exam.title}”?`,
-        description: `Students ${exam.groups?.length ? `in ${exam.groups.map((g) => g.name).join(', ')}` : 'in your organization'} will see it and can start it from ${formatDateTime(exam.start_time)}.`,
-        confirmLabel: 'Publish',
+        title: t('Publish “{{title}}”?', { title: exam.title }),
+        description: exam.groups?.length
+          ? t('Students in {{groups}} will see it and can start it from {{date}}.', { groups: exam.groups.map((g) => g.name).join(', '), date: formatDateTime(exam.start_time) })
+          : t('Students in your organization will see it and can start it from {{date}}.', { date: formatDateTime(exam.start_time) }),
+        confirmLabel: t('Publish'),
       });
       if (!ok) return;
     }
     try {
       await api.post(`/admin/exams/${exam.id}/${exam.is_published ? 'unpublish' : 'publish'}`);
-      setMessage({ tone: 'success', text: exam.is_published ? 'Exam unpublished. Students can no longer see it.' : 'Exam published.' });
+      setMessage({ tone: 'success', text: exam.is_published ? t('Exam unpublished. Students can no longer see it.') : t('Exam published.') });
       fetchExams();
     } catch (err) {
       setMessage({ tone: 'danger', text: errorMessage(err) });
@@ -142,15 +150,15 @@ function AdminExamsPage() {
 
   const deleteExam = async (exam) => {
     const ok = await confirm({
-      title: `Delete “${exam.title}”?`,
-      description: 'If students have started it, it is archived instead: hidden from lists and closed, with their results and integrity records kept.',
-      confirmLabel: 'Delete exam',
+      title: t('Delete “{{title}}”?', { title: exam.title }),
+      description: t('If students have started it, it is archived instead: hidden from lists and closed, with their results and integrity records kept.'),
+      confirmLabel: t('Delete exam'),
       danger: true,
     });
     if (!ok) return;
     try {
       const { data } = await api.delete(`/admin/exams/${exam.id}`);
-      setMessage({ tone: 'success', text: data.message });
+      setMessage({ tone: 'success', text: t(data.message) });
       fetchExams();
     } catch (err) {
       setMessage({ tone: 'danger', text: errorMessage(err) });
@@ -160,9 +168,9 @@ function AdminExamsPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Exams"
-        description="Schedule an exam from your question bank, then share it with one or more groups."
-        actions={<Button icon={LuPlus} onClick={() => navigate('/admin-exams/new')}>New exam</Button>}
+        title={t('Exams')}
+        description={t('Schedule an exam from your question bank, then share it with one or more groups.')}
+        actions={<Button icon={LuPlus} onClick={() => navigate('/admin-exams/new')}>{t('New exam')}</Button>}
       />
 
       {message && <Alert tone={message.tone} className="mb-6" onClose={() => setMessage(null)}>{message.text}</Alert>}
@@ -173,10 +181,10 @@ function AdminExamsPage() {
         <Card>
           <EmptyState
             icon={LuClipboardList}
-            title="No exams yet"
-            action={<Button icon={LuPlus} onClick={() => navigate('/admin-exams/new')}>Create your first exam</Button>}
+            title={t('No exams yet')}
+            action={<Button icon={LuPlus} onClick={() => navigate('/admin-exams/new')}>{t('Create your first exam')}</Button>}
           >
-            An exam picks questions from your question bank and runs in a time window you choose.
+            {t('An exam picks questions from your question bank and runs in a time window you choose.')}
           </EmptyState>
         </Card>
       ) : (
@@ -187,12 +195,12 @@ function AdminExamsPage() {
             </colgroup>
             <thead>
               <tr>
-                <th>No.</th>
-                <th>Exam</th>
-                <th>Window</th>
-                <th>Status</th>
-                <th>Protections</th>
-                <th><span className="sr-only">Actions</span></th>
+                <th>{t('No.')}</th>
+                <th>{t('Exam')}</th>
+                <th>{t('Window')}</th>
+                <th>{t('Status')}</th>
+                <th>{t('Protections')}</th>
+                <th><span className="sr-only">{t('Actions')}</span></th>
               </tr>
             </thead>
             <tbody>
@@ -202,7 +210,7 @@ function AdminExamsPage() {
                   <td>
                     <Link to={`/admin-exams/${exam.id}`} className="font-medium text-ink hover:text-brand">{exam.title}</Link>
                     <span className="mt-0.5 block truncate font-mono text-xs text-faint">
-                      {exam.groups?.length ? exam.groups.map((g) => g.name).join(', ') : 'Everyone'} · {exam.duration_minutes} min · {exam.questions?.length || 0} Q
+                      {exam.groups?.length ? exam.groups.map((g) => g.name).join(', ') : t('Everyone')} · {t('{{n}} min', { n: exam.duration_minutes })} · {t('{{n}} Q', { n: exam.questions?.length || 0 })}
                     </span>
                   </td>
                   <td className="tabular font-mono text-[13px] leading-snug"><ExamWindow exam={exam} /></td>
@@ -211,7 +219,7 @@ function AdminExamsPage() {
                   <td>
                     <div className="flex items-center justify-end gap-1">
                       {!exam.is_published && (
-                        <Button variant="secondary" size="sm" onClick={() => togglePublish(exam)}>Publish</Button>
+                        <Button variant="secondary" size="sm" onClick={() => togglePublish(exam)}>{t('Publish')}</Button>
                       )}
                       <ExamMenu exam={exam} onPublishToggle={togglePublish} onDelete={deleteExam} />
                     </div>

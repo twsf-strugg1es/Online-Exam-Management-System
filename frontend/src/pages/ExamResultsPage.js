@@ -6,6 +6,7 @@ import AppShell from '../components/AppShell';
 import { Alert, Badge, Card, EmptyState, Input, PageLoader, Stat, Tabs } from '../components/ui';
 import { ProtectionIcons, StatusBadge } from './AdminExamsPage';
 import { errorMessage, formatDateTime, formatDuration, percent } from '../utils';
+import { useI18n } from '../i18n';
 
 export const RISK = {
   clean: { label: 'Clean', tone: 'brand' },
@@ -20,13 +21,15 @@ export const SUBMIT_REASONS = {
 };
 
 export function RiskBadge({ integrity }) {
+  const { t } = useI18n();
   if (!integrity) return null;
   const risk = RISK[integrity.risk] || RISK.clean;
-  return <Badge tone={risk.tone}>{risk.label}</Badge>;
+  return <Badge tone={risk.tone}>{t(risk.label)}</Badge>;
 }
 
 function ExamResultsPage() {
   const { examId } = useParams();
+  const { t, tn } = useI18n();
   const [exam, setExam] = useState(null);
   const [attempts, setAttempts] = useState(null);
   const [error, setError] = useState('');
@@ -72,7 +75,7 @@ function ExamResultsPage() {
   return (
     <AppShell>
       <Link to="/admin-exams" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-        <LuArrowLeft className="h-4 w-4" /> Exams
+        <LuArrowLeft className="h-4 w-4" /> {t('Exams')}
       </Link>
 
       {error && <Alert tone="danger" className="mb-6">{error}</Alert>}
@@ -85,18 +88,18 @@ function ExamResultsPage() {
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted">
             <span className="flex items-center gap-1.5"><LuCalendar className="h-3.5 w-3.5" />{formatDateTime(exam.start_time)} – {formatDateTime(exam.end_time)}</span>
-            <span className="flex items-center gap-1.5"><LuClock className="h-3.5 w-3.5" />{exam.duration_minutes} min</span>
-            <span className="flex items-center gap-1.5"><LuUsers className="h-3.5 w-3.5" />{exam.groups?.length ? exam.groups.map((g) => g.name).join(', ') : 'Everyone'}</span>
+            <span className="flex items-center gap-1.5"><LuClock className="h-3.5 w-3.5" />{t('{{n}} min', { n: exam.duration_minutes })}</span>
+            <span className="flex items-center gap-1.5"><LuUsers className="h-3.5 w-3.5" />{exam.groups?.length ? exam.groups.map((g) => g.name).join(', ') : t('Everyone')}</span>
             <ProtectionIcons exam={exam} />
           </div>
         </div>
       )}
 
       <Card className="mb-6 grid grid-cols-2 gap-6 p-5 sm:grid-cols-4">
-        <Stat label="Started" value={stats.started} />
-        <Stat label="Submitted" value={stats.submitted} />
-        <Stat label="Average score" value={stats.avg === null ? '—' : `${stats.avg}%`} />
-        <Stat label="Need review" value={stats.flagged} tone={stats.flagged ? 'danger' : undefined} hint="Integrity flags or violations" />
+        <Stat label={t('Started')} value={stats.started} />
+        <Stat label={t('Submitted')} value={stats.submitted} />
+        <Stat label={t('Average score')} value={stats.avg === null ? '—' : `${stats.avg}%`} />
+        <Stat label={t('Need review')} value={stats.flagged} tone={stats.flagged ? 'danger' : undefined} hint={t('Integrity flags or violations')} />
       </Card>
 
       <Card className="overflow-hidden">
@@ -106,30 +109,30 @@ function ExamResultsPage() {
             onChange={setFilter}
             className="border-b-0"
             tabs={[
-              { value: 'all', label: 'All', count: attempts.length },
-              { value: 'review', label: 'Needs review', count: stats.flagged },
-              { value: 'progress', label: 'In progress', count: attempts.length - stats.submitted },
+              { value: 'all', label: t('All'), count: attempts.length },
+              { value: 'review', label: t('Needs review'), count: stats.flagged },
+              { value: 'progress', label: t('In progress'), count: attempts.length - stats.submitted },
             ]}
           />
           <div className="relative mb-2 w-full sm:w-64">
             <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search students" className="h-9 pl-9" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search students')} className="h-9 pl-9" />
           </div>
         </div>
 
         {attempts.length === 0 ? (
-          <EmptyState icon={LuInbox} title="No attempts yet" className="border-t border-line">
-            Students' attempts appear here as soon as they start the exam.
+          <EmptyState icon={LuInbox} title={t('No attempts yet')} className="border-t border-line">
+            {t("Students' attempts appear here as soon as they start the exam.")}
           </EmptyState>
         ) : (
           <div className="overflow-x-auto border-t border-line">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Student</th>
-                  <th>Status</th>
-                  <th className="text-right">Score</th>
-                  <th>Integrity</th>
+                  <th>{t('Student')}</th>
+                  <th>{t('Status')}</th>
+                  <th className="text-right">{t('Score')}</th>
+                  <th>{t('Integrity')}</th>
                   <th />
                 </tr>
               </thead>
@@ -144,12 +147,12 @@ function ExamResultsPage() {
                       {a.is_submitted ? (
                         <>
                           <p className={a.submit_reason === 'violations' ? 'font-medium text-danger' : ''}>
-                            {SUBMIT_REASONS[a.submit_reason] || 'Submitted'}
+                            {t(SUBMIT_REASONS[a.submit_reason] || 'Submitted')}
                           </p>
                           <p className="text-xs text-muted">{formatDateTime(a.submitted_at)}</p>
                         </>
                       ) : (
-                        <Badge tone="info">In progress</Badge>
+                        <Badge tone="info">{t('In progress')}</Badge>
                       )}
                     </td>
                     <td className="tabular whitespace-nowrap text-right">
@@ -157,7 +160,7 @@ function ExamResultsPage() {
                         <>
                           <span className="font-medium">{a.score}</span>
                           <span className="text-muted"> / {a.total_possible_score}</span>
-                          {needsGrading && !a.is_evaluated && <p className="text-xs text-warn">Not graded yet</p>}
+                          {needsGrading && !a.is_evaluated && <p className="text-xs text-warn">{t('Not graded yet')}</p>}
                         </>
                       ) : '—'}
                     </td>
@@ -166,8 +169,8 @@ function ExamResultsPage() {
                         <RiskBadge integrity={a.integrity} />
                         {a.integrity?.violations > 0 && (
                           <span className="text-xs text-muted">
-                            {a.integrity.violations} violation{a.integrity.violations === 1 ? '' : 's'}
-                            {a.integrity.seconds_away > 0 && ` · away ${formatDuration(a.integrity.seconds_away)}`}
+                            {tn(a.integrity.violations, '{{count}} violation', '{{count}} violations')}
+                            {a.integrity.seconds_away > 0 && ` · ${t('away {{time}}', { time: formatDuration(a.integrity.seconds_away) })}`}
                           </span>
                         )}
                       </div>
@@ -175,11 +178,11 @@ function ExamResultsPage() {
                     <td>
                       <div className="flex justify-end gap-1">
                         <Link to={`/admin-integrity/${a.id}`} className="btn btn-ghost btn-sm">
-                          <LuShieldAlert className="h-4 w-4" /> Report
+                          <LuShieldAlert className="h-4 w-4" /> {t('Report')}
                         </Link>
                         {needsGrading && a.is_submitted && (
                           <Link to={`/admin-evaluate-answers/${a.id}`} className="btn btn-secondary btn-sm">
-                            <LuPencil className="h-4 w-4" /> Grade
+                            <LuPencil className="h-4 w-4" /> {t('Grade')}
                           </Link>
                         )}
                       </div>
@@ -188,7 +191,7 @@ function ExamResultsPage() {
                 ))}
               </tbody>
             </table>
-            {shown.length === 0 && <EmptyState title="Nothing here">No attempts match this filter.</EmptyState>}
+            {shown.length === 0 && <EmptyState title={t('Nothing here')}>{t('No attempts match this filter.')}</EmptyState>}
           </div>
         )}
       </Card>

@@ -6,6 +6,7 @@ import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Badge, Button, Card, EmptyState, Input, PageHeader, PageLoader, Select, useConfirm } from '../components/ui';
 import { errorMessage, formatDate } from '../utils';
+import { useI18n } from '../i18n';
 
 function ScoreBar({ value }) {
   const tone = value >= 80 ? 'bg-brand' : value >= 50 ? 'bg-warn' : 'bg-danger';
@@ -21,6 +22,7 @@ function ScoreBar({ value }) {
 
 function AdminStudentsPage() {
   const { isManager } = useAuth();
+  const { t } = useI18n();
   const [students, setStudents] = useState(null);
   const [message, setMessage] = useState(null);
   const [search, setSearch] = useState('');
@@ -56,15 +58,15 @@ function AdminStudentsPage() {
 
   const remove = async (student) => {
     const ok = await confirm({
-      title: `Remove ${student.full_name || student.email}?`,
-      description: 'They lose access to your exams. Their account and past results are kept, and they can rejoin with a join code.',
-      confirmLabel: 'Remove',
+      title: t('Remove {{name}}?', { name: student.full_name || student.email }),
+      description: t('They lose access to your exams. Their account and past results are kept, and they can rejoin with a join code.'),
+      confirmLabel: t('Remove'),
       danger: true,
     });
     if (!ok) return;
     try {
       await api.delete(`/admin/students/${student.id}`);
-      setMessage({ tone: 'success', text: 'Student removed from the organization' });
+      setMessage({ tone: 'success', text: t('Student removed from the organization') });
       fetchStudents();
     } catch (err) {
       setMessage({ tone: 'danger', text: errorMessage(err) });
@@ -74,11 +76,11 @@ function AdminStudentsPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Students"
-        description="Everyone who joined your organization as a student, with their average score across your exams."
+        title={t('Students')}
+        description={t('Everyone who joined your organization as a student, with their average score across your exams.')}
         actions={isManager && (
           <Link to="/admin-organization" className="btn btn-secondary">
-            <LuLink className="h-4 w-4" /> Invite students
+            <LuLink className="h-4 w-4" /> {t('Invite students')}
           </Link>
         )}
       />
@@ -91,10 +93,10 @@ function AdminStudentsPage() {
         <Card>
           <EmptyState
             icon={LuUsers}
-            title="No students yet"
-            action={isManager && <Link to="/admin-organization" className="btn btn-primary"><LuLink className="h-4 w-4" />Get a join link</Link>}
+            title={t('No students yet')}
+            action={isManager && <Link to="/admin-organization" className="btn btn-primary"><LuLink className="h-4 w-4" />{t('Get a join link')}</Link>}
           >
-            Students join by signing up with your organization's join code, or a group's code.
+            {t("Students join by signing up with your organization's join code, or a group's code.")}
           </EmptyState>
         </Card>
       ) : (
@@ -102,13 +104,13 @@ function AdminStudentsPage() {
           <div className="flex flex-wrap gap-2 border-b border-line p-3">
             <div className="relative min-w-[200px] flex-1">
               <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email" className="pl-9" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search by name or email')} className="pl-9" />
             </div>
             {groups.length > 0 && (
               <Select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="w-auto">
-                <option value="">All groups</option>
+                <option value="">{t('All groups')}</option>
                 {groups.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-                <option value="none">No group</option>
+                <option value="none">{t('No group')}</option>
               </Select>
             )}
           </div>
@@ -116,10 +118,10 @@ function AdminStudentsPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Student</th>
-                  <th>Groups</th>
-                  <th>Average</th>
-                  <th>Joined</th>
+                  <th>{t('Student')}</th>
+                  <th>{t('Groups')}</th>
+                  <th>{t('Average')}</th>
+                  <th>{t('Joined')}</th>
                   {isManager && <th />}
                 </tr>
               </thead>
@@ -139,16 +141,16 @@ function AdminStudentsPage() {
                     <td className="whitespace-nowrap text-muted">{formatDate(s.joined_at)}</td>
                     {isManager && (
                       <td className="text-right">
-                        <Button variant="danger-ghost" size="sm" icon={LuUserMinus} onClick={() => remove(s)} aria-label="Remove from organization" />
+                        <Button variant="danger-ghost" size="sm" icon={LuUserMinus} onClick={() => remove(s)} aria-label={t('Remove from organization')} />
                       </td>
                     )}
                   </tr>
                 ))}
               </tbody>
             </table>
-            {shown.length === 0 && <EmptyState icon={LuSearch} title="No matching students" />}
+            {shown.length === 0 && <EmptyState icon={LuSearch} title={t('No matching students')} />}
           </div>
-          <div className="border-t border-line px-4 py-2.5 text-xs text-muted">{shown.length} of {students.length} students</div>
+          <div className="border-t border-line px-4 py-2.5 text-xs text-muted">{t('{{n}} of {{total}} students', { n: shown.length, total: students.length })}</div>
         </Card>
       )}
       {confirmDialog}
