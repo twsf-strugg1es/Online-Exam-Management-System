@@ -4,11 +4,15 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+import logging
+
 from ..database import get_db
 from .. import schemas, crud, models
+from ..logging_config import internal_error_detail
 from ..permissions import require_candidate
 
 router = APIRouter(prefix="/student", tags=["Student"])
+logger = logging.getLogger(__name__)
 
 
 def _attempt_payload(attempt: models.ExamAttempt) -> dict:
@@ -215,13 +219,9 @@ def start_exam(
         return _exam_session(db, exam, attempt, now)
     except HTTPException:
         raise
-    except Exception as e:
-        print(f"\n=== ERROR IN START_EXAM ===")
-        print(f"Error type: {type(e).__name__}")
-        print(f"Error message: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal server error")
+    except Exception:
+        logger.exception("Starting exam failed", extra={"fields": {"exam_id": str(exam_id)}})
+        raise HTTPException(status_code=500, detail=internal_error_detail())
 
 
 @router.post("/attempts/{attempt_id}/resume")

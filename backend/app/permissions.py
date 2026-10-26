@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from . import models
 from .database import get_db
+from .logging_config import bind_log_context
 from .security import get_current_user
 
 
@@ -31,6 +32,7 @@ def get_current_membership(
     )
     if not membership:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this organization")
+    bind_log_context(organization_id=str(membership.organization_id), role=membership.role)
     return membership
 
 

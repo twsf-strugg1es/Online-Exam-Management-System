@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from . import crud, models
 from .database import get_db
+from .logging_config import bind_log_context
 
 # Load environment variables from .env file
 load_dotenv()
@@ -85,4 +86,5 @@ def get_current_user(
     user = crud.get_user_by_email(db, email)
     if not user:
         raise credentials_exception
+    bind_log_context(user_id=str(user.id))
     return user

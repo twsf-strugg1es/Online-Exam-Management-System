@@ -53,6 +53,7 @@ Backend environment (`backend/.env`):
 | `DATABASE_URL` | yes | `postgresql://user:pass@host:5432/db` |
 | `SECRET_KEY` | yes | JWT signing key; the app refuses to start without it |
 | `CORS_ORIGINS` | no | Comma-separated allowed frontend origins (default: localhost:3000, localhost:5173) |
+| `LOG_LEVEL` | no | `DEBUG` / `INFO` (default) / `WARNING` / `ERROR`. Logs are JSON lines on stdout |
 
 ## Authentication and roles
 
@@ -171,7 +172,7 @@ cd frontend && npm start | npm test -- --watchAll=false | npm run build
 2. **Abandoned attempts are never finalized:** an attempt is scored only when the candidate submits, the page auto-submits, or the candidate resumes after the deadline. If they never return, `end_time` stays empty. Needs a scheduled job that finalizes overdue attempts.
 3. The Excel import changes any tag outside a hardcoded list of 9 into `"others"` (`routers/admin.py`).
 4. No single-question create/edit endpoint or UI (Excel import only); exams can't be edited after creation.
-5. `start_exam` prints tracebacks to stdout; there is no structured logging. (Health check done: `GET /health` returns 200, or 503 when the database is unreachable.)
+5. ~~Debug prints and no structured logging~~ Done: JSON logs to stdout via `app/logging_config.py` (one `app.request` line per request with `request_id`, `method`, `path`, `status`, `duration_ms`, `user_id`, `organization_id`, `role`); every response has an `X-Request-ID` header; unexpected 500s return a generic message with that reference instead of exception text. Health check: `GET /health` (200, or 503 when the database is unreachable).
 6. Unused legacy grading endpoints in `admin.py`: `/exams/attempts/{id}`, `/exams/attempts/{id}/evaluate`, `/answers/{id}/evaluate`, `/answers/{id}/evaluation`, `/attempts/{id}/results`. The frontend doesn't call them; remove them after confirming.
 7. Naive `datetime.utcnow` defaults in several models; prefer timezone-aware values.
 8. JWT in `localStorage`; JWT subject is the email (changing an email would invalidate sessions).

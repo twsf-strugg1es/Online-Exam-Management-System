@@ -9,11 +9,15 @@ from sqlalchemy import String, cast
 from sqlalchemy.orm import Session, joinedload
 import openpyxl
 
+import logging
+
 from ..database import get_db
 from .. import schemas, crud, models
+from ..logging_config import internal_error_detail
 from ..permissions import require_manager, require_staff
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+logger = logging.getLogger(__name__)
 
 
 # Lookups below only find records in the caller's organization, so IDs from
@@ -1168,11 +1172,9 @@ def get_attempt_details(
         }
     except HTTPException:
         raise
-    except Exception as e:
-        import traceback
-        print(f"Error in get_attempt_details: {str(e)}")
-        print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    except Exception:
+        logger.exception("Loading attempt details failed")
+        raise HTTPException(status_code=500, detail=internal_error_detail())
 
 
 @router.post("/exams/attempts/{attempt_id}/evaluate")
@@ -1327,11 +1329,9 @@ def get_attempt_for_evaluation(
 
     except HTTPException:
         raise
-    except Exception as e:
-        import traceback
-        print(f"Error in get_attempt_for_evaluation: {str(e)}")
-        print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    except Exception:
+        logger.exception("Loading attempt for grading failed")
+        raise HTTPException(status_code=500, detail=internal_error_detail())
 
 
 @router.post("/evaluations/answers/{answer_id}/submit")
@@ -1403,8 +1403,6 @@ def submit_answer_evaluation(
 
     except HTTPException:
         raise
-    except Exception as e:
-        import traceback
-        print(f"Error in submit_answer_evaluation: {str(e)}")
-        print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    except Exception:
+        logger.exception("Saving grade failed")
+        raise HTTPException(status_code=500, detail=internal_error_detail())

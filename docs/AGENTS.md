@@ -58,6 +58,7 @@ npm run build                                # must finish with no warnings
 8. **Global by default.** Never hardcode one country's language, currency, phone format, timezone or exam convention. Local behavior (negative marking, merit lists, bKash, Bengali) is a setting. After task 1.8, no user-facing string may be written outside the locale files.
 
 ## Conventions
+- **Logging:** never `print`. Use `logger = logging.getLogger(__name__)`; pass structured data as `extra={"fields": {...}}`. For unexpected errors: `logger.exception(...)` then `HTTPException(500, detail=internal_error_detail())`. Never put exception text or secrets in a response or a log message.
 - **Backend:** routers stay thin; shared logic goes in `crud.py`; Pydantic schemas live in `schemas.py`; constants (roles, event types, submit reasons) live in `models.py`. Return clear `detail` messages; the frontend shows them via `errorMessage(err)`.
 - **Frontend:** use the components in `src/components/ui.js` and the theme tokens (`bg-surface`, `text-muted`, `border-line`, `brand`, `danger`…). Don't add new colors or one-off CSS. Write Tailwind classes literally; never build them from template strings. Icons come from `react-icons/lu`. Put signed-in pages inside `AppShell`.
 - **Copy and tone:** plain, specific, sentence case. Don't promise that cheating is impossible.

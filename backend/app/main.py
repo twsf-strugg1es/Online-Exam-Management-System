@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session
 
 from . import models  # noqa: F401  # ensure models are imported so metadata has tables
 from .database import get_db
+from .logging_config import configure_logging, request_logging_middleware
 from .routers import admin, auth, organizations, student, profile
+
+configure_logging()
 
 # The database schema is managed by Alembic migrations: run `alembic upgrade head`.
 app = FastAPI()
@@ -32,6 +35,8 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=3600,
 )
+# Added last so it runs outermost: every request, including CORS preflights, is logged
+app.middleware("http")(request_logging_middleware)
 
 
 @app.get("/health", tags=["Health"])
