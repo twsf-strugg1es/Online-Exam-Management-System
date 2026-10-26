@@ -71,6 +71,8 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 | F21 | Internationalization: translation-ready UI (English default, Bengali first translation), locale-aware dates and numbers, per-organization language/timezone/currency, right-to-left support | One codebase serves Bangladesh and global customers | P0 (framework) / P1 (languages) | Planned |
 | F25 | Clipboard protection during exams: clipboard cleared when the exam starts and each time the candidate returns; every paste route blocked (keys, menu, drag-and-drop, middle-click); attempts flagged | Text copied before or outside the exam can't be pasted in | P0 | Planned |
 | F26 | Public landing page: product story, features, pricing placeholder, sign-up calls to action; responsive and phone-friendly; restrained scroll effects | Explains TestKori to institutions; the only phone experience in v1 | P0 | Planned |
+| F27 | Launch waitlist: a public `/waitlist` page (linked from the landing page) where visitors leave their email and get one email when TestKori launches | Builds an audience before launch | P0 | Planned |
+| F28 | Product video on the landing page: YouTube embed (privacy-enhanced, loads only when played); a styled "video coming soon" placeholder until the owner sets the link | Shows the product in action without slowing the page | P0 | Planned |
 | F24 | Global readiness: Stripe/Paddle card payments, GDPR tools (data export, deletion, data processing agreement, cookie consent), global SMS (Twilio), optional EU data hosting | Sell outside Bangladesh legally | P3 | Planned |
 | F22 | Webcam snapshots + face checks, ID photo, Safe Exam Browser, live proctor dashboard | Higher-stakes exams and hiring | P2 | Planned |
 | F23 | Plans, billing (bKash/SSLCommerz), branding, audit log, Google sign-in, paid public mock tests | Revenue and enterprise readiness | P3 | Planned |
@@ -153,6 +155,9 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 - AC16 (US16). Given negative marking of 0.25, a candidate with 10 correct, 4 wrong and 6 blank answers on 1-mark questions scores 9.0.
 - AC17 (US16). Given a closed exam, the merit list ranks by score (higher first), then by time taken (shorter first); tied candidates share a rank.
 - AC21 (F25). Given an exam with copy/paste protection on, when the candidate presses Start exam, then the clipboard is cleared; pasting by Ctrl/Cmd+V, Shift+Insert, the context menu, drag-and-drop or middle-click inserts nothing and records a `copy_paste` flag.
+- AC22 (F27). Given a visitor on `/waitlist`, when they submit a valid email, then they see "You're on the list" and the email is stored once (submitting it again shows the same message and creates no duplicate); an invalid email shows an inline error; the response never reveals whether an email was already on the list.
+- AC23 (F27). Given the owner triggers the launch email, then every waitlisted address that hasn't unsubscribed gets exactly one email with an unsubscribe link.
+- AC24 (F28). Given no video link is set, the landing page shows the "video coming soon" placeholder at 16:9 with no layout shift; given a link is set, the placeholder becomes a thumbnail with a play button, and the YouTube player loads only after a click.
 - AC18 (US17). Given a pool rule "5 random easy questions tagged physics", each attempt gets 5 questions from that set, and the same 5 after a reload, even if the bank changes meanwhile.
 
 ## Open questions
@@ -163,6 +168,7 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 4. **Paid mock tests (F23):** do coaching centers want students to pay per test inside TestKori?
 5. **Hosting region:** is a server outside Bangladesh acceptable to schools (latency, data residency)? When do EU customers justify an EU region?
 8. **First global market:** which country or segment comes after Bangladesh (India coaching, Middle East schools, global hiring teams)?
+10. **Waitlist email:** sender name and address, and whether waitlisted people also get a pilot invite before public launch.
 9. **Global pricing:** USD pricing per region, or one global price with a lower BDT price?
 6. **Brand:** new logo mark for TestKori. The current mark is the Bengali letter "প" from the old name, see the [UI/UX Brief](04-UI-UX-BRIEF.md).
 7. **Retakes:** should examiners be able to allow a second attempt? This changes the one-attempt-per-exam rule.

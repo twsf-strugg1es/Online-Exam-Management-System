@@ -8,6 +8,7 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | Entry | URL | Who |
 |---|---|---|
 | *(planned)* Landing page | `/` (signed out) | Institutions evaluating TestKori; anyone on a phone |
+| *(planned)* Waitlist | `/waitlist` (linked from every landing-page call to action until launch) | Anyone who wants to hear when TestKori launches |
 | Direct visit / bookmark | `/` → redirects by state (see Navigation rules) | Everyone |
 | Login | `/login` | Returning users |
 | Student signup link with code | `/signup?code=K7M2QX9P` (code prefilled, upper-cased) | Candidates invited by an institution |
@@ -39,6 +40,8 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | Exam | `/exam/:id`, `/exam/resume/:attemptId` | Rules → take exam → finished | start/resume, answers, events | Candidate |
 | Results list | `/student-exams` | Submitted exams with scores | `/student/completed-exams/` | Candidate |
 | Result detail | `/exam-results/:attemptId` | Per-question breakdown, grader comments, correct answers once closed | `/student/attempts/:id/evaluated-results` | Candidate |
+| *(planned)* Landing | `/` | Product story, features, video, pricing placeholder, calls to action | — | Signed out |
+| *(planned)* Waitlist | `/waitlist` | Email field, one-line consent note, submit; success state "You're on the list" | — | Anyone |
 | *(planned)* Forgot / reset password | `/forgot-password`, `/reset-password/:token` | Recover account | — | Signed out |
 | *(planned)* Question editor | `/admin-questions/new`, `/admin-questions/:id` | Create or edit one question | question | Staff |
 | *(planned)* Edit exam | `/admin-exams/:examId/edit` | Change an exam before it opens | exam | Staff |
@@ -52,7 +55,7 @@ Policy: see PRD "Platform: desktop web app".
 | Route | Narrower than 1024 px |
 |---|---|
 | `/` landing page *(planned)* | Fully responsive |
-| `/login`, `/signup`, `/signup/organization` | Work (phone-friendly forms) |
+| `/login`, `/signup`, `/signup/organization`, `/waitlist` | Work (phone-friendly forms) |
 | Every other route | `DesktopOnly` screen: logo, "TestKori works on a computer", one line on why (exams need a full browser), what to open, and **Sign out** |
 
 - A `matchMedia("(min-width: 1024px)")` check, re-evaluated on resize, so widening a window or rotating a tablet lets the user straight in.

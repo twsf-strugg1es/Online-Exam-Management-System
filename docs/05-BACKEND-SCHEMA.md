@@ -138,6 +138,19 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | recorded_at | timestamptz | ✓ | server now | Authoritative ordering |
 | details | json | | | ≤ 1000 chars serialized |
 
+### waitlist_signups *(planned, task 3.13)*
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK |
+| email | text | ✓ | | Stored lower-cased and trimmed; **unique** |
+| source | text | | | e.g. `landing-hero`, `landing-footer` (which call to action) |
+| locale | text | | | Browser language, for the launch email language |
+| created_at | timestamptz | ✓ | now | |
+| notified_at | timestamptz | | | Set when the launch email is sent (never send twice) |
+| unsubscribed_at | timestamptz | | | Set from the unsubscribe link; excluded from all sends |
+
+Not organization-scoped: it belongs to TestKori itself. Read only by a platform-admin command (`python manage_waitlist.py export|send-launch`), never by an organization's staff.
+
 ### Indexes
 Existing: `users.email` (unique), the `organization_id` columns on memberships/groups/questions/exams, `memberships.user_id`, `integrity_events.attempt_id`, `exam_attempts (exam_id, student_id)` (unique constraint), unique join codes.
 **Missing; add with the next migration:** `answers.attempt_id`, a unique `answers (attempt_id, question_id)` (today the upsert is enforced only in code), `evaluations.answer_id`, `exam_attempts.student_id`, `exams (organization_id, start_time)`.
