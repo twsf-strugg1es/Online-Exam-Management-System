@@ -2,6 +2,8 @@
 
 A web-based exam management system built with **FastAPI** (Python) and **React** (JavaScript). Organizations (schools, coaching centers, companies) manage their own questions and exams, while students take exams with auto-save functionality and auto-grading for objective questions.
 
+**Docs:** [PRD](docs/01-PRD.md) · [TRD](docs/02-TRD.md) · [App flow](docs/03-APP-FLOW.md) · [UI/UX brief](docs/04-UI-UX-BRIEF.md) · [Backend schema](docs/05-BACKEND-SCHEMA.md) · [Implementation plan](docs/06-IMPLEMENTATION-PLAN.md) · [Guide for coding agents](docs/AGENTS.md)
+
 ## Features
 
 ### Organizations

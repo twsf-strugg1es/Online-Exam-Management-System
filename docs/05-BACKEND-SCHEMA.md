@@ -1,0 +1,233 @@
+# 5. Backend Schema: TestKori
+
+Purpose: define stored data, relationships, and access rules.
+Status: living document · Last updated 2026-10-12 · Source of truth: `backend/app/models.py` and `backend/migrations/versions/`. Database: PostgreSQL. All primary keys are UUID v4 (`id`, generated in the app).
+
+## Entities
+
+| Entity | Table | Represents |
+|---|---|---|
+| Organization | `organizations` | A tenant: school, coaching center or company |
+| User | `users` | A person's login account (global, across organizations) |
+| Membership | `memberships` | A user's role inside one organization |
+| Group | `groups` | A batch/class/hiring round inside an organization |
+| Question | `questions` | One item in an organization's question bank |
+| Exam | `exams` | A scheduled test made of questions, for some or all candidates |
+| ExamAttempt | `exam_attempts` | One candidate's sitting of one exam |
+| Answer | `answers` | A candidate's response to one question in an attempt |
+| Evaluation | `evaluations` | A grader's verdict on one answer |
+| IntegrityEvent | `integrity_events` | Something the exam page noticed during an attempt |
+| (join) | `group_members` | Membership ↔ Group |
+| (join) | `exam_questions` | Exam ↔ Question |
+| (join) | `exam_groups` | Exam ↔ Group (no rows = open to all candidates) |
+
+## Tables
+
+Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestamptz`, `date`, `json`.
+
+### organizations
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK |
+| name | text | ✓ | | 2–120 chars (API) |
+| join_code | text | ✓ | 8 random chars from `ABCDEFGHJKMNPQRSTUVWXYZ23456789` | **unique** |
+| created_at | timestamptz | ✓ | now | |
+
+*(planned, global readiness)* `country` (ISO 3166-1 alpha-2), `default_language` (BCP 47, default `en`), `timezone` (IANA name, e.g. `Asia/Dhaka`), `currency` (ISO 4217), `data_region` (e.g. `ap`, `eu`).
+
+### users
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK |
+| email | text | ✓ | | **unique, indexed**; validated as an email |
+| hashed_password | text | ✓ | | pbkdf2_sha256 (bcrypt accepted) |
+| full_name | text | | | Shown to examiners |
+| date_of_birth | date | | | |
+| gender | text | | | `male` / `female` / `other` |
+| *(planned)* language | text | | null (use the organization's) | BCP 47 |
+| *(planned)* phone | text | | | E.164, e.g. `+8801XXXXXXXXX` |
+
+### memberships
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK |
+| user_id | uuid | ✓ | | FK users, **cascade delete**, indexed |
+| organization_id | uuid | ✓ | | FK organizations, **cascade delete**, indexed |
+| role | text | ✓ | | `owner` · `admin` · `examiner` · `candidate` |
+| created_at | timestamptz | ✓ | now | |
+| | | | | **unique (user_id, organization_id)** `uq_membership_user_org` |
+
+### groups
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK |
+| organization_id | uuid | ✓ | | FK, cascade, indexed |
+| name | text | ✓ | | 1–100 chars; **unique (organization_id, name)** `uq_group_org_name` |
+| join_code | text | ✓ | random 8 chars | **unique** (shares the code space with organizations by convention; see validation) |
+| created_at | timestamptz | ✓ | now | |
+
+### questions
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK |
+| organization_id | uuid | ✓ | | FK, cascade, indexed |
+| title | text | ✓ | | Question text |
+| description | text | | | Extra context |
+| complexity | text | ✓ | | `easy` / `medium` / `hard` |
+| type | text | ✓ | | `single_choice` · `multi_choice` · `text` · `image_upload` |
+| options | json | | | List of option strings (choice types) |
+| correct_answers | json | ✓ | | Value(s) from `options`; for text/image types, a reference answer or empty |
+| max_score | int | ✓ | 1 | |
+| tags | json | | `[]` | List of lowercase strings |
+
+### exams
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK |
+| organization_id | uuid | ✓ | | FK, cascade, indexed |
+| title | text | ✓ | | |
+| start_time / end_time | timestamptz | ✓ | | The window in which candidates may **start** |
+| duration_minutes | int | ✓ | | Per-attempt length, capped by `end_time` |
+| is_published | bool | ✓ | false | |
+| published_by | uuid | | | FK users |
+| shuffle_questions | bool | ✓ | true (server default) | |
+| shuffle_options | bool | ✓ | true | |
+| require_fullscreen | bool | ✓ | true | |
+| block_copy_paste | bool | ✓ | true | |
+| max_violations | int | | null | 1–100; null = never auto-submit |
+
+### exam_attempts
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK; also the shuffle seed |
+| exam_id | uuid | ✓ | | FK exams (no cascade; deleted by the app) |
+| student_id | uuid | ✓ | | FK users |
+| start_time | timestamptz | ✓ | now | Server time when Start was pressed |
+| end_time | timestamptz | | | null = in progress |
+| score | float | | | Auto-graded + manually awarded |
+| total_possible_score | float | | | Sum of `max_score` |
+| submit_reason | text | | | `student` · `time_up` · `violations` |
+| | | | | **unique (exam_id, student_id)** `uq_attempt_exam_student` |
+
+### answers
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK |
+| attempt_id | uuid | ✓ | | FK exam_attempts |
+| question_id | uuid | ✓ | | FK questions |
+| answer_data | json | ✓ | | Choice: the selected value(s). Text: string. Image: object with a `data:` URL preview (≤ 2 MB, client-enforced) |
+
+### evaluations
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK |
+| answer_id | uuid | ✓ | | FK answers |
+| evaluated_by | uuid | ✓ | | FK users (the grader) |
+| is_correct | bool | | | null = not graded |
+| score_awarded | float | | | |
+| comment | text(100) | | | ≤ 100 chars |
+| created_at / updated_at | timestamptz | | now | |
+
+### integrity_events
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK |
+| attempt_id | uuid | ✓ | | FK exam_attempts, **cascade**, indexed |
+| type | text | ✓ | | Violations: `focus_lost`, `fullscreen_exit`. Flags: `copy_paste`, `context_menu`, `blocked_shortcut`, `multiple_screens`. Info: `focus_returned` (details: `away_ms`) |
+| occurred_at | timestamptz | | | Client clock (informational only) |
+| recorded_at | timestamptz | ✓ | server now | Authoritative ordering |
+| details | json | | | ≤ 1000 chars serialized |
+
+### Indexes
+Existing: `users.email` (unique), the `organization_id` columns on memberships/groups/questions/exams, `memberships.user_id`, `integrity_events.attempt_id`, `exam_attempts (exam_id, student_id)` (unique constraint), unique join codes.
+**Missing; add with the next migration:** `answers.attempt_id`, a unique `answers (attempt_id, question_id)` (today the upsert is enforced only in code), `evaluations.answer_id`, `exam_attempts.student_id`, `exams (organization_id, start_time)`.
+
+## Relationships
+
+| Relationship | Type | Foreign key | On delete |
+|---|---|---|---|
+| Organization → Membership | 1-to-many | memberships.organization_id | cascade |
+| User → Membership | 1-to-many | memberships.user_id | cascade |
+| Organization → Group / Question / Exam | 1-to-many | *.organization_id | cascade |
+| Group ↔ Membership | many-to-many | group_members (group_id, membership_id) | cascade both sides |
+| Exam ↔ Question | many-to-many | exam_questions | cascade both sides |
+| Exam ↔ Group | many-to-many | exam_groups | cascade both sides |
+| Exam → ExamAttempt | 1-to-many | exam_attempts.exam_id | none (the app deletes attempts → answers → evaluations first) |
+| User → ExamAttempt | 1-to-many | exam_attempts.student_id | none |
+| ExamAttempt → Answer | 1-to-many | answers.attempt_id | none |
+| Question → Answer | 1-to-many | answers.question_id | none |
+| Answer → Evaluation | 1-to-many (in practice 1) | evaluations.answer_id | none |
+| ExamAttempt → IntegrityEvent | 1-to-many | integrity_events.attempt_id | cascade |
+
+## User ownership
+
+- **Organization-owned:** groups, questions, exams (and through exams: attempts, answers, evaluations, integrity events). Visible only to that organization's members, according to role.
+- **User-owned:** the `users` row (profile, password). Attempts and answers belong to the candidate *within* the organization that ran the exam.
+- Removing a candidate from an organization deletes the membership only. **Their account and past attempts are kept**, so results stay intact.
+
+## Authentication flow
+
+| Step | Today | Planned |
+|---|---|---|
+| Sign up (candidate) | `POST /signup` (+ optional join code) → then `POST /token` | Email verification link |
+| Sign up (organization) | `POST /signup/organization` creates the user + organization + owner membership | — |
+| Sign in | `POST /token` (form: username = email, password) → JWT (60 min) | Rate limit; Google sign-in |
+| Session | `Authorization: Bearer`; `GET /me` returns the user + memberships; `POST /token/refresh` renews | httpOnly refresh cookie |
+| Select organization | Client stores `organizationId` and sends `X-Organization-Id` | — |
+| Change password | `POST /profile/change-password` (old + new) | — |
+| Reset password | none | `password_reset_tokens` (hashed, 30 min, single use) |
+| Sign out | Client discards the token | Server-side refresh-token revocation |
+
+## Authorization rules
+
+O = owner, A = admin, E = examiner, C = candidate (in the same organization). Other organizations: no access (403/404).
+
+| Entity | Read | Create | Update | Delete |
+|---|---|---|---|---|
+| Organization | all members (join code: O, A) | any signed-in user (becomes owner) | O, A (name, regenerate code) | *(not exposed)* |
+| Membership | O, A (member list); self (own memberships via `/me`) | O, A by email; anyone via a join code (as C) | O, A change roles; **only O grants/changes/removes owners** | O, A; can't remove the last owner |
+| Group | O, A (E reads them in the exam form) | O, A | O, A (rename, regenerate code, members) | O, A |
+| Question | O, A, E | O, A, E (Excel import) | *(no endpoint yet)* | O, A, E |
+| Exam | O, A, E; C only if published and visible (organization + group) | O, A, E | publish/unpublish: O, A, E; *(no edit endpoint yet)* | O, A, E (deletes attempts too) |
+| ExamAttempt | O, A, E (all in the organization); C own only | C via Start (one per exam) | C own (answers, events, submit) while open; server finalizes | with the exam |
+| Answer | O, A, E; C own (correct answers only after the exam closes) | C own, before deadline + 30 s | C own, same rule | with the attempt |
+| Evaluation | O, A, E; C sees the verdict + comment on their own answers | O, A, E | O, A, E | with the answer |
+| IntegrityEvent | O, A, E | C own attempt while in progress (events after submit are ignored) | never | with the attempt |
+| User profile | self; staff see name/email of their organization's members | signup | self | *(not exposed)*; planned account deletion |
+
+## Data validation
+
+| Rule | Where |
+|---|---|
+| Email format; email unique | Pydantic `EmailStr`; DB unique |
+| Organization name 2–120; group name 1–100, unique per organization | Pydantic; DB unique |
+| Join codes: 8 chars, unambiguous alphabet, unique; entered codes are trimmed and upper-cased | model default; API |
+| Role ∈ ROLES; owner rules (above) | `organizations.py` |
+| Question type ∈ 4 types; complexity ∈ easy/medium/hard; choice types need options, and correct answers ⊆ options | Excel import/preview validation |
+| Exam: questions and groups must belong to the same organization; `max_violations` 1–100 or null | router + Pydantic |
+| Exam: start < end, duration ≥ 1, ≥ 1 question | **client only today** (`ExamFormPage`); server-side check planned |
+| Start: published, now within the window, visible to the candidate, not already submitted | `student.py` |
+| Save answer: own attempt, not submitted, question belongs to the exam, now ≤ deadline + 30 s | `crud.save_answer` |
+| Integrity events: known type, 1–50 per request, details ≤ 1000 chars | `schemas.IntegrityEventIn` |
+| Evaluation comment ≤ 100 chars | DB column + UI |
+| Image answers ≤ 2 MB, image MIME types | **client only today**; server check planned with object storage |
+
+## Retention and deletion
+
+| Data | Current behavior | Required behavior *(planned)* |
+|---|---|---|
+| Organization | Cascade-deletes memberships, groups, questions, exams | Owner-initiated deletion with a 30-day grace period + full export first |
+| Exam | Hard delete with all attempts, answers, evaluations, events | Archive instead of delete once any attempt exists; hard delete only for drafts |
+| Question | Single delete fails if answers reference it; **bulk delete removes candidates' past answers and grades** | Never destroy answers: archive (soft delete) questions used in any exam; only unused questions are hard-deleted |
+| Candidate removed from organization | Membership deleted; attempts kept | Same |
+| User account | No deletion endpoint | Self-service deletion; anonymize attempts (keep scores, drop personal data) |
+| Integrity events | Kept forever | Keep for the life of the exam record |
+| Image answers / webcam / ID photos | Inline in the database | Object storage; webcam/ID photos auto-deleted 90 days after the exam closes (configurable per organization) |
+| Export | Not available | XLSX/PDF results; full organization ZIP export |
+
+## Migration and seed data
+
+- **Process:** every schema change is a new Alembic revision in `backend/migrations/versions/` named `000N_<what>.py`, with `down_revision` = the previous revision. Never edit an applied migration. New non-null columns need a `server_default`. Data fixes go in the same migration as the constraint they enable (see `0004`). Test `upgrade` on a copy of real data and against an empty database.
+- **History:** `0001_baseline` → `0002_organizations` (moves single-tenant data into "Default Organization": admins → owners, students → candidates, SSC/HSC/Admission → groups) → `0003_exam_integrity` → `0004_one_attempt_per_exam`.
+- **Seed:** `python create_admin.py [email] [password] ["Org name"]` creates an organization and its owner (default `admin@example.com` / `admin123`, "Demo Organization") and prints the join code. A sample question file is `sample_questions.xlsx`; the template is downloadable from the Question bank.
+- **Tests:** the pytest fixtures build the schema with `Base.metadata.create_all` on SQLite. Keep models and migrations in sync; *(planned)* a CI job runs `alembic upgrade head` on Postgres and compares it with the models.

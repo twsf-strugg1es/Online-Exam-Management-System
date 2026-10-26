@@ -1,0 +1,75 @@
+# Guide for coding agents
+
+Read this first. The six project documents are in `docs/`. Read them in this order:
+1. [01-PRD.md](01-PRD.md): what to build and the acceptance criteria
+2. [02-TRD.md](02-TRD.md): stack, architecture, security, key decisions, known debt
+3. [03-APP-FLOW.md](03-APP-FLOW.md): every screen, route and user path
+4. [04-UI-UX-BRIEF.md](04-UI-UX-BRIEF.md): visual rules, tokens, components
+5. [05-BACKEND-SCHEMA.md](05-BACKEND-SCHEMA.md): tables, relationships, who can do what
+6. [06-IMPLEMENTATION-PLAN.md](06-IMPLEMENTATION-PLAN.md): **what to build next**, in order
+
+Before implementing, flag any contradiction between these documents and the code, and ask the owner to resolve it.
+
+## Workflow (follow every session)
+
+1. **Sync first.** `git pull` (or clone) before anything else. Then read the six docs and the "Open issues" section of `06-IMPLEMENTATION-PLAN.md`, so you know where the last session stopped.
+2. **One milestone per session.** Pick the first milestone with unticked tasks and do its tasks in order, one commit per task. Don't start the next milestone.
+3. **Never guess an owner decision.** If a task's Owner column says **owner**, or it needs something only the owner has (logo, provider choice, API keys, legal text, pricing), skip it. Add it to "Open issues" and continue with tasks that don't depend on it.
+4. **Keep the docs true.** After each task: tick it in the plan; update `02-TRD`, `03-APP-FLOW` and `05-BACKEND-SCHEMA` if you changed what they describe. Docs and code must never disagree. The docs are the only memory the next session has.
+5. **Stop at the checkpoint.** When the milestone is done (or blocked), run both test suites and the build, walk the affected journeys in `03-APP-FLOW`, check the related PRD acceptance criteria, then **stop and report to the owner**:
+   - what was done (tasks + commits)
+   - what's left or blocked, and why
+   - decisions needed from the owner
+   - anything in the docs you think is wrong
+
+   Wait for the owner's reply before continuing.
+6. **End of the plan: draft the next version, then wait.** When every task in Milestones 1–6 is ticked (or the owner asks), write drafts of the next version's six documents in `docs/next/` (same template and file names). Base them on the PRD's remaining planned features, the plan's Milestones 7–8, the open issues, and what you learned. Then **stop and ask the owner to review**. Don't implement anything from `docs/next/` until the owner approves it. On approval, move the current docs to `docs/archive/v<N>/` and `docs/next/` to `docs/`.
+7. **Don't push or deploy** unless the owner asks. Commit locally on a branch named `milestone-<N>`.
+
+## What this is
+TestKori: a multi-tenant online exam platform for coaching centers, schools and hiring teams. Built for a global audience, launching in Bangladesh first. It has a FastAPI + PostgreSQL backend in `backend/` and a React (CRA + Tailwind) frontend in `frontend/`.
+
+## Commands
+```bash
+# backend (needs backend/.env with DATABASE_URL and SECRET_KEY)
+cd backend
+pip install -r requirements.txt
+alembic upgrade head
+python create_admin.py                       # demo org + owner admin@example.com / admin123
+python -m uvicorn app.main:app --reload --port 8000
+python -m pytest tests/ -q                   # must pass before every commit
+
+# frontend
+cd frontend
+npm install
+npm start                                    # http://localhost:3000
+npm test -- --watchAll=false
+npm run build                                # must finish with no warnings
+```
+
+## Rules that must not be broken
+1. **Tenant isolation.** Every organization-scoped endpoint takes its membership from `permissions.require_staff` / `require_manager` / `require_candidate` and filters every query by `membership.organization_id`. Add a test proving another organization gets 403/404.
+2. **Never send `correct_answers` to candidates** before the exam has closed. Build candidate question payloads with `crud.questions_for_attempt`.
+3. **Schema changes go through Alembic.** Add a new `backend/migrations/versions/000N_<name>.py` with `down_revision` set to the previous one. Never edit applied migrations. Use `server_default` for new non-null columns.
+4. **The server is authoritative** for time, deadlines, violation counts and scores. The client only displays them.
+5. **Shuffling is seeded by attempt ID** (stable on reload). Grading compares option values, never positions.
+6. **Integrity features flag, they don't accuse.** Flag events never end an attempt. Only `VIOLATION_EVENTS` count toward `max_violations`.
+7. Store and send times as UTC ISO strings with an offset. The frontend formats them in local time with `src/utils.js`.
+8. **Global by default.** Never hardcode one country's language, currency, phone format, timezone or exam convention. Local behavior (negative marking, merit lists, bKash, Bengali) is a setting. After task 1.8, no user-facing string may be written outside the locale files.
+
+## Conventions
+- **Backend:** routers stay thin; shared logic goes in `crud.py`; Pydantic schemas live in `schemas.py`; constants (roles, event types, submit reasons) live in `models.py`. Return clear `detail` messages; the frontend shows them via `errorMessage(err)`.
+- **Frontend:** use the components in `src/components/ui.js` and the theme tokens (`bg-surface`, `text-muted`, `border-line`, `brand`, `danger`…). Don't add new colors or one-off CSS. Write Tailwind classes literally; never build them from template strings. Icons come from `react-icons/lu`. Put signed-in pages inside `AppShell`.
+- **Copy and tone:** plain, specific, sentence case. Don't promise that cheating is impossible.
+- **Comments:** only when the *why* isn't obvious.
+- **Commits:** small and focused. The message explains why. Run both test suites first.
+
+## Gotchas
+- Backend tests use in-memory SQLite, not Postgres. Test anything Postgres-specific (JSON queries, constraints, migrations) against a real database too.
+- `frontend/package.json` `jest.moduleNameMapper` and the `TextEncoder` polyfill in `setupTests.js` are required for React Router 7 under CRA's Jest. Don't remove them.
+- Image answers are currently `data:` URLs inside `answers.answer_data` (2 MB client limit). Moving them to object storage is on the roadmap. Don't build new features on top of inline storage.
+- The Excel import maps unknown tags to `"others"` (hardcoded list in `routers/admin.py`). This is a known limitation, listed in the roadmap.
+- The organization is chosen on the client and sent as the `X-Organization-Id` header (set in `src/api.js` from `localStorage.organizationId`).
+
+## Keep the docs current
+When you finish a task, tick it in `docs/06-IMPLEMENTATION-PLAN.md`. Update `02-TRD.md` (architecture, API, key decisions), `03-APP-FLOW.md` (screens, routes) and `05-BACKEND-SCHEMA.md` (tables, permissions) when you change them. Record unresolved issues under "Open issues" in the plan.

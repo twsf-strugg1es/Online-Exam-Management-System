@@ -1,0 +1,153 @@
+# 3. App Flow: TestKori
+
+Purpose: show each screen, user path, and the result of each tap or click.
+Status: living document · Last updated 2026-10-12 · Routes are defined in `frontend/src/App.js` (source of truth). *(planned)* marks screens that don't exist yet.
+
+## Entry points
+
+| Entry | URL | Who |
+|---|---|---|
+| Direct visit / bookmark | `/` → redirects by state (see Navigation rules) | Everyone |
+| Login | `/login` | Returning users |
+| Student signup link with code | `/signup?code=K7M2QX9P` (code prefilled, upper-cased) | Candidates invited by an institution |
+| Organization signup | `/signup/organization` | New institutions |
+| *(planned)* Invite email link | `/invite/:token` → set password → organization | Bulk-imported candidates |
+| *(planned)* Password reset link | `/reset-password/:token` | Anyone who forgot their password |
+| *(planned)* Notification links | `/exam/:id` from email/SMS | Candidates |
+
+## Screen inventory
+
+| Screen | Route | Purpose | Data required | Access |
+|---|---|---|---|---|
+| Login | `/login` | Sign in | — | Signed out |
+| Student signup | `/signup` | Create a candidate account, optionally with a join code | — | Signed out |
+| Organization signup | `/signup/organization` | Create an organization + owner account | — | Anyone |
+| Organizations | `/organizations` | Pick the current organization, join with a code, create an organization | `/me` memberships | Signed in |
+| Account | `/profile` | Name, gender, password, list of organizations | `/profile/student` | Any member |
+| **Staff** | | | | |
+| Exams | `/admin-exams` | List exams with status (Draft/Scheduled/Live/Closed) and protections; publish/unpublish/delete | `/admin/exams/` | Staff |
+| New exam | `/admin-exams/new` | Details, schedule, questions, groups, integrity settings | `/admin/questions/`, `/org/groups` | Staff |
+| Exam results | `/admin-exams/:examId` | Stats, attempts with score/risk, filters, links to report and grading | `/admin/exams/`, `/admin/exams/:id/attempts` | Staff |
+| Integrity report | `/admin-integrity/:attemptId` | Risk, violations, flags, time away, event timeline | `/admin/attempts/:id/integrity` | Staff |
+| Grade answers | `/admin-evaluate-answers/:attemptId` | Mark written/image answers correct or incorrect, with a comment | `/admin/evaluations/attempts/:id` | Staff |
+| Question bank | `/admin-questions` | Search/filter, view, import from Excel, download template, bulk delete | `/admin/questions/` | Staff |
+| Students | `/admin-students` | List and search candidates with performance; remove | `/admin/students/` | Staff |
+| Organization | `/admin-organization` | Tabs: Invite & groups · Students · Staff · Settings | `/org`, `/org/groups`, `/org/members` | Managers |
+| **Candidate** | | | | |
+| Exams (dashboard) | `/student-account` | Sections: Continue where you left off · Open now · Upcoming · Done | `/student/exams/`, `/student/unfinished-attempts/` | Candidate |
+| Exam | `/exam/:id`, `/exam/resume/:attemptId` | Rules → take exam → finished | start/resume, answers, events | Candidate |
+| Results list | `/student-exams` | Submitted exams with scores | `/student/completed-exams/` | Candidate |
+| Result detail | `/exam-results/:attemptId` | Per-question breakdown, grader comments, correct answers once closed | `/student/attempts/:id/evaluated-results` | Candidate |
+| *(planned)* Forgot / reset password | `/forgot-password`, `/reset-password/:token` | Recover account | — | Signed out |
+| *(planned)* Question editor | `/admin-questions/new`, `/admin-questions/:id` | Create or edit one question | question | Staff |
+| *(planned)* Edit exam | `/admin-exams/:examId/edit` | Change an exam before it opens | exam | Staff |
+| *(planned)* Bulk import students | modal on Organization → Students | Upload, preview, confirm, report | — | Managers |
+| *(planned)* Merit list / export | tab on Exam results | Ranked list, XLSX/PDF export | attempts | Staff |
+
+## Mobile vs. desktop
+
+Policy: see PRD "Mobile vs. desktop". Per screen:
+
+| Screen | Phone |
+|---|---|
+| Login, signups, Organizations, Account | Full |
+| Candidate: Exams, Exam, Results list, Result detail | **Full: primary platform; designed phone-first** |
+| Staff: Exams list, Exam results, Integrity report, Grade answers, Students | Full |
+| Staff: Organization (Invite & groups, Students, Staff) | Full |
+| Staff: New exam / Edit exam, Question bank import, Question editor, Bulk student import | "Best on a computer" notice + **Continue anyway** |
+| Staff: Organization → Settings, analytics, exports *(planned)* | "Best on a computer" notice + **Continue anyway** |
+
+Notice behavior: shown at the top of the screen below 1024 px width; dismissing it hides it for that screen for the session (remembered in `sessionStorage`). It never blocks the form.
+
+## Primary journeys
+
+**J1. Institution onboarding (owner)**
+`/signup/organization` → submit name, email, password → automatic login → `/admin-exams` (empty state "No exams yet") → sidebar **Organization** → copy join code or signup link → share with students.
+
+**J2. Candidate onboarding**
+Open `/signup?code=XXXX` → fill in name, email, password (code prefilled) → automatic login → organization selected → `/student-account`.
+Without a code: signup → `/organizations` → enter a join code → `/student-account`.
+
+**J3. Create and publish an exam (examiner)**
+`/admin-exams` → **New exam** → fill in title, opens/closes, duration → pick questions (searchable) → pick groups (none = everyone) → review integrity switches (all on by default) and the optional violation limit → **Publish** (or **Save draft**) → back to `/admin-exams` with status Scheduled or Live.
+
+**J4. Take an exam (candidate)** ← the critical path
+`/student-account` → **Open now** → **Start** → `/exam/:id` **Rules** screen (duration, question count, protections) → **Start exam** (enters fullscreen if required; the timer starts on the server now) → answer questions; the navigator shows answered/flagged → **Submit** → confirm dialog "Submit your exam?" → **Finished** screen (score for objective questions, or "Awaiting grading").
+
+**J5. Review and grade (examiner)**
+`/admin-exams` → click an exam → `/admin-exams/:examId` → tab **Needs review** → risk badge → **Report** (`/admin-integrity/:attemptId`) to see the timeline → back → **Grade** (`/admin-evaluate-answers/:attemptId`) → Correct/Incorrect + comment per answer → the score updates.
+
+**J6. See results (candidate)**
+Sidebar **Results** → `/student-exams` → click an exam → `/exam-results/:attemptId`.
+
+## Alternate journeys
+
+| Journey | Path |
+|---|---|
+| Resume after a reload or crash | `/student-account` → **Continue where you left off** → `/exam/resume/:attemptId` → warning "Your timer has been running" → answers restored → continue |
+| Resume after the deadline | Resume → the server submits with reason `time_up` → Finished screen |
+| Leave the exam (tab/app switch, fullscreen exit) | Questions hidden behind an overlay → violation recorded → return and press the button to continue (re-enter fullscreen) → the violation chip updates |
+| Violation limit reached | The server submits with reason `violations` → Finished screen explaining why |
+| Time runs out | The page submits automatically → recorded as `time_up` |
+| Cancel submit | The confirm dialog's **Cancel** returns to the exam; nothing changes |
+| Unpublish | Exam menu → **Unpublish** → back to Draft; candidates no longer see it |
+| Delete exam / questions | Menu → **Delete** → danger confirm dialog → removed |
+| Excel import | Question bank → **Import** → choose file → **Preview** (row errors listed) → **Import** → list refreshes |
+| Switch organization | Sidebar organization button → `/organizations` → pick one → that organization's home |
+| Join another organization | `/organizations` → enter code → it becomes available in the switcher |
+| Change role / remove member | Organization → Staff → role select / remove (only owners can touch owners; the last owner can't be removed) |
+| Regenerate a join code | Organization → Invite → **New code** → confirm → the old code stops working |
+
+## Action specification (key actions)
+
+| Action | Trigger | Validation | Loading | Success | Error | Next |
+|---|---|---|---|---|---|---|
+| Log in | Submit on `/login` | Email format, required fields | Button spinner | Token stored, `/me` loaded | Inline alert "Incorrect username or password" | `/` → role home |
+| Student signup | Submit on `/signup` | Email, password + confirmation match, valid join code if given | Button spinner | Auto login | Alert with server message (e.g. "Email already registered", invalid code) | `/student-account` or `/organizations` |
+| Organization signup | Submit | Organization name 2–120 chars, email, password | Button spinner | Auto login as owner | Alert | `/admin-exams` |
+| Join with code | Submit on `/organizations` | Non-empty code | Button spinner | Membership added | Alert "invalid code" | Organization home |
+| Create exam | **Publish** / **Save draft** | Title, start < end, duration ≥ 1, ≥ 1 question; warns if window < duration | Button spinner | Exam created (+ published) | Alert with server detail | `/admin-exams` |
+| Start exam | **Start exam** on the rules screen | Server: visible, published, inside window, not submitted | Full-page loader | Questions + deadline + saved answers | Error phase with message (not started yet / expired / already submitted) | Running |
+| Answer choice | Click an option | Allowed only while running | Silent | Saved immediately | Save error shown (no offline queue yet; see `ExamPage.js`) | Same question |
+| Answer text | Type | — | Silent (debounced) | Saved after a pause; flushed on submit | Same as above | — |
+| Upload image answer | Choose file | Image type, ≤ 2 MB | Preview | Saved | "File too large" | — |
+| Submit exam | Confirm dialog | — | Button spinner; pending saves flushed first | Score / awaiting grading | Alert; can retry | Finished |
+| Grade answer | Correct / Incorrect + **Save** | Comment ≤ 100 chars | Button spinner | Progress bar updates | Alert | Next answer |
+| Import Excel | **Preview**, then **Import** | `.xlsx/.xls`, required columns | Spinner | Count imported | Per-row errors in the preview | Question list |
+| Publish/unpublish/delete exam | Exam menu | Delete needs confirmation | Menu disabled | List refreshes | Alert | `/admin-exams` |
+
+## Navigation rules
+
+- **Root redirect** (`/`): signed out → `/login`; signed in with no organization selected → `/organizations`; staff → `/admin-exams`; candidate → `/student-account`.
+- **Guards:** a route for another role redirects to `/` (which then routes correctly). `/login` and `/signup` redirect to `/` when already signed in. Unknown URLs → `/`.
+- **Legacy:** `/student-profile` → `/profile`.
+- **Layout:** signed-in pages use `AppShell`: a fixed left sidebar on desktop (≥ 1024 px); a top bar with a slide-in menu on phones; the menu closes on navigation.
+- **Sidebar:** staff: Exams, Question bank, Students, Organization (managers only), Account. Candidates: Exams, Results, Account. Plus the organization switcher, the theme toggle, and Log out.
+- **Exam page:** no sidebar (distraction-free). Browser back during an exam leaves the page; the attempt keeps running and can be resumed from the dashboard.
+- **Deep links:** every screen has a stable URL; IDs are UUIDs.
+
+## Empty and blocked states
+
+| Screen | State | What the user sees |
+|---|---|---|
+| Exams (staff) | No exams | "No exams yet" + **New exam** |
+| New exam | Empty question bank | "Your question bank is empty" + link to import |
+| Question bank | No questions / no matches | "No questions yet" + Import / "No matching questions" |
+| Students (staff) | None / no matches | "No students yet" (share the join code) / "No matching students" |
+| Organization | No groups / no students | Explains that students without a group see exams open to everyone / "Share the join code from the Invite tab" |
+| Exam results | No attempts / filter empty | "No attempts yet" / "Nothing here" |
+| Grade answers | Nothing to grade | "Nothing to grade" |
+| Integrity report | No events | "No events recorded" |
+| Candidate dashboard | No exams | "No exams yet" |
+| Candidate results | None | "No results yet" |
+| Exam | Not started / expired / already submitted / not published | Error phase with the server message and a link back |
+| Exam | Away / out of fullscreen | Blocking overlay; questions hidden |
+| Any | Wrong role | Redirect to the role's home |
+| Any | Offline | Today: save errors shown. *(planned)* offline banner + local queue with retry |
+| Any | Session expiring | Token refreshed automatically by `AuthContext`; an expired session means signing in again |
+
+## First-use journey
+
+- **New institution:** organization signup → empty Exams page → Organization page (copy code, create groups) → Question bank (download template, import) → New exam. *(planned)* a 4-step "Get started" checklist on the empty Exams page: Invite students · Create groups · Import questions · Create first exam.
+- **New candidate:** signup with code → dashboard. Before their first exam, the **Rules** screen explains each protection in plain words and how violations work, before anything is recorded.
+- **New staff member:** an owner/admin adds an existing account by email on Organization → Staff. *(planned)* email invitations for people without an account.

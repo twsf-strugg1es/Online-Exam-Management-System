@@ -1,0 +1,144 @@
+# 6. Implementation Plan: TestKori
+
+Purpose: give the AI agent an ordered build sequence with checkpoints.
+Status: living document · Last updated 2026-10-12 · Tick tasks (`[x]`) when merged.
+
+The product already exists (see "Completed"). Milestones 1–6 take it to a **paid pilot**. Milestones 7–8 come after the pilot.
+
+## How to work through this plan
+
+- Do tasks **in order inside a milestone**, unless the Dependency column allows otherwise. Each task = one PR.
+- **Owner/agent:** `agent` = any coding agent; `owner` = the product owner must decide or provide something (accounts, keys, choices).
+- **Every task's definition of done also includes:** backend tests pass (`python -m pytest tests/ -q`); for new endpoints, a cross-organization access test; a migration if the schema changed; `npm run build` has zero warnings; the affected docs (02 TRD, 03 App Flow, 05 Schema) are updated.
+- **Before moving to the next milestone:** run the app, walk the journeys in [03-APP-FLOW.md](03-APP-FLOW.md) affected by the milestone, verify the related acceptance criteria in [01-PRD.md](01-PRD.md), and record any unresolved issue at the bottom of this file under "Open issues".
+
+## Completed
+
+- [x] Phase 1: security holes fixed (answer keys hidden, ownership checks, Alembic baseline)
+- [x] Phase 2: multi-organization restructure (organizations, memberships, roles, groups, join codes)
+- [x] Phase 3: exam integrity step 1 (shuffle, fullscreen, violations, auto-submit, integrity report, one attempt per exam) + UI redesign
+
+---
+
+## Milestone 1: Project setup
+
+| ✓ | ID | Task | Owner | Inputs | Output | Definition of done | Depends on |
+|---|---|---|---|---|---|---|---|
+| [ ] | 1.1 | Rename the product to **TestKori** in the UI | agent (+ owner approves the mark) | 04 UI/UX Brief "Assets" | `Logo` in `ui.js`, `AuthLayout` text, `public/index.html` title, `manifest.json`, favicons | No "PorikkhaKori" string left in `frontend/` (`grep -ri porikkha`); the new mark is used in light and dark | — |
+| [ ] | 1.2 | `.env.example` for backend and frontend | agent | 02 TRD env tables | `backend/.env.example`, `frontend/.env.example` | A fresh clone runs by copying the examples | — |
+| [ ] | 1.3 | Docker setup | agent | — | `backend/Dockerfile`, `frontend/Dockerfile` (nginx), `docker-compose.yml` (api, web, postgres, minio) | `docker compose up` → app works at localhost with a seeded demo organization | 1.2 |
+| [ ] | 1.4 | `/health` endpoint; remove the "Hello" root | agent | — | `GET /health` checks the DB connection | Returns 200 / 503; test added | — |
+| [ ] | 1.5 | CI (GitHub Actions) | agent | — | `.github/workflows/ci.yml` | On every PR: pytest (SQLite), pytest + `alembic upgrade head` on a Postgres service, frontend test + build | 1.3 |
+| [ ] | 1.6 | Structured logging; remove the debug prints in `start_exam` | agent | — | JSON logs with request ID, user ID, organization ID | No `print(` in `backend/app` | — |
+| [ ] | 1.7 | Fix the README (structure, links to the six docs) | agent | — | README | Matches the repo tree | — |
+| [ ] | 1.8 | i18n framework (global readiness) | agent | 02 TRD "Internationalization", 04 Brief "Internationalization rules" | `react-i18next`, `src/locales/en.json`; all existing UI strings moved into it; `Intl`-based formatters in `utils.js`; API errors gain a machine `code` | `grep` finds no user-facing literals left in pages/components; app looks identical in English; switching to a test locale changes every screen | 1.1 |
+| [ ] | 1.9 | Organization and user locale settings | agent | 05 Schema planned columns | Migration adding `country`, `default_language`, `timezone`, `currency` to organizations and `language` to users; Settings tab + Account fields | Exam windows show in the organization's timezone with a label when it differs from the viewer's; tests | 1.8 |
+| [ ] | 1.10 | RTL-safe layout | agent | 04 Brief | Replace left/right utilities with logical ones; `dir` set from the language | With `dir="rtl"` forced, J1–J6 layouts aren't broken (manual check, screenshots in the PR) | 1.8 |
+
+## Milestone 2: Data and auth
+
+| ✓ | ID | Task | Owner | Inputs | Output | Definition of done | Depends on |
+|---|---|---|---|---|---|---|---|
+| [ ] | 2.1 | Missing indexes + unique `answers(attempt_id, question_id)` | agent | 05 Schema "Indexes" | Migration `0005` (deduplicate answers first) | Upgrade works on a copy of real data; save-answer still upserts | 1.5 |
+| [ ] | 2.2 | Server-side exam validation | agent | 05 Schema "Data validation" | `ExamCreate` validators | start < end, duration ≥ 1, ≥ 1 question → 422; tests | — |
+| [ ] | 2.3 | Email sending abstraction | agent; **owner** picks the provider | provider API key | `app/notify.py` (`send_email`), console backend for dev/tests | Tests use the console backend; provider set by env var | — |
+| [ ] | 2.4 | Password reset | agent | 2.3 | `password_reset_tokens` table (hashed, 30 min, single use); 2 endpoints; `/forgot-password`, `/reset-password/:token` pages | PRD **AC14** passes; tests for reuse, expiry, unknown email | 2.3 |
+| [ ] | 2.5 | Email verification (soft) | agent | 2.3 | `users.email_verified_at`; verify link; banner until verified | Unverified users can still take exams (pilot) | 2.3 |
+| [ ] | 2.6 | Rate limiting on `/token`, signup, reset | agent | — | `slowapi` limits | Exceeding the limit → 429; test | — |
+| [ ] | 2.7 | Archive instead of destroy | agent | 05 Schema "Retention" | `questions.archived_at`, `exams.archived_at`; delete = archive once used | Deleting a used question never removes answers; past results still render; tests | 2.1 |
+| [ ] | 2.8 | JWT subject = user ID (accept old email tokens for one release) | agent | — | `security.py` | Changing an email doesn't log the user out; test | — |
+
+## Milestone 3: Core journey (pilot-ready exam operations)
+
+| ✓ | ID | Task | Owner | Inputs | Output | Definition of done | Depends on |
+|---|---|---|---|---|---|---|---|
+| [ ] | 3.1 | Finalize abandoned attempts | agent | 02 TRD debt #2 | A scheduled job (APScheduler or cron calling an internal endpoint) that scores attempts past their deadline + grace as `time_up` | An attempt with no submit is finalized within 2 minutes of its deadline; test with a mocked clock | 1.3 |
+| [ ] | 3.2 | Single-question create/edit | agent | 03 App Flow (question editor) | `POST/PUT /admin/questions`; editor page with type-specific fields | All 4 types can be created and edited; a used question → editing creates a new version or is blocked (decide and document) | 2.7 |
+| [ ] | 3.3 | Edit exam before it opens | agent | — | `PUT /admin/exams/{id}`; `/admin-exams/:id/edit` | Allowed while Draft/Scheduled and no attempts exist; otherwise 409 with a reason | 2.2 |
+| [ ] | 3.4 | Free tags | agent | 02 TRD debt #3 | Remove the hardcoded list in the import; tag autocomplete | Imported tags are kept as written (lower-cased) | — |
+| [ ] | 3.5 | Object storage for image answers | agent; **owner** creates the bucket | S3/R2 credentials | `app/storage.py`; upload endpoint with server-side type/size checks; signed URLs; migration moving existing `data:` URLs | No `data:` URLs left in `answers`; graders still see images | 1.3 |
+| [ ] | 3.6 | Bulk candidate import | agent | 2.3 | Upload CSV/XLSX → preview → confirm → report; invite email with set-password link | PRD **AC15** passes | 2.3, 2.4 |
+| [ ] | 3.7 | Add staff by invite (no account yet) | agent | 2.3 | Invite email → set password → membership | An examiner can be invited by email | 3.6 |
+| [ ] | 3.8 | Offline-tolerant answer saving | agent | — | IndexedDB queue, retry with backoff, saved/saving/offline indicator; the server ignores stale writes via `client_seq` | Disconnecting the network for 60 s mid-exam loses nothing; manual test + unit test of the queue | 2.1 |
+| [ ] | 3.9 | Notifications (email; SMS when the gateway is ready) | agent; **owner** picks the SMS gateways | 2.3, gateway keys | Exam published (target groups), 1 h reminder, results published; per-organization switches; sent in the recipient's language; SMS routed by phone country (BD gateway for +880, global provider otherwise) | Events send once (idempotent); tests with the console backend | 2.3, 3.1 |
+| [ ] | 3.10 | "Get started" checklist for new organizations | agent | 03 App Flow first use | Checklist on the empty Exams page | Disappears when all 4 steps are done | 3.6 |
+
+## Milestone 4: Secondary features (competitive set for coaching centers)
+
+| ✓ | ID | Task | Owner | Inputs | Output | Definition of done | Depends on |
+|---|---|---|---|---|---|---|---|
+| [ ] | 4.1 | Negative marking | agent | PRD AC16 | `exams.negative_mark` (float, default 0); grading; shown on the rules screen and results | **AC16** passes; negative totals follow the owner's decision (allow, or floor at 0) | — |
+| [ ] | 4.2 | Per-exam marks | agent | — | `exam_questions.marks` (nullable override) | Totals use the override; test | — |
+| [ ] | 4.3 | Result publishing control | agent | — | `exams.results_release` = `on_close` / `manual`; Publish results button | Candidates see nothing until released; test | — |
+| [ ] | 4.4 | Merit list / rank | agent | PRD AC17 | Ranked tab on Exam results; optional candidate-visible rank | **AC17** passes | 4.3 |
+| [ ] | 4.5 | Export XLSX + PDF result cards | agent | — | `GET /admin/exams/{id}/export.xlsx`, per-candidate PDF | Opens in Excel with Bengali names intact | 4.4 |
+| [ ] | 4.6 | Random question pools | agent | PRD AC18 | `exam_pool_rules`; drawn question IDs stored per attempt (`attempt_questions`) | **AC18** passes; grading uses the stored questions | 3.4 |
+| [ ] | 4.7 | Question types: true/false, fill-in-the-blank, numeric (tolerance), matching, ordering | agent | — | Types in the model, import, editor, exam page, grading | Each type auto-grades; Excel template updated | 3.2 |
+| [ ] | 4.8 | KaTeX math + images in questions | agent | 3.5 | Rendering in the editor, exam and results | `$...$` renders; images load via signed URLs | 3.2, 3.5 |
+| [ ] | 4.9 | Grade by question + partial marks | agent | — | Grading view: one question × all candidates; `score_awarded` input | 50 written answers can be graded without leaving the page | — |
+| [ ] | 4.10 | Sections with their own time limits | agent | — | `exam_sections`; navigator per section | A section locks when its time ends | 4.6 |
+| [ ] | 4.11 | Accommodations: extra time per candidate, extend a live attempt | agent | — | `attempt.extra_minutes`; deadline rule updated | Deadline respects the extension; tests | 3.1 |
+| [ ] | 4.12 | Analytics: per-topic breakdown, item analysis | agent | — | Report tab | Difficulty index and discrimination shown per question | 4.4 |
+| [ ] | 4.13 | Bengali translation | agent; **owner** reviews the translations | 1.8 | `src/locales/bn.json`, language switch | Every screen in the App Flow inventory is translated | 1.8 |
+
+## Milestone 5: Quality
+
+| ✓ | ID | Task | Owner | Inputs | Output | Definition of done | Depends on |
+|---|---|---|---|---|---|---|---|
+| [ ] | 5.1 | Security review | agent | 02 TRD "Security" | Fixes + a report in the PR | Tenant-isolation test for every endpoint; no answer keys in candidate payloads; dependency audit clean | M3 |
+| [ ] | 5.2 | Load test | agent | TRD performance targets | k6/Locust script in `loadtest/` | 500 candidates start + save meets the p95 targets on staging-sized infrastructure, or the gaps are fixed | 6.1 |
+| [ ] | 5.3 | Accessibility pass | agent | 04 Brief "Accessibility" | Fixes | Keyboard-only walk of J1–J6; axe shows no serious issues; reduced-motion respected | — |
+| [ ] | 5.4 | Low-end mobile + performance pass | agent | 04 Brief "Performance budget", "Motion", "Current code vs. this brief" | Remove `backdrop-blur` and pulse animations; route-level code splitting; font subsetting; bottom action bars on phones | Every budget in the brief met on a throttled mid-range profile (Lighthouse mobile); exam page usable at 360 px | 3.8 |
+| [ ] | 5.4b | "Best on a computer" notice for desktop-first staff screens | agent | 03 App Flow "Mobile vs. desktop" | Reusable `DesktopHint` component in `ui.js`, applied to the listed screens | PRD **AC19** and **AC20** pass | 5.4 |
+| [ ] | 5.5 | Error tracking | agent; **owner** creates the Sentry project | DSN | Sentry in the API + web | A test error appears in Sentry with user/organization context | 1.6 |
+| [ ] | 5.6 | Remove legacy grading endpoints | agent | 02 TRD debt #6 | Smaller `admin.py` | The frontend doesn't call them; tests updated | — |
+| [ ] | 5.7 | Frontend tests for the exam page | agent | — | Jest tests: rules → answer → submit; blocked overlay | Run in CI | 1.5 |
+
+## Milestone 6: Release (pilot)
+
+| ✓ | ID | Task | Owner | Inputs | Output | Definition of done | Depends on |
+|---|---|---|---|---|---|---|---|
+| [ ] | 6.1 | Staging + production environments | agent; **owner** provides the cloud account + domain | Domain, hosting choice | Managed Postgres, API container, static web on a CDN, HTTPS | Staging deploys automatically on main; production on tag | 1.3, 1.5 |
+| [ ] | 6.2 | Backups and restore drill | agent | — | Daily backups, 7+ days | A restore into staging was done once and documented | 6.1 |
+| [ ] | 6.3 | Deploy and rollback runbook | agent | — | `docs/DEPLOY.md` | Covers migrate → deploy → verify `/health` → rollback (previous image; migrations expand-then-contract) | 6.1 |
+| [ ] | 6.4 | Uptime monitoring + alerts during exam windows | agent | — | Uptime check on `/health`, alert to the owner | Alert received in a test | 6.1 |
+| [ ] | 6.5 | Terms of Service + Privacy Policy pages | **owner** writes/approves the text; agent adds the pages | Legal text | `/terms`, `/privacy`, linked from signup | Linked and reachable signed out | — |
+| [ ] | 6.6 | Pilot test plan | agent + owner | PRD acceptance criteria | A checklist run on production with a dummy organization: AC1–AC17 | All pass; issues logged | M3–M5 |
+| [ ] | 6.7 | Pilot launch | owner | — | One institution onboarded | PRD success measures tracked weekly | 6.6 |
+
+---
+
+## Milestone 7 (after pilot): Proctoring step 2
+
+| ✓ | ID | Task | Depends on |
+|---|---|---|---|
+| [ ] | 7.1 | Consent screen + per-exam proctoring settings + retention (90 days) | 3.5 |
+| [ ] | 7.2 | Webcam snapshots at random intervals (30–90 s) → object storage | 7.1 |
+| [ ] | 7.3 | In-browser face checks (MediaPipe): `no_face`, `multiple_faces` as **flags** | 7.2 |
+| [ ] | 7.4 | ID photo before start; shown in the integrity report | 7.2 |
+| [ ] | 7.5 | Safe Exam Browser support (Config Key / Browser Exam Key header check) | — |
+| [ ] | 7.6 | Live proctor dashboard (online, violations; pause/extend/end) | 4.11 |
+| [ ] | 7.7 | Similarity check for written answers within an exam | — |
+
+## Milestone 8 (after pilot): Business
+
+| ✓ | ID | Task | Depends on |
+|---|---|---|---|
+| [ ] | 8.1 | Plans and limits enforced on the server | — |
+| [ ] | 8.2 | Billing: SSLCommerz / bKash (Bangladesh) + Stripe or Paddle (global), regional prices, invoices, trial | 8.1 |
+| [ ] | 8.3 | Organization branding (logo, color, subdomain) | 3.5 |
+| [ ] | 8.4 | Audit log of staff actions | — |
+| [ ] | 8.5 | Google sign-in | — |
+| [ ] | 8.6 | Organization export (ZIP) + account deletion with anonymization | 2.7 |
+| [ ] | 8.7 | Paid public mock tests | 8.2 |
+| [ ] | 8.8 | PWA (installable, offline shell) | 3.8 |
+| [ ] | 8.9 | GDPR toolkit: data processing agreement, subprocessor list, cookie consent, data export/deletion requests, breach process (**owner** + legal review) | 8.6 |
+| [ ] | 8.10 | EU region deployment (separate stack, organizations pinned by `data_region`) | 6.1, 1.9 |
+| [ ] | 8.11 | More translations based on the first global market (e.g. Hindi, Arabic with RTL, Spanish) | 1.10, 4.13 |
+| [ ] | 8.12 | Global marketing site + English-first onboarding | 1.8 |
+
+## Open issues
+
+Record anything unresolved at a milestone checkpoint here: date, issue, decision needed, owner.
+
+- 2026-10-12: Owner decisions pending: email provider (2.3), SMS gateway (3.9), hosting region (6.1), TestKori logo mark (1.1), negative-total policy (4.1), retakes (PRD open question 7), first global market and global pricing (PRD open questions 8–9).
