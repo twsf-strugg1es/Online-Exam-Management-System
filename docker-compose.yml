@@ -1,0 +1,40 @@
+# Full stack in containers. Local development on a low-RAM PC runs natively instead
+# (see README); CI builds and checks these images on every push.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: online_exam_system
+      POSTGRES_USER: testkori
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-testkori-local-only}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testkori -d online_exam_system"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://testkori:${POSTGRES_PASSWORD:-testkori-local-only}@db:5432/online_exam_system
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env or the environment}
+      CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        REACT_APP_API_URL: http://localhost:8000
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
+volumes:
+  db-data:

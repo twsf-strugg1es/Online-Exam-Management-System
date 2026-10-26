@@ -131,8 +131,8 @@ FastAPI app (backend/app)
 
 | Environment | Today | Planned |
 |---|---|---|
-| Development | Local Postgres + `uvicorn --reload` + `npm start` | `docker compose up` (api, web, postgres, minio) |
-| Test | `pytest` on in-memory SQLite; Jest smoke tests | CI also runs pytest against Postgres and `alembic upgrade head` on an empty database |
+| Development | **Native** (default; fits an 8 GB PC): local PostgreSQL service + `uvicorn --reload` in `backend/.venv` + `npm start`. Optional: `docker compose up --build` (db, api, web) on PCs with RAM to spare | MinIO added to compose with object storage (3.5) |
+| Test | `pytest` on in-memory SQLite; Jest smoke tests | CI (1.5) also runs pytest against Postgres, `alembic upgrade head` on an empty database, and builds + health-checks the Docker images |
 | Staging | none | Same images as production, seeded demo organization |
 | Production | none | Managed Postgres; API container; static web on a CDN; Sentry; uptime check on `/health` |
 

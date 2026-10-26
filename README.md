@@ -232,6 +232,19 @@ npm start
 
 Both servers will start and auto-reload on code changes. Open `http://localhost:3000` in your browser.
 
+## Running with Docker (optional)
+
+Docker needs a few GB of RAM. On a low-end PC, use the native setup above instead; CI builds and checks the Docker images on every push.
+
+```bash
+SECRET_KEY=$(python -c "import secrets; print(secrets.token_urlsafe(48))") docker compose up --build
+docker compose exec api python create_admin.py   # demo organization + owner
+```
+
+- Web: `http://localhost:3000` · API: `http://localhost:8000` · Health: `http://localhost:8000/health`
+- The API container runs `alembic upgrade head` before it starts.
+- Database data lives in the `db-data` volume. `docker compose down -v` deletes it.
+
 ## Login Credentials
 
 After setup completes, use these default credentials to log in:
