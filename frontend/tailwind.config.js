@@ -14,7 +14,8 @@ module.exports = {
         sunken: token("sunken"), // inputs, table headers, wells
         ink: token("ink"), // primary text
         muted: token("muted"), // secondary text
-        line: token("line"), // borders and dividers
+        line: { DEFAULT: token("line"), strong: token("line-strong") }, // borders and dividers
+        faint: token("faint"), // tertiary text: labels, hints on paper
         "on-brand": token("on-brand"), // text on brand-colored buttons
         brand: {
           DEFAULT: token("brand"),
@@ -33,8 +34,10 @@ module.exports = {
       fontSize: {
         "2xs": ["0.6875rem", { lineHeight: "1rem" }],
       },
+      // Paper corners: small and consistent everywhere
+      borderRadius: { sm: "2px", DEFAULT: "3px", md: "3px", lg: "4px", xl: "6px" },
       boxShadow: {
-        card: "0 1px 2px rgb(0 0 0 / 0.04), 0 1px 1px rgb(0 0 0 / 0.02)",
+        card: "none",
         pop: "0 12px 32px -8px rgb(0 0 0 / 0.18), 0 2px 6px rgb(0 0 0 / 0.06)",
       },
       keyframes: {

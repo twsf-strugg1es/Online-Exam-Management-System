@@ -114,7 +114,7 @@ function ImportDialog({ open, onClose, onImported }) {
               </div>
               {Array.isArray(q.options) && (
                 <p className="mt-1.5 text-xs text-muted">
-                  Options: {q.options.join(' · ')} — answer: <span className="font-medium text-ink">{formatAnswer(q.correct_answers)}</span>
+                  Options: {q.options.join(' · ')}. Answer: <span className="font-medium text-ink">{formatAnswer(q.correct_answers)}</span>
                 </p>
               )}
             </div>

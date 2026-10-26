@@ -229,11 +229,11 @@ export function PageLoader({ label = 'Loading…' }) {
 
 export function PageHeader({ eyebrow, title, description, actions }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b-2 border-ink pb-5">
       <div className="min-w-0">
-        {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        {description && <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">{description}</p>}
+        {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
+        <h1 className="text-[2rem] font-semibold leading-none tracking-[-0.025em]">{title}</h1>
+        {description && <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-muted">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -293,7 +293,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
-      <div className="absolute inset-0 animate-fade-in bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
+      <div className="absolute inset-0 animate-fade-in bg-black/40" onClick={onClose} />
       <div
         ref={panelRef}
         tabIndex={-1}

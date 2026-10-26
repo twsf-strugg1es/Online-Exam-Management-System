@@ -56,6 +56,7 @@ function OrgSignupPage() {
   return (
     <AuthLayout
       title="Register your organization"
+      label="New organization"
       subtitle="A private space for your school, coaching center or company: your own question bank, exams, students and results."
       footer={<p>Already have an account? <Link to="/login" className="link">Log in</Link> and create an organization from there.</p>}
     >

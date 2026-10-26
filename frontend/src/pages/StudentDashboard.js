@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LuClock, LuCalendar, LuListChecks, LuMaximize, LuArrowRight, LuPlay, LuCircleCheck, LuBookOpen } from 'react-icons/lu';
+import { LuBookOpen } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import { Alert, Badge, Button, Card, EmptyState, PageLoader, cx } from '../components/ui';
+import { Alert, Button, Card, EmptyState, PageLoader, cx } from '../components/ui';
 import { errorMessage, formatDateTime } from '../utils';
 
 const greeting = () => {
@@ -22,46 +22,38 @@ const opensIn = (start) => {
 function ExamCard({ exam, attempt, onOpen }) {
   const inProgress = Boolean(attempt);
   const available = exam.is_active && !exam.is_submitted;
+  const [label, tone, dot] = inProgress ? ['In progress, timer running', 'text-warn', 'bg-current']
+    : exam.is_submitted ? ['Submitted', 'text-faint', 'bg-current opacity-50']
+      : exam.is_upcoming ? [opensIn(exam.start_time), 'text-ink', 'bg-[linear-gradient(90deg,currentColor_50%,transparent_50%)]']
+        : exam.is_expired ? ['Closed', 'text-faint', '']
+          : ['Open now', 'text-brand', 'bg-current'];
   return (
-    <Card className={cx('flex flex-col p-5', inProgress && 'border-brand/50 ring-1 ring-brand/20')}>
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="font-semibold leading-snug">{exam.title}</h3>
-        {inProgress ? <Badge tone="brand">In progress</Badge>
-          : exam.is_submitted ? <Badge icon={LuCircleCheck}>Submitted</Badge>
-            : exam.is_upcoming ? <Badge tone="info">{opensIn(exam.start_time)}</Badge>
-              : exam.is_expired ? <Badge>Closed</Badge>
-                : <Badge tone="brand">Open now</Badge>}
-      </div>
-
-      <dl className="mt-4 grid grid-cols-2 gap-y-2 text-sm text-muted">
-        <div className="flex items-center gap-2"><LuClock className="h-4 w-4" />{exam.duration_minutes} min</div>
-        <div className="flex items-center gap-2"><LuListChecks className="h-4 w-4" />{exam.question_count} question{exam.question_count === 1 ? '' : 's'}</div>
-        <div className="col-span-2 flex items-center gap-2">
-          <LuCalendar className="h-4 w-4" />
-          {exam.is_upcoming ? `Opens ${formatDateTime(exam.start_time)}` : `Closes ${formatDateTime(exam.end_time)}`}
-        </div>
+    <article className={cx('sheet flex flex-col px-5 pb-4 pt-5', inProgress && 'border-warn/60')}>
+      <h3 className="text-[1.05rem] font-semibold leading-snug">{exam.title}</h3>
+      <p className={cx('mt-2 flex items-center gap-2 text-sm font-medium', tone)}>
+        <span className={cx('status-dot', dot)} aria-hidden="true" />{label}
+      </p>
+      <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-3 font-mono text-[13px]">
+        <div><dt className="eyebrow">Time</dt><dd className="tabular mt-1">{exam.duration_minutes} min</dd></div>
+        <div><dt className="eyebrow">Qs</dt><dd className="tabular mt-1">{exam.question_count}</dd></div>
+        <div><dt className="eyebrow">{exam.is_upcoming ? 'Opens' : 'Closes'}</dt><dd className="tabular mt-1">{new Date(exam.is_upcoming ? exam.start_time : exam.end_time).toLocaleDateString([], { day: 'numeric', month: 'short' })}</dd></div>
       </dl>
-
       {(available || inProgress) && (
-        <div className="mt-5 flex items-center justify-between gap-3 border-t border-line pt-4">
-          <span className="flex items-center gap-1.5 text-xs text-muted">
-            <LuMaximize className="h-3.5 w-3.5" /> Runs in fullscreen
-          </span>
-          <Button size="sm" icon={inProgress ? LuArrowRight : LuPlay} onClick={() => onOpen(exam, attempt)}>
-            {inProgress ? 'Continue' : 'Start'}
-          </Button>
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
+          <span className="font-mono text-xs text-faint">{exam.integrity?.require_fullscreen ? 'Runs in fullscreen' : 'Timed exam'}</span>
+          <Button size="sm" onClick={() => onOpen(exam, attempt)}>{inProgress ? 'Continue' : 'Start'}</Button>
         </div>
       )}
-    </Card>
+    </article>
   );
 }
 
-function Section({ title, hint, children }) {
+function Section({ title, hint, count, children }) {
   return (
     <section className="mb-10">
-      <div className="mb-4 flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-semibold">{title}</h2>
-        {hint && <p className="text-xs text-muted">{hint}</p>}
+      <div className="mb-4 flex items-baseline justify-between gap-3 border-b border-line-strong pb-2">
+        <h2 className="flex items-baseline gap-2.5 text-[15px] font-semibold">{title}<span className="tabular font-mono text-xs font-normal text-faint">{count}</span></h2>
+        {hint && <p className="font-mono text-xs text-faint">{hint}</p>}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{children}</div>
     </section>
@@ -99,10 +91,10 @@ function StudentDashboard() {
 
   return (
     <AppShell>
-      <div className="mb-10">
-        <p className="eyebrow mb-1.5">{currentMembership?.organization_name}</p>
-        <h1 className="text-2xl font-semibold tracking-tight">{greeting()}{firstName && `, ${firstName}`}</h1>
-        <p className="mt-1.5 text-sm text-muted">
+      <div className="mb-10 border-b-2 border-ink pb-5">
+        <p className="eyebrow mb-2">{currentMembership?.organization_name}</p>
+        <h1 className="text-[2rem] font-semibold leading-none tracking-[-0.025em]">{greeting()}{firstName && `, ${firstName}`}</h1>
+        <p className="mt-2.5 text-sm text-muted">
           {available.length + inProgress.length
             ? `You have ${available.length + inProgress.length} exam${available.length + inProgress.length === 1 ? '' : 's'} you can take right now.`
             : upcoming.length ? `Your next exam ${opensIn(upcoming[0].start_time).toLowerCase()}.` : 'No exams are open right now.'}
@@ -122,22 +114,22 @@ function StudentDashboard() {
       ) : (
         <>
           {inProgress.length > 0 && (
-            <Section title="Continue where you left off" hint="The timer keeps running while you're away">
+            <Section title="Continue where you left off" count={inProgress.length} hint="The timer keeps running while you're away">
               {inProgress.map((e) => <ExamCard key={e.id} exam={e} attempt={attemptFor(e)} onOpen={open} />)}
             </Section>
           )}
           {available.length > 0 && (
-            <Section title="Open now">
+            <Section title="Open now" count={available.length}>
               {available.map((e) => <ExamCard key={e.id} exam={e} onOpen={open} />)}
             </Section>
           )}
           {upcoming.length > 0 && (
-            <Section title="Upcoming">
+            <Section title="Upcoming" count={upcoming.length}>
               {upcoming.map((e) => <ExamCard key={e.id} exam={e} onOpen={open} />)}
             </Section>
           )}
           {done.length > 0 && (
-            <Section title="Done">
+            <Section title="Done" count={done.length}>
               {done.map((e) => <ExamCard key={e.id} exam={e} onOpen={open} />)}
             </Section>
           )}

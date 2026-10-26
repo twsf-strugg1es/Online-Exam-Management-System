@@ -66,6 +66,7 @@ function SignupPage() {
   return (
     <AuthLayout
       title="Create your student account"
+      label="New student"
       subtitle={codeFromLink
         ? "You've been invited to join an organization. Your join code is already filled in."
         : 'Use the join code your school, coaching center or employer gave you.'}

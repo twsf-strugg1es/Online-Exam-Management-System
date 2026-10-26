@@ -104,7 +104,7 @@ function ExamFormPage() {
             <CardHeader title="Details and schedule" description="Students can start any time in the window. Each attempt lasts the duration, but never past the closing time." />
             <div className="grid gap-5 p-5 sm:grid-cols-2">
               <Field label="Title" htmlFor="title" className="sm:col-span-2">
-                <Input id="title" value={form.title} onChange={update('title')} placeholder="e.g. Physics — Chapter 3 test" autoFocus />
+                <Input id="title" value={form.title} onChange={update('title')} placeholder="e.g. Physics, chapter 3 test" autoFocus />
               </Field>
               <Field label="Opens" htmlFor="start">
                 <Input id="start" type="datetime-local" value={form.start} onChange={update('start')} />
@@ -225,7 +225,7 @@ function ExamFormPage() {
                 hint="A violation is leaving the exam (another tab, window or app) or exiting fullscreen. Every violation is recorded either way."
               >
                 <Select id="maxViolations" value={settings.max_violations} onChange={(e) => setSettings({ ...settings, max_violations: e.target.value })}>
-                  <option value="">Never — only record violations</option>
+                  <option value="">Never (only record violations)</option>
                   {[1, 2, 3, 5, 10].map((n) => <option key={n} value={n}>{n} violation{n === 1 ? '' : 's'}</option>)}
                 </Select>
               </Field>
@@ -234,7 +234,7 @@ function ExamFormPage() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-10 -mx-4 mt-8 border-t border-line bg-paper/90 px-4 py-4 backdrop-blur sm:-mx-8 sm:px-8">
+      <div className="sticky bottom-0 z-10 -mx-4 mt-8 border-t border-line bg-paper px-4 py-4 sm:-mx-8 sm:px-8">
         {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Button variant="ghost" onClick={() => navigate('/admin-exams')}>Cancel</Button>

@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  LuPlus, LuClipboardList, LuCalendar, LuClock, LuUsers, LuShieldCheck, LuShuffle, LuMaximize, LuEllipsis, LuTrash2,
-  LuEyeOff, LuSend, LuChartColumn,
-} from 'react-icons/lu';
+import { LuPlus, LuClipboardList, LuEllipsis, LuTrash2, LuEyeOff, LuSend } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import { Alert, Badge, Button, Card, EmptyState, PageHeader, PageLoader, useConfirm } from '../components/ui';
+import { Alert, Button, Card, EmptyState, PageHeader, PageLoader, useConfirm } from '../components/ui';
 import { errorMessage, formatDateTime } from '../utils';
 
 // Draft until published; then scheduled, live or closed depending on the exam window
@@ -17,30 +14,40 @@ export function examStatus(exam, now = new Date()) {
   return { label: 'Closed', tone: 'neutral' };
 }
 
+// Status as an answer-bubble dot: filled when live, half when scheduled, empty for drafts
+const STATUS_STYLE = {
+  Draft: ['text-faint', ''],
+  Scheduled: ['text-ink', 'bg-[linear-gradient(90deg,currentColor_50%,transparent_50%)]'],
+  Live: ['text-brand font-medium', 'bg-current'],
+  Closed: ['text-faint', 'bg-current opacity-50'],
+};
+
 export function StatusBadge({ exam }) {
-  const status = examStatus(exam);
+  const { label } = examStatus(exam);
+  const [text, dot] = STATUS_STYLE[label];
   return (
-    <Badge tone={status.tone}>
-      {status.live && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />}
-      {status.label}
-    </Badge>
+    <span className={`inline-flex items-center gap-2 text-sm ${text}`}>
+      <span className={`status-dot ${dot}`} aria-hidden="true" />
+      {label}
+    </span>
   );
 }
 
-// Small icons showing which protections an exam uses
+// Printed tags naming the protections an exam uses
 export function ProtectionIcons({ exam }) {
   const items = [
-    exam.require_fullscreen && { icon: LuMaximize, label: 'Fullscreen required' },
-    (exam.shuffle_questions || exam.shuffle_options) && { icon: LuShuffle, label: 'Shuffled per student' },
-    exam.max_violations && { icon: LuShieldCheck, label: `Auto-submit after ${exam.max_violations} violations` },
+    exam.require_fullscreen && ['Fullscreen', 'Fullscreen required'],
+    (exam.shuffle_questions || exam.shuffle_options) && ['Shuffle', 'Shuffled per student'],
+    exam.block_copy_paste && ['No paste', 'Copy and paste blocked'],
+    exam.max_violations && [`Limit ${exam.max_violations}`, `Submitted automatically after ${exam.max_violations} violations`],
   ].filter(Boolean);
-  if (!items.length) return <span className="text-xs text-muted">No protections</span>;
+  if (!items.length) return <span className="text-xs text-faint">No protections</span>;
   return (
-    <span className="flex items-center gap-1.5 text-muted">
-      {items.map(({ icon: Icon, label }) => (
-        <span key={label} title={label} className="grid h-6 w-6 place-items-center rounded-md bg-sunken">
-          <Icon className="h-3.5 w-3.5" />
-          <span className="sr-only">{label}</span>
+    <span className="flex flex-wrap items-center gap-1">
+      {items.map(([tag, label]) => (
+        <span key={tag} title={label} className="tag uppercase">
+          {tag}
+          <span className="sr-only">: {label}</span>
         </span>
       ))}
     </span>
@@ -76,6 +83,21 @@ function ExamMenu({ exam, onPublishToggle, onDelete }) {
         </>
       )}
     </div>
+  );
+}
+
+// Date on one line, times on the next; both dates when the window spans days
+function ExamWindow({ exam }) {
+  const start = new Date(exam.start_time);
+  const end = new Date(exam.end_time);
+  const time = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const day = (d) => (d.toDateString() === new Date().toDateString() ? 'Today' : d.toLocaleDateString([], { day: 'numeric', month: 'short' }));
+  const sameDay = start.toDateString() === end.toDateString();
+  return (
+    <>
+      <span className="block">{sameDay ? day(start) : `${day(start)} – ${day(end)}`}</span>
+      <span className="block text-faint">{time(start)} – {time(end)}</span>
+    </>
   );
 }
 
@@ -139,7 +161,7 @@ function AdminExamsPage() {
     <AppShell>
       <PageHeader
         title="Exams"
-        description="Schedule exams from your question bank, publish them to students, and review results and integrity reports."
+        description="Schedule an exam from your question bank, then share it with one or more groups."
         actions={<Button icon={LuPlus} onClick={() => navigate('/admin-exams/new')}>New exam</Button>}
       />
 
@@ -158,37 +180,46 @@ function AdminExamsPage() {
           </EmptyState>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {exams.map((exam) => (
-            <Card key={exam.id} className="flex flex-col gap-4 p-5 transition-colors hover:border-muted/30 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Link to={`/admin-exams/${exam.id}`} className="truncate text-[15px] font-semibold hover:text-brand">{exam.title}</Link>
-                  <StatusBadge exam={exam} />
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted">
-                  <span className="flex items-center gap-1.5"><LuCalendar className="h-3.5 w-3.5" />{formatDateTime(exam.start_time)} – {formatDateTime(exam.end_time)}</span>
-                  <span className="flex items-center gap-1.5"><LuClock className="h-3.5 w-3.5" />{exam.duration_minutes} min</span>
-                  <span className="flex items-center gap-1.5">
-                    <LuUsers className="h-3.5 w-3.5" />
-                    {exam.groups?.length ? exam.groups.map((g) => g.name).join(', ') : 'Everyone'}
-                  </span>
-                  <span>{exam.questions?.length || 0} question{exam.questions?.length === 1 ? '' : 's'}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-3 sm:justify-end">
-                <ProtectionIcons exam={exam} />
-                <div className="flex items-center gap-1">
-                  {!exam.is_published ? (
-                    <Button variant="secondary" size="sm" icon={LuSend} onClick={() => togglePublish(exam)}>Publish</Button>
-                  ) : (
-                    <Button variant="secondary" size="sm" icon={LuChartColumn} onClick={() => navigate(`/admin-exams/${exam.id}`)}>Results</Button>
-                  )}
-                  <ExamMenu exam={exam} onPublishToggle={togglePublish} onDelete={deleteExam} />
-                </div>
-              </div>
-            </Card>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="table min-w-[56rem] table-fixed">
+            <colgroup>
+              <col className="w-12" /><col /><col className="w-[11.5rem]" /><col className="w-[8.5rem]" /><col className="w-[14rem]" /><col className="w-[7.5rem]" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>Exam</th>
+                <th>Window</th>
+                <th>Status</th>
+                <th>Protections</th>
+                <th><span className="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {exams.map((exam, i) => (
+                <tr key={exam.id}>
+                  <td className="tabular font-mono text-faint">{String(i + 1).padStart(2, '0')}</td>
+                  <td>
+                    <Link to={`/admin-exams/${exam.id}`} className="font-medium text-ink hover:text-brand">{exam.title}</Link>
+                    <span className="mt-0.5 block truncate font-mono text-xs text-faint">
+                      {exam.groups?.length ? exam.groups.map((g) => g.name).join(', ') : 'Everyone'} · {exam.duration_minutes} min · {exam.questions?.length || 0} Q
+                    </span>
+                  </td>
+                  <td className="tabular font-mono text-[13px] leading-snug"><ExamWindow exam={exam} /></td>
+                  <td className="whitespace-nowrap"><StatusBadge exam={exam} /></td>
+                  <td><ProtectionIcons exam={exam} /></td>
+                  <td>
+                    <div className="flex items-center justify-end gap-1">
+                      {!exam.is_published && (
+                        <Button variant="secondary" size="sm" onClick={() => togglePublish(exam)}>Publish</Button>
+                      )}
+                      <ExamMenu exam={exam} onPublishToggle={togglePublish} onDelete={deleteExam} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       {confirmDialog}

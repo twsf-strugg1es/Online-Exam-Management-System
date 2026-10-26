@@ -13,23 +13,25 @@
 /* Theme tokens as "R G B" channels so Tailwind can apply opacity (e.g. bg-brand/10) */
 @layer base {
   :root {
-    --paper: 247 246 242;
-    --surface: 255 255 255;
-    --sunken: 241 240 235;
-    --ink: 22 24 29;
-    --muted: 95 101 112;
-    --line: 227 225 218;
+    --paper: 246 244 238;
+    --surface: 251 250 246;
+    --sunken: 240 238 231;
+    --ink: 20 20 20;
+    --muted: 87 84 78;
+    --faint: 126 122 113;
+    --line: 220 216 204;
+    --line-strong: 195 190 175;
     --on-brand: 255 255 255;
     --brand: 11 110 79;
     --brand-strong: 8 87 63;
-    --brand-soft: 226 241 234;
+    --brand-soft: 220 239 229;
     --brand-ink: 6 78 56;
-    --danger: 190 39 50;
-    --danger-soft: 252 233 233;
-    --danger-ink: 150 26 36;
-    --warn: 181 106 0;
-    --warn-soft: 253 243 222;
-    --warn-ink: 130 75 0;
+    --danger: 179 38 30;
+    --danger-soft: 246 225 222;
+    --danger-ink: 140 26 20;
+    --warn: 154 91 0;
+    --warn-soft: 244 231 207;
+    --warn-ink: 120 70 0;
     --info: 37 99 199;
     --info-soft: 230 238 251;
     --info-ink: 28 72 150;
@@ -37,23 +39,25 @@
   }
 
   .dark {
-    --paper: 14 16 18;
-    --surface: 22 25 29;
-    --sunken: 29 33 38;
-    --ink: 236 237 238;
-    --muted: 154 160 170;
-    --line: 44 48 55;
-    --on-brand: 6 38 28;
-    --brand: 52 185 138;
-    --brand-strong: 82 204 160;
-    --brand-soft: 18 52 41;
-    --brand-ink: 140 225 192;
-    --danger: 240 98 106;
-    --danger-soft: 60 22 26;
-    --danger-ink: 255 170 174;
-    --warn: 230 165 60;
-    --warn-soft: 58 42 14;
-    --warn-ink: 245 200 120;
+    --paper: 18 19 17;
+    --surface: 23 24 22;
+    --sunken: 30 31 28;
+    --ink: 236 234 227;
+    --muted: 163 160 151;
+    --faint: 117 115 108;
+    --line: 42 43 40;
+    --line-strong: 58 59 55;
+    --on-brand: 7 38 27;
+    --brand: 61 187 142;
+    --brand-strong: 90 205 163;
+    --brand-soft: 20 53 42;
+    --brand-ink: 127 216 179;
+    --danger: 240 112 104;
+    --danger-soft: 58 27 25;
+    --danger-ink: 255 175 168;
+    --warn: 224 168 74;
+    --warn-soft: 58 44 18;
+    --warn-ink: 240 200 130;
     --info: 110 160 245;
     --info-soft: 22 36 62;
     --info-ink: 170 200 255;
@@ -86,20 +90,20 @@
 /* Shared building blocks; React components in src/components/ui.js wrap most of these */
 @layer components {
   .btn {
-    @apply inline-flex h-9 select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-sm font-medium
-      transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex h-9 select-none items-center justify-center gap-2 whitespace-nowrap rounded px-3.5 text-sm font-medium
+      transition-[background-color,border-color,color,transform] duration-150 enabled:active:translate-y-px disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary { @apply bg-brand text-on-brand hover:bg-brand-strong; }
-  .btn-secondary { @apply border border-line bg-surface text-ink hover:bg-sunken; }
+  .btn-secondary { @apply border border-line-strong bg-transparent text-ink hover:bg-surface; }
   .btn-ghost { @apply text-muted hover:bg-sunken hover:text-ink; }
   .btn-danger { @apply bg-danger text-white hover:bg-danger/90 dark:text-paper; }
   .btn-danger-ghost { @apply text-danger hover:bg-danger-soft; }
-  .btn-sm { @apply h-8 gap-1.5 rounded-md px-2.5 text-[13px]; }
+  .btn-sm { @apply h-8 gap-1.5 px-2.5 text-[13px]; }
   .btn-lg { @apply h-11 px-5 text-[15px]; }
   .btn-icon { @apply h-9 w-9 px-0; }
 
   .input {
-    @apply h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink transition-colors
+    @apply h-10 w-full rounded border border-line-strong bg-surface px-3 text-sm text-ink transition-colors
       placeholder:text-muted/60 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20
       disabled:bg-sunken disabled:text-muted;
   }
@@ -113,9 +117,9 @@
   .label { @apply mb-1.5 block text-sm font-medium text-ink; }
   .hint { @apply mt-1.5 text-xs leading-relaxed text-muted; }
 
-  .card { @apply rounded-xl border border-line bg-surface shadow-card; }
+  .card { @apply rounded border border-line bg-surface; }
 
-  .badge { @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium; }
+  .badge { @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.04em]; }
   .badge-neutral { @apply bg-sunken text-muted; }
   .badge-brand { @apply bg-brand-soft text-brand-ink; }
   .badge-danger { @apply bg-danger-soft text-danger-ink; }
@@ -124,14 +128,24 @@
 
   .table { @apply w-full border-collapse text-sm; }
   .table th {
-    @apply border-b border-line bg-sunken/50 px-4 py-2.5 text-left text-xs font-medium text-muted;
+    @apply border-b border-line-strong px-4 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-faint;
   }
   .table td { @apply border-b border-line px-4 py-3 align-middle; }
   .table tbody tr:last-child td { @apply border-b-0; }
-  .table tbody tr { @apply transition-colors hover:bg-sunken/40; }
+  .table tbody tr { @apply transition-colors hover:bg-surface; }
 
-  .code-chip { @apply rounded-md border border-line bg-sunken px-1.5 py-0.5 font-mono text-xs tracking-wider text-ink; }
+  .code-chip { @apply rounded-sm border border-line-strong bg-sunken px-1.5 py-0.5 font-mono text-xs tracking-wider text-ink; }
   .link { @apply font-medium text-brand underline-offset-2 hover:underline; }
-  .eyebrow { @apply text-xs font-medium uppercase tracking-[0.08em] text-muted; }
+  .eyebrow { @apply font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-faint; }
   .tabular { font-variant-numeric: tabular-nums; }
+
+  /* The answer bubble: the brand's signature shape (choices, question map, status) */
+  .bubble { @apply inline-grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full border-[1.5px] border-muted font-mono text-xs font-semibold text-muted transition-colors duration-150; }
+  .bubble-filled { @apply border-brand bg-brand text-on-brand; }
+  .status-dot { @apply inline-block h-[9px] w-[9px] shrink-0 rounded-full border-[1.5px] border-current; }
+  .kbd { @apply inline-block rounded-sm border border-b-2 border-line-strong px-1.5 py-0.5 font-mono text-[11px] font-medium leading-none text-muted; }
+  .tag { @apply inline-flex items-center whitespace-nowrap rounded-sm border border-line-strong px-1.5 py-[3px] font-mono text-[11px] font-medium tracking-[0.03em] text-muted; }
+  .sheet { @apply relative border border-line bg-surface; }
+  /* Red margin line, as on exam paper */
+  .sheet-margin::before { content: ""; @apply absolute inset-y-0 left-7 w-px bg-danger/35; }
 }

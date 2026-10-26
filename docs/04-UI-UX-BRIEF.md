@@ -210,9 +210,9 @@ Rules that follow from the budget:
 
 ## Current code vs. this brief (to fix)
 
-- `AppShell` mobile header and `Modal` backdrop use `backdrop-blur` → replace with solid/semi-opaque backgrounds.
-- The timer pulses in the last 60 s and the "Live" badge pulses → change to static color states.
-- Page-level `animate-rise-in` on auth forms → remove (keep it for dialogs only).
+- ~~`backdrop-blur` on the app shell header, modal backdrop, exam header and exam-form footer~~ Removed (1.11).
+- ~~Timer and "Live" badge pulse~~ Now static color states (1.11).
+- ~~Page-level `animate-rise-in` on auth forms~~ Removed with the new auth sheet (1.11).
 - No route-level code splitting yet → add `React.lazy` for staff routes.
 - Fonts load the full families → subset, and load Bengali only when needed.
 

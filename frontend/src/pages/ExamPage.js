@@ -1,13 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import {
-  LuArrowLeft, LuArrowRight, LuClock, LuFlag, LuMaximize, LuShieldAlert, LuShieldCheck, LuCheck, LuCloud,
-  LuCloudOff, LuLoaderCircle, LuImage, LuMonitorOff, LuClipboard, LuShuffle, LuListChecks, LuCircleAlert, LuEyeOff,
-} from 'react-icons/lu';
+import { LuArrowLeft, LuImage, LuCircleAlert } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import useExamIntegrity, { enterFullscreen, exitFullscreen, fullscreenSupported } from '../hooks/useExamIntegrity';
-import { Alert, Badge, Button, Card, Logo, Modal, PageLoader, Textarea, cx } from '../components/ui';
+import { Alert, Badge, Button, Card, Logo, LogoMark, Modal, PageLoader, Textarea, cx } from '../components/ui';
 import { errorMessage, formatClock, formatDateTime } from '../utils';
 
 const TEXT_SAVE_DELAY = 700; // save written answers once the student pauses typing
@@ -21,29 +18,31 @@ function RulesScreen({ exam, resuming, onStart, starting, error }) {
   const s = exam.integrity || {};
   const fullscreen = s.require_fullscreen && fullscreenSupported();
   const rules = [
-    fullscreen && { icon: LuMaximize, text: 'The exam runs in fullscreen. Questions are hidden whenever you leave fullscreen.' },
-    { icon: LuMonitorOff, text: 'Switching to another tab, window or app is recorded and counted as a violation.' },
+    fullscreen && { text: 'The exam runs in fullscreen. Questions are hidden whenever you leave fullscreen.' },
+    { text: 'Switching to another tab, window or app is recorded and counted as a violation.' },
     s.max_violations
-      ? { icon: LuShieldAlert, text: `After ${s.max_violations} violation${s.max_violations === 1 ? '' : 's'} your exam is submitted automatically.`, strong: true }
-      : { icon: LuShieldCheck, text: 'Violations are recorded and shown to your examiner.' },
-    s.block_copy_paste && { icon: LuClipboard, text: 'Copy, paste and right-click are disabled.' },
-    (s.shuffle_questions || s.shuffle_options) && { icon: LuShuffle, text: 'Questions and options are in a different order for every student.' },
+      ? { text: `After ${s.max_violations} violation${s.max_violations === 1 ? '' : 's'} your exam is submitted automatically.`, strong: true }
+      : { text: 'Violations are recorded and shown to your examiner.' },
+    s.block_copy_paste && { text: 'Copy, paste and right-click are disabled during the exam.' },
+    (s.shuffle_questions || s.shuffle_options) && { text: 'Questions and options are in a different order for every student.' },
   ].filter(Boolean);
 
   return (
     <div className="min-h-screen bg-paper">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
+      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Logo />
         <Link to="/student-account" className="btn btn-ghost btn-sm"><LuArrowLeft className="h-4 w-4" />Back</Link>
       </header>
-      <main className="mx-auto max-w-xl px-5 pb-16 pt-6">
-        <p className="eyebrow mb-2">{resuming ? 'Continue exam' : 'Before you start'}</p>
-        <h1 className="text-3xl font-semibold tracking-tight">{exam.title}</h1>
-        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
-          <span className="flex items-center gap-2"><LuClock className="h-4 w-4" />{exam.duration_minutes} minutes</span>
-          <span className="flex items-center gap-2"><LuListChecks className="h-4 w-4" />{exam.question_count} question{exam.question_count === 1 ? '' : 's'}</span>
-          <span>Closes {formatDateTime(exam.end_time)}</span>
+      <main className="sheet sheet-margin mx-auto mb-16 mt-4 max-w-2xl px-6 pb-10 pt-9 sm:pl-14 sm:pr-12">
+        <div className="flex items-baseline justify-between gap-4 border-b-2 border-ink pb-3.5">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em]">{exam.title}</h1>
+          <span className="eyebrow shrink-0">{resuming ? 'Continue' : 'Instructions'}</span>
         </div>
+        <dl className="mt-4 grid grid-cols-3 gap-4 border-b border-line pb-4 font-mono text-sm">
+          <div><dt className="eyebrow">Time</dt><dd className="tabular mt-1">{exam.duration_minutes} min</dd></div>
+          <div><dt className="eyebrow">Questions</dt><dd className="tabular mt-1">{exam.question_count}</dd></div>
+          <div><dt className="eyebrow">Closes</dt><dd className="tabular mt-1">{formatDateTime(exam.end_time)}</dd></div>
+        </dl>
 
         {resuming && (
           <Alert tone="warn" className="mt-6" title="Your timer has been running">
@@ -51,14 +50,14 @@ function RulesScreen({ exam, resuming, onStart, starting, error }) {
           </Alert>
         )}
 
-        <Card className="mt-8 divide-y divide-line">
-          {rules.map(({ icon: Icon, text, strong }) => (
-            <div key={text} className="flex gap-3.5 px-5 py-3.5">
-              <Icon className={cx('mt-0.5 h-[18px] w-[18px] shrink-0', strong ? 'text-danger' : 'text-muted')} />
-              <p className={cx('text-sm leading-relaxed', strong && 'font-medium')}>{text}</p>
-            </div>
+        <ol className="mt-6">
+          {rules.map(({ text, strong }, i) => (
+            <li key={text} className="flex gap-4 border-b border-line py-3 last:border-b-0">
+              <span className="tabular w-6 shrink-0 font-mono text-sm text-faint">{String(i + 1).padStart(2, '0')}</span>
+              <p className={cx('text-[15px] leading-relaxed', strong && 'font-medium text-danger')}>{text}</p>
+            </li>
           ))}
-        </Card>
+        </ol>
 
         <p className="mt-6 text-sm leading-relaxed text-muted">
           {resuming ? 'Your saved answers are restored.' : 'Once you start, the timer runs even if you close the page.'} Answers save automatically as you go.
@@ -66,7 +65,7 @@ function RulesScreen({ exam, resuming, onStart, starting, error }) {
 
         {error && <Alert tone="danger" className="mt-6">{error}</Alert>}
 
-        <Button size="lg" className="mt-8 w-full" onClick={onStart} loading={starting} icon={fullscreen ? LuMaximize : undefined}>
+        <Button size="lg" className="mt-8 w-full" onClick={onStart} loading={starting}>
           {resuming ? 'Continue exam' : 'Start exam'}{fullscreen && ' in fullscreen'}
         </Button>
       </main>
@@ -77,44 +76,35 @@ function RulesScreen({ exam, resuming, onStart, starting, error }) {
 // --- During the exam ---
 
 function Timer({ seconds }) {
-  const urgent = seconds <= 60;
-  const low = seconds <= 300;
+  const tone = seconds <= 60 ? 'text-danger' : seconds <= 300 ? 'text-warn' : 'text-ink';
   return (
-    <span
-      className={cx(
-        'tabular flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-mono text-sm font-medium',
-        urgent ? 'animate-pulse bg-danger text-white' : low ? 'bg-warn-soft text-warn-ink' : 'bg-sunken text-ink',
-      )}
-      aria-label={`${formatClock(seconds)} left`}
-    >
-      <LuClock className="h-4 w-4" />
+    <span className={cx('tabular flex items-baseline gap-2 font-mono text-[1.35rem] font-semibold leading-none', tone)} aria-label={`${formatClock(seconds)} left`}>
+      <span className="eyebrow">Left</span>
       {formatClock(seconds)}
     </span>
   );
 }
 
 function SaveStatus({ status }) {
-  const states = {
-    saving: [LuLoaderCircle, 'Saving…', 'animate-spin'],
-    saved: [LuCloud, 'Saved', ''],
-    error: [LuCloudOff, 'Not saved', ''],
-  };
+  const states = { saving: ['Saving', 'text-faint'], saved: ['Saved', 'text-brand'], error: ['Not saved', 'text-danger'] };
   if (!states[status]) return null;
-  const [Icon, label, spin] = states[status];
+  const [label, tone] = states[status];
   return (
-    <span className={cx('hidden items-center gap-1.5 text-xs sm:flex', status === 'error' ? 'text-danger' : 'text-muted')}>
-      <Icon className={cx('h-3.5 w-3.5', spin)} />
+    <span className="flex items-center gap-2 font-mono text-xs text-faint" role="status">
+      <span className={cx('status-dot', tone, status !== 'saving' && 'bg-current')} />
       {label}
     </span>
   );
 }
 
 function ViolationChip({ count, max }) {
-  const tone = !count ? 'text-muted bg-sunken' : max && count >= max - 1 ? 'bg-danger-soft text-danger-ink' : 'bg-warn-soft text-warn-ink';
+  const hit = count > 0;
   return (
-    <span className={cx('tabular flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium', tone)} title="Violations recorded">
-      {count ? <LuShieldAlert className="h-4 w-4" /> : <LuShieldCheck className="h-4 w-4" />}
-      {count}{max ? ` / ${max}` : ''}
+    <span
+      className={cx('tabular rounded border px-2.5 py-1.5 font-mono text-xs font-medium tracking-[0.04em]', hit ? 'border-danger text-danger' : 'border-line-strong text-muted')}
+      title="Times you left the exam"
+    >
+      LEFT EXAM <b className={hit ? 'text-danger' : 'text-ink'}>{count}</b>{max ? ` / ${max}` : ''}
     </span>
   );
 }
@@ -122,15 +112,13 @@ function ViolationChip({ count, max }) {
 function BlockedOverlay({ integrity, onReturn }) {
   const remaining = integrity.maxViolations ? integrity.maxViolations - integrity.violations : null;
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-paper/95 p-6 backdrop-blur-sm">
-      <div className="max-w-md animate-rise-in text-center">
-        <span className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-danger-soft text-danger">
-          <LuEyeOff className="h-6 w-6" />
-        </span>
-        <h2 className="text-xl font-semibold">
+    <div className="fixed inset-0 z-40 grid place-items-center bg-paper p-6">
+      <div className="max-w-md text-center">
+        <p className="font-mono text-xs font-semibold uppercase tracking-[0.08em] text-danger">Recorded</p>
+        <h2 className="mt-3 text-2xl font-semibold tracking-tight">
           {integrity.isAway ? 'You left the exam' : 'Fullscreen is required'}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted">
+        <p className="mt-3 text-[15px] leading-relaxed text-muted">
           The questions are hidden until you come back{integrity.fullscreenLost ? ' to fullscreen' : ''}.
           {integrity.violations > 0 && ` ${integrity.violations} violation${integrity.violations === 1 ? ' has' : 's have'} been recorded.`}
         </p>
@@ -139,60 +127,64 @@ function BlockedOverlay({ integrity, onReturn }) {
             {remaining === 1 ? 'One more violation and your exam is submitted automatically.' : `${remaining} more and your exam is submitted automatically.`}
           </p>
         )}
-        <Button size="lg" className="mt-6" icon={LuMaximize} onClick={onReturn}>Return to the exam</Button>
+        <Button size="lg" className="mt-7" onClick={onReturn}>Return to the exam</Button>
       </div>
     </div>
   );
 }
 
+// The question map: one answer bubble per question. Filled = answered, ring = current, red dot = flagged
 function QuestionNav({ questions, answers, flagged, current, onJump }) {
   return (
     <div>
-      <div className="grid grid-cols-5 gap-1.5">
-        {questions.map((q, i) => (
-          <button
-            key={q.id}
-            type="button"
-            onClick={() => onJump(i)}
-            className={cx(
-              'tabular relative h-9 rounded-md border text-sm font-medium transition-colors',
-              i === current ? 'border-brand ring-2 ring-brand/25' : 'border-line',
-              isAnswered(answers[q.id]) ? 'bg-brand-soft text-brand-ink' : 'bg-surface text-muted hover:bg-sunken',
-            )}
-            aria-label={`Question ${i + 1}${isAnswered(answers[q.id]) ? ', answered' : ''}${flagged.has(q.id) ? ', marked for review' : ''}`}
-          >
-            {i + 1}
-            {flagged.has(q.id) && <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-warn ring-2 ring-surface" />}
-          </button>
-        ))}
+      <div className="grid grid-cols-5 gap-x-3 gap-y-2.5">
+        {questions.map((q, i) => {
+          const answered = isAnswered(answers[q.id]);
+          return (
+            <button
+              key={q.id}
+              type="button"
+              onClick={() => onJump(i)}
+              className={cx(
+                'bubble relative h-[34px] w-[34px] text-[11px]',
+                answered ? 'bubble-filled' : 'bg-transparent hover:border-ink hover:text-ink',
+                i === current && 'shadow-[0_0_0_2px_rgb(var(--surface)),0_0_0_4px_rgb(var(--ink))]',
+              )}
+              aria-label={`Question ${i + 1}${answered ? ', answered' : ''}${flagged.has(q.id) ? ', flagged for review' : ''}`}
+              aria-current={i === current ? 'step' : undefined}
+            >
+              {String(i + 1).padStart(2, '0')}
+              {flagged.has(q.id) && <span className="absolute -right-[3px] -top-[3px] h-[9px] w-[9px] rounded-full border-2 border-surface bg-danger" />}
+            </button>
+          );
+        })}
       </div>
-      <div className="mt-4 space-y-1.5 text-xs text-muted">
-        <p className="flex items-center gap-2"><span className="h-3 w-3 rounded-sm bg-brand-soft ring-1 ring-brand/30" />Answered</p>
-        <p className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-warn" />Marked for review</p>
+      <div className="mt-5 space-y-2 border-t border-line pt-4 text-[13px] text-muted">
+        <p className="flex items-center gap-2.5"><span className="bubble bubble-filled h-4 w-4" />Answered</p>
+        <p className="flex items-center gap-2.5"><span className="bubble h-4 w-4" />Not answered</p>
+        <p className="flex items-center gap-2.5"><span className="relative"><span className="bubble h-4 w-4" /><span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-danger" /></span>Flagged</p>
       </div>
     </div>
   );
 }
 
-function ChoiceOption({ type, label, checked, onChange }) {
+const LETTERS = 'ABCDEFGHIJ';
+
+// An answer row: lettered bubble, the option, and its keyboard key
+function ChoiceOption({ type, index, label, checked, onChange }) {
   return (
     <label
       className={cx(
-        'flex cursor-pointer items-center gap-3.5 rounded-lg border px-4 py-3.5 transition-colors',
-        checked ? 'border-brand bg-brand-soft/50' : 'border-line bg-surface hover:border-muted/40 hover:bg-sunken/40',
+        'flex cursor-pointer items-center gap-4 border-b border-line px-3 py-3.5 transition-colors',
+        checked ? 'bg-brand-soft' : 'hover:bg-sunken/60',
       )}
     >
-      <span
-        className={cx(
-          'grid h-5 w-5 shrink-0 place-items-center border-2 transition-colors',
-          type === 'radio' ? 'rounded-full' : 'rounded-[5px]',
-          checked ? 'border-brand bg-brand text-on-brand' : 'border-line bg-surface',
-        )}
-      >
-        {checked && (type === 'radio' ? <span className="h-1.5 w-1.5 rounded-full bg-on-brand" /> : <LuCheck className="h-3.5 w-3.5" />)}
+      <input type={type} className="peer sr-only" checked={checked} onChange={onChange} />
+      <span className={cx('bubble peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-paper', checked && 'bubble-filled')} aria-hidden="true">
+        {LETTERS[index]}
       </span>
-      <input type={type} className="sr-only" checked={checked} onChange={onChange} />
-      <span className="text-[15px]">{label}</span>
+      <span className="flex-1 text-base">{label}</span>
+      {index < 9 && <span className="kbd hidden sm:inline-block" aria-hidden="true">{index + 1}</span>}
     </label>
   );
 }
@@ -200,9 +192,9 @@ function ChoiceOption({ type, label, checked, onChange }) {
 function QuestionBody({ question, value, onChange, onImage, onPickFile }) {
   if (question.type === 'single_choice') {
     return (
-      <div className="space-y-2.5" role="radiogroup">
-        {(question.options || []).map((option) => (
-          <ChoiceOption key={option} type="radio" label={option} checked={value === option} onChange={() => onChange(option)} />
+      <div className="border-t border-line" role="radiogroup" aria-label="Answer">
+        {(question.options || []).map((option, i) => (
+          <ChoiceOption key={option} type="radio" index={i} label={option} checked={value === option} onChange={() => onChange(option)} />
         ))}
       </div>
     );
@@ -210,46 +202,53 @@ function QuestionBody({ question, value, onChange, onImage, onPickFile }) {
   if (question.type === 'multi_choice') {
     const selected = Array.isArray(value) ? value : [];
     return (
-      <div className="space-y-2.5">
-        <p className="text-xs text-muted">Select all that apply.</p>
-        {(question.options || []).map((option) => (
-          <ChoiceOption
-            key={option}
-            type="checkbox"
-            label={option}
-            checked={selected.includes(option)}
-            onChange={() => onChange(selected.includes(option) ? selected.filter((o) => o !== option) : [...selected, option])}
-          />
-        ))}
+      <div>
+        <p className="mb-2 font-mono text-xs text-faint">Select all that apply</p>
+        <div className="border-t border-line">
+          {(question.options || []).map((option, i) => (
+            <ChoiceOption
+              key={option}
+              type="checkbox"
+              index={i}
+              label={option}
+              checked={selected.includes(option)}
+              onChange={() => onChange(selected.includes(option) ? selected.filter((o) => o !== option) : [...selected, option])}
+            />
+          ))}
+        </div>
       </div>
     );
   }
   if (question.type === 'text') {
     return (
-      <Textarea
-        rows={10}
-        value={typeof value === 'string' ? value : ''}
-        onChange={(e) => onChange(e.target.value, { debounce: true })}
-        placeholder="Write your answer here"
-        className="text-[15px]"
-        spellCheck={false}
-      />
+      <div>
+        <label htmlFor={`answer-${question.id}`} className="eyebrow mb-2 block">Your answer</label>
+        <Textarea
+          id={`answer-${question.id}`}
+          rows={9}
+          value={typeof value === 'string' ? value : ''}
+          onChange={(e) => onChange(e.target.value, { debounce: true })}
+          placeholder="Type your answer here"
+          className="text-base"
+          spellCheck={false}
+        />
+      </div>
     );
   }
   if (question.type === 'image_upload') {
     return (
       <div>
         <label
-          className="flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed border-line px-6 py-10 text-center transition-colors hover:border-muted/50 hover:bg-sunken/40"
+          className="flex cursor-pointer flex-col items-center rounded border-[1.5px] border-dashed border-line-strong px-6 py-10 text-center transition-colors hover:border-ink hover:bg-surface"
           onClick={onPickFile}
         >
-          <LuImage className="h-8 w-8 text-muted" />
+          <LuImage className="h-7 w-7 text-muted" />
           <span className="mt-3 text-sm font-medium">{value?.name ? 'Choose a different image' : 'Upload an image of your answer'}</span>
-          <span className="mt-1 text-xs text-muted">JPG or PNG, up to 2 MB</span>
+          <span className="mt-1 font-mono text-xs text-faint">JPG or PNG, up to 2 MB</span>
           <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files[0] && onImage(e.target.files[0])} />
         </label>
         {value?.preview && (
-          <img src={value.preview} alt="Your uploaded answer" className="mt-4 max-h-80 rounded-lg border border-line object-contain" />
+          <img src={value.preview} alt="Your uploaded answer" className="mt-4 max-h-80 rounded border border-line object-contain" />
         )}
       </div>
     );
@@ -553,6 +552,31 @@ function ExamPage() {
   const questions = useMemo(() => session?.exam?.questions || [], [session]);
   const answeredCount = questions.filter((q) => isAnswered(answers[q.id])).length;
 
+  // Keyboard: number keys choose an answer, arrow keys move, F flags. Typing in an answer box is left alone.
+  useEffect(() => {
+    if (phase !== 'running') return undefined;
+    const onKey = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || integrity.blocked || confirmSubmit) return;
+      if (e.target.closest?.('input[type="text"], textarea, [contenteditable="true"]')) return;
+      const q = questions[current];
+      if (!q) return;
+      if (e.key === 'ArrowRight' && current < questions.length - 1) { e.preventDefault(); setCurrent(current + 1); return; }
+      if (e.key === 'ArrowLeft' && current > 0) { e.preventDefault(); setCurrent(current - 1); return; }
+      if (e.key.toLowerCase() === 'f') { e.preventDefault(); toggleFlag(q.id); return; }
+      const n = Number(e.key);
+      const option = Number.isInteger(n) && n >= 1 ? q.options?.[n - 1] : undefined;
+      if (option === undefined) return;
+      e.preventDefault();
+      if (q.type === 'single_choice') answer(q.id, option);
+      if (q.type === 'multi_choice') {
+        const selected = Array.isArray(answers[q.id]) ? answers[q.id] : [];
+        answer(q.id, selected.includes(option) ? selected.filter((o) => o !== option) : [...selected, option]);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   if (phase === 'loading') return <div className="min-h-screen bg-paper"><PageLoader /></div>;
 
   if (phase === 'error') {
@@ -584,21 +608,25 @@ function ExamPage() {
   const isLast = current === questions.length - 1;
   const remainingViolations = integrity.maxViolations ? integrity.maxViolations - integrity.violations : null;
 
+  const typeLabel = { single_choice: 'Single answer', multi_choice: 'Multiple answers', text: 'Written answer', image_upload: 'Image answer' };
+
   return (
-    <div className={cx('min-h-screen bg-paper', session.integrity.block_copy_paste && 'select-none')}>
+    <div className={cx('grid min-h-screen grid-rows-[auto_1fr_auto] bg-paper', session.integrity.block_copy_paste && 'select-none')}>
       {integrity.blocked && <BlockedOverlay integrity={integrity} onReturn={() => integrity.requireFullscreen && enterFullscreen()} />}
 
-      <header className="sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
-          <Logo compact />
-          <p className="min-w-0 flex-1 truncate text-sm font-medium">{session.exam.title}</p>
+      <header className="sticky top-0 z-30 border-b border-line bg-surface">
+        <div className="flex items-center gap-5 px-6 py-3">
+          <LogoMark size={22} />
+          <p className="min-w-0 flex-1 truncate text-sm font-medium">
+            {session.exam.title}
+            <span className="ml-3 font-mono text-xs font-normal text-faint">{questions.length} questions</span>
+          </p>
           <SaveStatus status={saveStatus} />
           <ViolationChip count={integrity.violations} max={integrity.maxViolations} />
           <Timer seconds={secondsLeft ?? 0} />
-          <Button size="sm" onClick={() => setConfirmSubmit(true)}>Submit</Button>
         </div>
         {showWarning && (
-          <div className="animate-fade-in border-t border-danger/20 bg-danger-soft px-4 py-2 text-center text-sm text-danger-ink">
+          <div className="border-t border-danger/25 bg-danger-soft px-4 py-2 text-center text-sm text-danger-ink" role="alert">
             Violation recorded ({integrity.violations}{integrity.maxViolations ? ` of ${integrity.maxViolations}` : ''}).
             {remainingViolations === 1 && ' One more and your exam is submitted automatically.'}
             {remainingViolations > 1 && ` ${remainingViolations} more and your exam is submitted automatically.`}
@@ -606,53 +634,63 @@ function ExamPage() {
         )}
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:py-10">
-        <aside className="order-last lg:order-first">
-          <div className="lg:sticky lg:top-24">
-            <p className="mb-3 text-xs text-muted">{answeredCount} of {questions.length} answered</p>
-            <QuestionNav questions={questions} answers={answers} flagged={flagged} current={current} onJump={setCurrent} />
-          </div>
-        </aside>
-
-        <main className="min-w-0">
-          {error && <Alert tone="danger" className="mb-4" onClose={() => setError('')}>{error}</Alert>}
-          {question && (
-            <Card className="p-6 sm:p-8">
-              <div className="mb-5 flex items-center justify-between gap-3 text-sm text-muted">
-                <span className="tabular">Question {current + 1} of {questions.length}</span>
-                <span>{question.max_score} point{question.max_score === 1 ? '' : 's'}</span>
-              </div>
-              <h2 className="mb-7 text-xl font-medium leading-relaxed">
-                {question.title}
-              </h2>
-              <QuestionBody
-                question={question}
-                value={answers[question.id]}
-                onChange={(value, opts) => answer(question.id, value, opts)}
-                onImage={(file) => uploadImage(question.id, file)}
-                onPickFile={integrity.allowFilePicker}
-              />
-            </Card>
-          )}
-
-          <div className="mt-5 flex items-center justify-between gap-2">
-            <Button variant="secondary" icon={LuArrowLeft} disabled={current === 0} onClick={() => setCurrent(current - 1)}>Previous</Button>
-            <Button
-              variant="ghost"
-              icon={LuFlag}
-              onClick={() => toggleFlag(question.id)}
-              className={cx(flagged.has(question?.id) && 'text-warn hover:text-warn')}
-            >
-              <span className="hidden sm:inline">{flagged.has(question?.id) ? 'Marked for review' : 'Mark for review'}</span>
-            </Button>
-            {isLast ? (
-              <Button onClick={() => setConfirmSubmit(true)}>Review and submit</Button>
-            ) : (
-              <Button iconRight={LuArrowRight} onClick={() => setCurrent(current + 1)}>Next</Button>
+      <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_300px]">
+        <main className="min-w-0 px-8 pb-12 pt-12">
+          <div className="mx-auto max-w-[42rem]">
+            {error && <Alert tone="danger" className="mb-6" onClose={() => setError('')}>{error}</Alert>}
+            {question && (
+              <article>
+                <div className="flex items-baseline gap-4 border-b border-line-strong pb-3.5">
+                  <span className="tabular font-mono text-[2.5rem] font-semibold leading-[0.9] tracking-[-0.02em]">{String(current + 1).padStart(2, '0')}</span>
+                  <span className="font-mono text-xs leading-relaxed text-faint">
+                    <b className="font-medium text-muted">{typeLabel[question.type] || 'Question'}</b> · {question.max_score} mark{question.max_score === 1 ? '' : 's'}
+                    <br />Question {current + 1} of {questions.length}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cx('ml-auto', flagged.has(question.id) && 'text-danger hover:text-danger')}
+                    onClick={() => toggleFlag(question.id)}
+                    aria-pressed={flagged.has(question.id)}
+                  >
+                    {flagged.has(question.id) ? 'Flagged for review' : 'Flag for review'}
+                  </Button>
+                </div>
+                <h2 className="my-7 max-w-[62ch] text-[1.2rem] font-normal leading-relaxed [text-wrap:pretty]">{question.title}</h2>
+                <QuestionBody
+                  question={question}
+                  value={answers[question.id]}
+                  onChange={(value, opts) => answer(question.id, value, opts)}
+                  onImage={(file) => uploadImage(question.id, file)}
+                  onPickFile={integrity.allowFilePicker}
+                />
+                {(question.type === 'single_choice' || question.type === 'multi_choice') && (
+                  <p className="mt-5 flex flex-wrap items-center gap-2 font-mono text-xs text-faint" aria-hidden="true">
+                    <span className="kbd">1</span>–<span className="kbd">{Math.min(9, question.options?.length || 1)}</span> choose ·
+                    <span className="kbd">←</span><span className="kbd">→</span> move · <span className="kbd">F</span> flag
+                  </p>
+                )}
+              </article>
             )}
           </div>
         </main>
+
+        <aside className="border-l border-line bg-surface px-7 py-8" aria-label="Questions">
+          <div className="sticky top-24">
+            <p className="tabular font-mono text-xs text-muted"><b className="block text-xl font-semibold text-ink">{answeredCount} of {questions.length}</b>answered</p>
+            <div className="mt-5">
+              <QuestionNav questions={questions} answers={answers} flagged={flagged} current={current} onJump={setCurrent} />
+            </div>
+          </div>
+        </aside>
       </div>
+
+      <footer className="sticky bottom-0 z-20 flex items-center gap-3 border-t border-line bg-surface px-6 py-3">
+        <Button variant="secondary" disabled={current === 0} onClick={() => setCurrent(current - 1)}>Previous</Button>
+        <Button variant="secondary" disabled={isLast} onClick={() => setCurrent(current + 1)}>Next</Button>
+        <span className="flex-1" />
+        <Button onClick={() => setConfirmSubmit(true)}>Submit exam</Button>
+      </footer>
 
       <Modal
         open={confirmSubmit}
