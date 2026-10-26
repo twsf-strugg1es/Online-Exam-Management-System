@@ -56,7 +56,7 @@ The product already exists (see "Completed"). Milestones 1–6 take it to a **pa
 | [x] | 3.1 | Finalize abandoned attempts | agent | 02 TRD debt #2 | `app/jobs.py`: an asyncio loop in the API (every 60 s, no new dependency) plus a cron entry point; scores attempts past their deadline + grace as `time_up`, ending at the deadline; scoring is claimed atomically so it happens once | An attempt with no submit is finalized within 2 minutes of its deadline; test with a mocked clock | 1.3 |
 | [ ] | 3.2 | Single-question create/edit | agent | 03 App Flow (question editor) | `POST/PUT /admin/questions`; editor page with type-specific fields | All 4 types can be created and edited; a used question → editing creates a new version or is blocked (decide and document) | 2.7 |
 | [ ] | 3.3 | Edit exam before it opens | agent | — | `PUT /admin/exams/{id}`; `/admin-exams/:id/edit` | Allowed while Draft/Scheduled and no attempts exist; otherwise 409 with a reason | 2.2 |
-| [ ] | 3.4 | Free tags | agent | 02 TRD debt #3 | Remove the hardcoded list in the import; tag autocomplete | Imported tags are kept as written (lower-cased) | — |
+| [x] | 3.4 | Free tags | agent | 02 TRD debt #3 | Remove the hardcoded list in the import; tag autocomplete | Imported tags are kept as written (lower-cased) | — |
 | [ ] | 3.5 | Object storage for image answers | agent; **owner** creates the bucket | S3/R2 credentials | `app/storage.py`; upload endpoint with server-side type/size checks; signed URLs; migration moving existing `data:` URLs | No `data:` URLs left in `answers`; graders still see images | 1.3 |
 | [ ] | 3.6 | Bulk candidate import | agent | 2.3 | Upload CSV/XLSX → preview → confirm → report; invite email with set-password link | PRD **AC15** passes | 2.3, 2.4 |
 | [ ] | 3.7 | Add staff by invite (no account yet) | agent | 2.3 | Invite email → set password → membership | An examiner can be invited by email | 3.6 |
@@ -148,6 +148,7 @@ The product already exists (see "Completed"). Milestones 1–6 take it to a **pa
 Record anything unresolved at a milestone checkpoint here: date, issue, decision needed, owner.
 
 - 2026-10-12: Owner decisions pending: email provider (2.3), SMS gateway (3.9), hosting region (6.1), TestKori logo mark (1.1), negative-total policy (4.1), retakes (PRD open question 7), first global market and global pricing (PRD open questions 8–9), waitlist sender address (3.13), YouTube link for the product video (3.14).
+- 2026-10-26: Security scan at the end of Milestone 2: Semgrep 0, Nuclei 0, ZAP on the API 0. ZAP on the frontend dev server flagged missing headers; the production nginx sets most of them, but **no Content-Security-Policy** is set anywhere. Next agent task: add a CSP to `frontend/nginx.conf` (connect-src must include the API origin, so template it with an env var).
 - 2026-10-26: 2.3 built provider-neutral (SMTP). Owner still decides: which email provider, and the sender address/domain (needs SPF/DKIM on the domain). Until then the API writes emails to a local outbox.
 - 2026-10-26: Remove the email-subject fallback for old tokens in `security.get_current_user` in the release after 2.8 ships (agent; no owner decision).
 - 2026-10-26: The logo mark from 1.1 (option B, bubble + check) is in use; the owner picked it, so it's no longer pending.

@@ -71,7 +71,7 @@ npm run build                                # must finish with no warnings
 - Backend tests use in-memory SQLite, not Postgres. Test anything Postgres-specific (JSON queries, constraints, migrations) against a real database too.
 - `frontend/package.json` `jest.moduleNameMapper` and the `TextEncoder` polyfill in `setupTests.js` are required for React Router 7 under CRA's Jest. Don't remove them.
 - Image answers are currently `data:` URLs inside `answers.answer_data` (2 MB client limit). Moving them to object storage is on the roadmap. Don't build new features on top of inline storage.
-- The Excel import maps unknown tags to `"others"` (hardcoded list in `routers/admin.py`). This is a known limitation, listed in the roadmap.
+- Tags go through `crud.normalize_tags` (import and `create_question`). Filter tags with `json.dumps(tag)` against the JSON text, never a raw f-string, or non-ASCII tags won't match.
 - The organization is chosen on the client and sent as the `X-Organization-Id` header (set in `src/api.js` from `localStorage.organizationId`).
 
 ## Keep the docs current

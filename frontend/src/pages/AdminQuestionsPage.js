@@ -170,6 +170,7 @@ function AdminQuestionsPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [complexityFilter, setComplexityFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
   const [selected, setSelected] = useState(new Set());
   const [viewing, setViewing] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -192,7 +193,15 @@ function AdminQuestionsPage() {
   const filtered = useMemo(() => (questions || []).filter((q) =>
     (!search || q.title.toLowerCase().includes(search.toLowerCase()))
     && (!typeFilter || q.type === typeFilter)
-    && (!complexityFilter || q.complexity === complexityFilter)), [questions, search, typeFilter, complexityFilter]);
+    && (!complexityFilter || q.complexity === complexityFilter)
+    && (!tagFilter || (q.tags || []).includes(tagFilter))), [questions, search, typeFilter, complexityFilter, tagFilter]);
+
+  // Every tag in the bank, most used first, for the filter
+  const allTags = useMemo(() => {
+    const counts = new Map();
+    (questions || []).forEach((q) => (q.tags || []).forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1)));
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [questions]);
 
   const allSelected = filtered.length > 0 && filtered.every((q) => selected.has(q.id));
 
@@ -244,7 +253,7 @@ function AdminQuestionsPage() {
     }
   };
 
-  const filtersActive = search || typeFilter || complexityFilter;
+  const filtersActive = search || typeFilter || complexityFilter || tagFilter;
 
   return (
     <AppShell>
@@ -296,8 +305,14 @@ function AdminQuestionsPage() {
               <option value="medium">{t('Medium')}</option>
               <option value="hard">{t('Hard')}</option>
             </Select>
+            {allTags.length > 0 && (
+              <Select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} className="w-auto" aria-label={t('Tag')}>
+                <option value="">{t('All tags')}</option>
+                {allTags.map(([tag, count]) => <option key={tag} value={tag}>#{tag} ({count})</option>)}
+              </Select>
+            )}
             {filtersActive && (
-              <Button variant="ghost" onClick={() => { setSearch(''); setTypeFilter(''); setComplexityFilter(''); }}>{t('Clear')}</Button>
+              <Button variant="ghost" onClick={() => { setSearch(''); setTypeFilter(''); setComplexityFilter(''); setTagFilter(''); }}>{t('Clear')}</Button>
             )}
           </div>
 

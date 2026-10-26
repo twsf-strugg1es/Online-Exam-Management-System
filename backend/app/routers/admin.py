@@ -104,9 +104,11 @@ def list_questions(
         query = query.filter(models.Question.complexity == complexity)
 
     if tag:
-        # tags is a JSON array such as ["math", "others"]: match the quoted tag in its text form
-        tag = tag.lower()
-        query = query.filter(cast(models.Question.tags, String).contains(f'"{tag}"'))
+        # tags is a JSON array such as ["math", "waves"]: match the tag as it appears in the
+        # stored JSON text (json.dumps escapes non-ASCII the same way the column does)
+        wanted = crud.normalize_tags([tag])
+        if wanted:
+            query = query.filter(cast(models.Question.tags, String).contains(json.dumps(wanted[0])))
 
     return query.all()
 
@@ -211,7 +213,6 @@ async def upload_questions(
 
     allowed_types = {"single_choice", "multi_choice", "text", "image_upload"}
     allowed_complexity = {"easy", "medium", "hard"}
-    known_tags = {"geography", "history", "science", "world", "literature", "art", "space", "biology", "invention"}
 
     imported = 0
     for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
@@ -247,24 +248,7 @@ async def upload_questions(
             )
 
         try:
-            # Parse tags
-            tags = []
-            if tags_raw:
-                if isinstance(tags_raw, str):
-                    # Split by comma and strip whitespace
-                    tags_list = [t.strip().lower() for t in tags_raw.split(",") if t.strip()]
-                elif isinstance(tags_raw, list):
-                    tags_list = [t.lower() for t in tags_raw if t]
-                else:
-                    tags_list = []
-
-                # Categorize tags: known tags stay as-is, unknown tags become "others"
-                for tag in tags_list:
-                    if tag in known_tags:
-                        tags.append(tag)
-                    else:
-                        if "others" not in tags:
-                            tags.append("others")
+            tags = crud.normalize_tags(tags_raw if isinstance(tags_raw, (str, list)) else None)
 
             # Parse options
             options: Any = None

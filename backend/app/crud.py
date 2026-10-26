@@ -118,6 +118,27 @@ def get_question_by_id(db: Session, question_id: uuid.UUID) -> models.Question |
     return db.query(models.Question).filter(models.Question.id == question_id).first()
 
 
+MAX_TAGS = 20
+MAX_TAG_LENGTH = 40
+
+
+def normalize_tags(raw) -> list[str]:
+    """Tags as the teacher wrote them: lower-cased, trimmed, without a leading '#', no repeats.
+
+    Accepts "Physics, Waves" or a list. Quotes and backslashes are dropped so a tag can
+    always be matched inside the stored JSON.
+    """
+    if raw is None:
+        return []
+    items = raw.split(",") if isinstance(raw, str) else [str(item) for item in raw if item is not None]
+    tags: list[str] = []
+    for item in items:
+        tag = " ".join(item.replace('"', "").replace("\\", "").strip().lstrip("#").split()).lower()
+        if tag and tag not in tags:
+            tags.append(tag[:MAX_TAG_LENGTH])
+    return tags[:MAX_TAGS]
+
+
 def create_question(db: Session, question: schemas.QuestionBase, organization_id: uuid.UUID) -> models.Question:
     """Create a new question in an organization's question bank."""
     db_q = models.Question(
@@ -129,7 +150,7 @@ def create_question(db: Session, question: schemas.QuestionBase, organization_id
         options=question.options,
         correct_answers=question.correct_answers,
         max_score=question.max_score,
-        tags=question.tags or [],
+        tags=normalize_tags(question.tags),
     )
     db.add(db_q)
     db.commit()
