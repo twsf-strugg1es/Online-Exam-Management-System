@@ -5,11 +5,13 @@ import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Card, EmptyState, PageHeader, PageLoader, Stat, cx } from '../components/ui';
 import { errorMessage, formatDate } from '../utils';
+import { useI18n } from '../i18n';
 
 const scoreTone = (pct) => (pct >= 80 ? 'text-brand' : pct >= 50 ? 'text-warn' : 'text-danger');
 
 // The student's submitted exams in the current organization
 function StudentExamsPage() {
+  const { t } = useI18n();
   const [exams, setExams] = useState(null);
   const [error, setError] = useState('');
 
@@ -27,21 +29,21 @@ function StudentExamsPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Results" description="Scores include written answers once your examiner has graded them." />
+      <PageHeader title={t('Results')} description={t('Scores include written answers once your examiner has graded them.')} />
       {error && <Alert tone="danger" className="mb-6">{error}</Alert>}
 
       {exams === null ? (
         <PageLoader />
       ) : exams.length === 0 ? (
         <Card>
-          <EmptyState icon={LuAward} title="No results yet">Your scores appear here after you submit an exam.</EmptyState>
+          <EmptyState icon={LuAward} title={t('No results yet')}>{t('Your scores appear here after you submit an exam.')}</EmptyState>
         </Card>
       ) : (
         <>
           <Card className="mb-6 grid grid-cols-3 gap-6 p-5">
-            <Stat label="Exams taken" value={exams.length} />
-            <Stat label="Average" value={`${average}%`} />
-            <Stat label="Best" value={`${Math.round(best)}%`} tone="brand" />
+            <Stat label={t('Exams taken')} value={exams.length} />
+            <Stat label={t('Average')} value={`${average}%`} />
+            <Stat label={t('Best')} value={`${Math.round(best)}%`} tone="brand" />
           </Card>
           <Card className="divide-y divide-line overflow-hidden">
             {exams.map((exam) => (

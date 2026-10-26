@@ -6,6 +6,7 @@ import api from '../api';
 import useExamIntegrity, { clearClipboard, enterFullscreen, exitFullscreen, fullscreenSupported } from '../hooks/useExamIntegrity';
 import { Alert, Badge, Button, Card, Logo, LogoMark, Modal, PageLoader, Textarea, cx } from '../components/ui';
 import { errorMessage, formatClock, formatDateTime } from '../utils';
+import { useI18n } from '../i18n';
 
 const TEXT_SAVE_DELAY = 700; // save written answers once the student pauses typing
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -15,38 +16,39 @@ const isAnswered = (value) => value !== undefined && value !== null && value !==
 // --- Before the exam: what will be enforced; the timer starts only when they press Start ---
 
 function RulesScreen({ exam, resuming, onStart, starting, error }) {
+  const { t, tn } = useI18n();
   const s = exam.integrity || {};
   const fullscreen = s.require_fullscreen && fullscreenSupported();
   const rules = [
-    fullscreen && { text: 'The exam runs in fullscreen. Questions are hidden whenever you leave fullscreen.' },
-    { text: 'Switching to another tab, window or app is recorded and counted as a violation.' },
+    fullscreen && { text: t('The exam runs in fullscreen. Questions are hidden whenever you leave fullscreen.') },
+    { text: t('Switching to another tab, window or app is recorded and counted as a violation.') },
     s.max_violations
-      ? { text: `After ${s.max_violations} violation${s.max_violations === 1 ? '' : 's'} your exam is submitted automatically.`, strong: true }
-      : { text: 'Violations are recorded and shown to your examiner.' },
-    s.block_copy_paste && { text: 'Copy, paste and right-click are disabled. Your clipboard is emptied when you start and each time you come back.' },
-    (s.shuffle_questions || s.shuffle_options) && { text: 'Questions and options are in a different order for every student.' },
+      ? { text: tn(s.max_violations, 'After {{count}} violation your exam is submitted automatically.', 'After {{count}} violations your exam is submitted automatically.'), strong: true }
+      : { text: t('Violations are recorded and shown to your examiner.') },
+    s.block_copy_paste && { text: t('Copy, paste and right-click are disabled. Your clipboard is emptied when you start and each time you come back.') },
+    (s.shuffle_questions || s.shuffle_options) && { text: t('Questions and options are in a different order for every student.') },
   ].filter(Boolean);
 
   return (
     <div className="min-h-screen bg-paper">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Logo />
-        <Link to="/student-account" className="btn btn-ghost btn-sm"><LuArrowLeft className="h-4 w-4" />Back</Link>
+        <Link to="/student-account" className="btn btn-ghost btn-sm"><LuArrowLeft className="h-4 w-4" />{t('Back')}</Link>
       </header>
       <main className="sheet sheet-margin mx-auto mb-16 mt-4 max-w-2xl px-6 pb-10 pt-9 sm:pl-14 sm:pr-12">
         <div className="flex items-baseline justify-between gap-4 border-b-2 border-ink pb-3.5">
           <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em]">{exam.title}</h1>
-          <span className="eyebrow shrink-0">{resuming ? 'Continue' : 'Instructions'}</span>
+          <span className="eyebrow shrink-0">{resuming ? t('Continue') : t('Instructions')}</span>
         </div>
         <dl className="mt-4 grid grid-cols-3 gap-4 border-b border-line pb-4 font-mono text-sm">
-          <div><dt className="eyebrow">Time</dt><dd className="tabular mt-1">{exam.duration_minutes} min</dd></div>
-          <div><dt className="eyebrow">Questions</dt><dd className="tabular mt-1">{exam.question_count}</dd></div>
-          <div><dt className="eyebrow">Closes</dt><dd className="tabular mt-1">{formatDateTime(exam.end_time)}</dd></div>
+          <div><dt className="eyebrow">{t('Time')}</dt><dd className="tabular mt-1">{t('{{n}} min', { n: exam.duration_minutes })}</dd></div>
+          <div><dt className="eyebrow">{t('Questions')}</dt><dd className="tabular mt-1">{exam.question_count}</dd></div>
+          <div><dt className="eyebrow">{t('Closes')}</dt><dd className="tabular mt-1">{formatDateTime(exam.end_time)}</dd></div>
         </dl>
 
         {resuming && (
-          <Alert tone="warn" className="mt-6" title="Your timer has been running">
-            It started when you first opened the exam and doesn't pause. Violations recorded earlier still count.
+          <Alert tone="warn" className="mt-6" title={t('Your timer has been running')}>
+            {t("It started when you first opened the exam and doesn't pause. Violations recorded earlier still count.")}
           </Alert>
         )}
 
@@ -60,13 +62,13 @@ function RulesScreen({ exam, resuming, onStart, starting, error }) {
         </ol>
 
         <p className="mt-6 text-sm leading-relaxed text-muted">
-          {resuming ? 'Your saved answers are restored.' : 'Once you start, the timer runs even if you close the page.'} Answers save automatically as you go.
+          {resuming ? t('Your saved answers are restored.') : t('Once you start, the timer runs even if you close the page.')} {t('Answers save automatically as you go.')}
         </p>
 
         {error && <Alert tone="danger" className="mt-6">{error}</Alert>}
 
         <Button size="lg" className="mt-8 w-full" onClick={onStart} loading={starting}>
-          {resuming ? 'Continue exam' : 'Start exam'}{fullscreen && ' in fullscreen'}
+          {resuming ? t('Continue exam') : fullscreen ? t('Start exam in fullscreen') : t('Start exam')}
         </Button>
       </main>
     </div>
@@ -76,17 +78,19 @@ function RulesScreen({ exam, resuming, onStart, starting, error }) {
 // --- During the exam ---
 
 function Timer({ seconds }) {
+  const { t } = useI18n();
   const tone = seconds <= 60 ? 'text-danger' : seconds <= 300 ? 'text-warn' : 'text-ink';
   return (
-    <span className={cx('tabular flex items-baseline gap-2 font-mono text-[1.35rem] font-semibold leading-none', tone)} aria-label={`${formatClock(seconds)} left`}>
-      <span className="eyebrow">Left</span>
+    <span className={cx('tabular flex items-baseline gap-2 font-mono text-[1.35rem] font-semibold leading-none', tone)} aria-label={t('{{time}} left', { time: formatClock(seconds) })}>
+      <span className="eyebrow">{t('Left')}</span>
       {formatClock(seconds)}
     </span>
   );
 }
 
 function SaveStatus({ status }) {
-  const states = { saving: ['Saving', 'text-faint'], saved: ['Saved', 'text-brand'], error: ['Not saved', 'text-danger'] };
+  const { t } = useI18n();
+  const states = { saving: [t('Saving'), 'text-faint'], saved: [t('Saved'), 'text-brand'], error: [t('Not saved'), 'text-danger'] };
   if (!states[status]) return null;
   const [label, tone] = states[status];
   return (
@@ -98,36 +102,38 @@ function SaveStatus({ status }) {
 }
 
 function ViolationChip({ count, max }) {
+  const { t } = useI18n();
   const hit = count > 0;
   return (
     <span
       className={cx('tabular rounded border px-2.5 py-1.5 font-mono text-xs font-medium tracking-[0.04em]', hit ? 'border-danger text-danger' : 'border-line-strong text-muted')}
-      title="Times you left the exam"
+      title={t('Times you left the exam')}
     >
-      LEFT EXAM <b className={hit ? 'text-danger' : 'text-ink'}>{count}</b>{max ? ` / ${max}` : ''}
+      {t('LEFT EXAM')} <b className={hit ? 'text-danger' : 'text-ink'}>{count}</b>{max ? ` / ${max}` : ''}
     </span>
   );
 }
 
 function BlockedOverlay({ integrity, onReturn }) {
+  const { t, tn } = useI18n();
   const remaining = integrity.maxViolations ? integrity.maxViolations - integrity.violations : null;
   return (
     <div className="fixed inset-0 z-40 grid place-items-center bg-paper p-6">
       <div className="max-w-md text-center">
-        <p className="font-mono text-xs font-semibold uppercase tracking-[0.08em] text-danger">Recorded</p>
+        <p className="font-mono text-xs font-semibold uppercase tracking-[0.08em] text-danger">{t('Recorded')}</p>
         <h2 className="mt-3 text-2xl font-semibold tracking-tight">
-          {integrity.isAway ? 'You left the exam' : 'Fullscreen is required'}
+          {integrity.isAway ? t('You left the exam') : t('Fullscreen is required')}
         </h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted">
-          The questions are hidden until you come back{integrity.fullscreenLost ? ' to fullscreen' : ''}.
-          {integrity.violations > 0 && ` ${integrity.violations} violation${integrity.violations === 1 ? ' has' : 's have'} been recorded.`}
+          {integrity.fullscreenLost ? t('The questions are hidden until you come back to fullscreen.') : t('The questions are hidden until you come back.')}
+          {integrity.violations > 0 && ` ${tn(integrity.violations, '{{count}} violation has been recorded.', '{{count}} violations have been recorded.')}`}
         </p>
         {remaining !== null && remaining > 0 && (
           <p className="mt-3 text-sm font-medium text-danger">
-            {remaining === 1 ? 'One more violation and your exam is submitted automatically.' : `${remaining} more and your exam is submitted automatically.`}
+            {remaining === 1 ? t('One more violation and your exam is submitted automatically.') : t('{{n}} more and your exam is submitted automatically.', { n: remaining })}
           </p>
         )}
-        <Button size="lg" className="mt-7" onClick={onReturn}>Return to the exam</Button>
+        <Button size="lg" className="mt-7" onClick={onReturn}>{t('Return to the exam')}</Button>
       </div>
     </div>
   );
@@ -135,6 +141,7 @@ function BlockedOverlay({ integrity, onReturn }) {
 
 // The question map: one answer bubble per question. Filled = answered, ring = current, red dot = flagged
 function QuestionNav({ questions, answers, flagged, current, onJump }) {
+  const { t } = useI18n();
   return (
     <div>
       <div className="grid grid-cols-5 gap-x-3 gap-y-2.5">
@@ -150,7 +157,7 @@ function QuestionNav({ questions, answers, flagged, current, onJump }) {
                 answered ? 'bubble-filled' : 'bg-transparent hover:border-ink hover:text-ink',
                 i === current && 'shadow-[0_0_0_2px_rgb(var(--surface)),0_0_0_4px_rgb(var(--ink))]',
               )}
-              aria-label={`Question ${i + 1}${answered ? ', answered' : ''}${flagged.has(q.id) ? ', flagged for review' : ''}`}
+              aria-label={[t('Question {{n}}', { n: i + 1 }), answered && t('answered'), flagged.has(q.id) && t('flagged for review')].filter(Boolean).join(', ')}
               aria-current={i === current ? 'step' : undefined}
             >
               {String(i + 1).padStart(2, '0')}
@@ -160,9 +167,9 @@ function QuestionNav({ questions, answers, flagged, current, onJump }) {
         })}
       </div>
       <div className="mt-5 space-y-2 border-t border-line pt-4 text-[13px] text-muted">
-        <p className="flex items-center gap-2.5"><span className="bubble bubble-filled h-4 w-4" />Answered</p>
-        <p className="flex items-center gap-2.5"><span className="bubble h-4 w-4" />Not answered</p>
-        <p className="flex items-center gap-2.5"><span className="relative"><span className="bubble h-4 w-4" /><span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-danger" /></span>Flagged</p>
+        <p className="flex items-center gap-2.5"><span className="bubble bubble-filled h-4 w-4" />{t('Answered')}</p>
+        <p className="flex items-center gap-2.5"><span className="bubble h-4 w-4" />{t('Not answered')}</p>
+        <p className="flex items-center gap-2.5"><span className="relative"><span className="bubble h-4 w-4" /><span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-danger" /></span>{t('Flagged')}</p>
       </div>
     </div>
   );
@@ -190,9 +197,10 @@ function ChoiceOption({ type, index, label, checked, onChange }) {
 }
 
 function QuestionBody({ question, value, onChange, onImage, onPickFile }) {
+  const { t } = useI18n();
   if (question.type === 'single_choice') {
     return (
-      <div className="border-t border-line" role="radiogroup" aria-label="Answer">
+      <div className="border-t border-line" role="radiogroup" aria-label={t('Answer')}>
         {(question.options || []).map((option, i) => (
           <ChoiceOption key={option} type="radio" index={i} label={option} checked={value === option} onChange={() => onChange(option)} />
         ))}
@@ -203,7 +211,7 @@ function QuestionBody({ question, value, onChange, onImage, onPickFile }) {
     const selected = Array.isArray(value) ? value : [];
     return (
       <div>
-        <p className="mb-2 font-mono text-xs text-faint">Select all that apply</p>
+        <p className="mb-2 font-mono text-xs text-faint">{t('Select all that apply')}</p>
         <div className="border-t border-line">
           {(question.options || []).map((option, i) => (
             <ChoiceOption
@@ -222,13 +230,13 @@ function QuestionBody({ question, value, onChange, onImage, onPickFile }) {
   if (question.type === 'text') {
     return (
       <div>
-        <label htmlFor={`answer-${question.id}`} className="eyebrow mb-2 block">Your answer</label>
+        <label htmlFor={`answer-${question.id}`} className="eyebrow mb-2 block">{t('Your answer')}</label>
         <Textarea
           id={`answer-${question.id}`}
           rows={9}
           value={typeof value === 'string' ? value : ''}
           onChange={(e) => onChange(e.target.value, { debounce: true })}
-          placeholder="Type your answer here"
+          placeholder={t('Type your answer here')}
           className="text-base"
           spellCheck={false}
         />
@@ -243,12 +251,12 @@ function QuestionBody({ question, value, onChange, onImage, onPickFile }) {
           onClick={onPickFile}
         >
           <LuImage className="h-7 w-7 text-muted" />
-          <span className="mt-3 text-sm font-medium">{value?.name ? 'Choose a different image' : 'Upload an image of your answer'}</span>
-          <span className="mt-1 font-mono text-xs text-faint">JPG or PNG, up to 2 MB</span>
+          <span className="mt-3 text-sm font-medium">{value?.name ? t('Choose a different image') : t('Upload an image of your answer')}</span>
+          <span className="mt-1 font-mono text-xs text-faint">{t('JPG or PNG, up to 2 MB')}</span>
           <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files[0] && onImage(e.target.files[0])} />
         </label>
         {value?.preview && (
-          <img src={value.preview} alt="Your uploaded answer" className="mt-4 max-h-80 rounded border border-line object-contain" />
+          <img src={value.preview} alt={t('Your uploaded answer')} className="mt-4 max-h-80 rounded border border-line object-contain" />
         )}
       </div>
     );
@@ -258,12 +266,14 @@ function QuestionBody({ question, value, onChange, onImage, onPickFile }) {
 
 // --- After the exam ---
 
+// English is the translation key; ResultsScreen passes these through t()
 const SUBMIT_MESSAGES = {
   violations: { tone: 'danger', title: 'Your exam was submitted automatically', text: 'The violation limit was reached. Your examiner can see what was recorded.' },
   time_up: { tone: 'warn', title: 'Time ran out', text: 'Your exam was submitted with the answers you had saved.' },
 };
 
 function ResultsScreen({ results, submitReason }) {
+  const { t } = useI18n();
   const attempt = results.attempt || {};
   const exam = results.exam || {};
   const answerMap = Object.fromEntries((attempt.answers || []).map((a) => [a.question_id, a.answer_data]));
@@ -272,7 +282,7 @@ function ResultsScreen({ results, submitReason }) {
   const manual = (exam.questions || []).some((q) => q.type === 'text' || q.type === 'image_upload');
   const reason = SUBMIT_MESSAGES[submitReason || attempt.submit_reason];
 
-  const fmt = (v) => (Array.isArray(v) ? v.join(', ') : v && typeof v === 'object' ? v.name || 'Image uploaded' : v ?? '—');
+  const fmt = (v) => (Array.isArray(v) ? v.join(', ') : v && typeof v === 'object' ? v.name || t('Image uploaded') : v ?? '—');
   const isCorrect = (q) => {
     if (q.correct_answers == null) return null;
     const norm = (v) => (Array.isArray(v) ? v.map(String).sort() : [String(v)]).join('|');
@@ -283,19 +293,19 @@ function ResultsScreen({ results, submitReason }) {
     <div className="min-h-screen bg-paper">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
         <Logo />
-        <Link to="/student-account" className="btn btn-secondary btn-sm">Back to exams</Link>
+        <Link to="/student-account" className="btn btn-secondary btn-sm">{t('Back to exams')}</Link>
       </header>
       <main className="mx-auto max-w-2xl px-5 pb-16 pt-6">
-        <p className="eyebrow mb-2">Submitted</p>
+        <p className="eyebrow mb-2">{t('Submitted')}</p>
         <h1 className="text-3xl font-semibold tracking-tight">{exam.title}</h1>
 
-        {reason && <Alert tone={reason.tone} title={reason.title} className="mt-6">{reason.text}</Alert>}
+        {reason && <Alert tone={reason.tone} title={t(reason.title)} className="mt-6">{t(reason.text)}</Alert>}
 
         <Card className="mt-6 flex flex-wrap items-center justify-between gap-6 p-6">
           <div>
-            <p className="text-sm text-muted">{manual ? 'Score so far' : 'Your score'}</p>
+            <p className="text-sm text-muted">{manual ? t('Score so far') : t('Your score')}</p>
             {manual && objectivePoints === 0 ? (
-              <p className="mt-1 text-2xl font-semibold tracking-tight">Awaiting grading</p>
+              <p className="mt-1 text-2xl font-semibold tracking-tight">{t('Awaiting grading')}</p>
             ) : (
               <p className="tabular mt-1 text-4xl font-semibold tracking-tight">
                 {attempt.score ?? 0}
@@ -305,14 +315,14 @@ function ResultsScreen({ results, submitReason }) {
           </div>
           <p className="max-w-xs text-sm leading-relaxed text-muted">
             {manual
-              ? 'Multiple-choice questions are graded. Written and image answers are graded by your examiner; check Results later for your final score.'
-              : 'All questions were graded automatically.'}
+              ? t('Multiple-choice questions are graded. Written and image answers are graded by your examiner; check Results later for your final score.')
+              : t('All questions were graded automatically.')}
           </p>
         </Card>
 
-        <h2 className="mb-3 mt-10 text-[15px] font-semibold">Your answers</h2>
+        <h2 className="mb-3 mt-10 text-[15px] font-semibold">{t('Your answers')}</h2>
         {exam.answers_revealed === false && (
-          <Alert tone="info" className="mb-4">Correct answers are shown after the exam closes for everyone ({formatDateTime(exam.end_time)}).</Alert>
+          <Alert tone="info" className="mb-4">{t('Correct answers are shown after the exam closes for everyone ({{date}}).', { date: formatDateTime(exam.end_time) })}</Alert>
         )}
         <div className="space-y-2.5">
           {(exam.questions || []).map((q, i) => {
@@ -321,13 +331,13 @@ function ResultsScreen({ results, submitReason }) {
               <Card key={q.id} className="px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-medium"><span className="tabular mr-2 text-muted">{i + 1}.</span>{q.title}</p>
-                  {correct === true && <Badge tone="brand">Correct</Badge>}
-                  {correct === false && <Badge tone="danger">Incorrect</Badge>}
-                  {correct === null && (q.type === 'text' || q.type === 'image_upload') && <Badge>Graded later</Badge>}
+                  {correct === true && <Badge tone="brand">{t('Correct')}</Badge>}
+                  {correct === false && <Badge tone="danger">{t('Incorrect')}</Badge>}
+                  {correct === null && (q.type === 'text' || q.type === 'image_upload') && <Badge>{t('Graded later')}</Badge>}
                 </div>
-                <p className="mt-2 text-sm text-muted">Your answer: <span className="text-ink">{fmt(answerMap[q.id])}</span></p>
+                <p className="mt-2 text-sm text-muted">{t('Your answer:')} <span className="text-ink">{fmt(answerMap[q.id])}</span></p>
                 {exam.answers_revealed && q.correct_answers != null && correct === false && (
-                  <p className="mt-1 text-sm text-muted">Correct answer: <span className="font-medium text-brand">{fmt(q.correct_answers)}</span></p>
+                  <p className="mt-1 text-sm text-muted">{t('Correct answer:')} <span className="font-medium text-brand">{fmt(q.correct_answers)}</span></p>
                 )}
               </Card>
             );
@@ -344,6 +354,7 @@ function ExamPage() {
   const { id: examIdParam, attemptId: resumeAttemptId } = useParams();
   const navigate = useNavigate();
   const { refreshSession } = useAuth();
+  const { t, tn } = useI18n();
 
   const [phase, setPhase] = useState('loading'); // loading | rules | running | finished | error
   const [meta, setMeta] = useState(null); // exam summary for the rules screen
@@ -375,8 +386,8 @@ function ExamPage() {
           : unfinishedRes.data.find((a) => a.exam_id === examIdParam);
         const examId = resumeAttemptId ? attempt?.exam_id : examIdParam;
         const exam = examsRes.data.find((e) => e.id === examId);
-        if (!exam) throw new Error('This exam is not available to you.');
-        if (exam.is_submitted && !attempt) throw new Error("You've already submitted this exam.");
+        if (!exam) throw new Error(t('This exam is not available to you.'));
+        if (exam.is_submitted && !attempt) throw new Error(t("You've already submitted this exam."));
         setMeta({ ...exam, resumeAttemptId: attempt?.id });
         setPhase('rules');
       })
@@ -384,7 +395,7 @@ function ExamPage() {
         setError(err.response ? errorMessage(err) : err.message);
         setPhase('error');
       });
-  }, [examIdParam, resumeAttemptId]);
+  }, [examIdParam, resumeAttemptId, t]);
 
   const finish = useCallback(async (reason) => {
     if (finishing.current) return;
@@ -529,7 +540,7 @@ function ExamPage() {
 
   const uploadImage = (questionId, file) => {
     if (file.size > MAX_IMAGE_BYTES) {
-      setError('That image is larger than 2 MB. Take a smaller photo or crop it.');
+      setError(t('That image is larger than 2 MB. Take a smaller photo or crop it.'));
       return;
     }
     const reader = new FileReader();
@@ -586,7 +597,7 @@ function ExamPage() {
         <Card className="max-w-md p-8 text-center">
           <LuCircleAlert className="mx-auto h-8 w-8 text-muted" />
           <p className="mt-4 font-medium">{error}</p>
-          <Button variant="secondary" className="mt-6" onClick={() => navigate('/student-account')}>Back to exams</Button>
+          <Button variant="secondary" className="mt-6" onClick={() => navigate('/student-account')}>{t('Back to exams')}</Button>
         </Card>
       </div>
     );
@@ -600,7 +611,7 @@ function ExamPage() {
     if (results) return <ResultsScreen results={results} submitReason={submitReason} />;
     return (
       <div className="min-h-screen bg-paper">
-        {error ? <div className="mx-auto max-w-md p-10"><Alert tone="warn">{error}</Alert></div> : <PageLoader label="Submitting…" />}
+        {error ? <div className="mx-auto max-w-md p-10"><Alert tone="warn">{error}</Alert></div> : <PageLoader label={t('Submitting…')} />}
       </div>
     );
   }
@@ -609,7 +620,7 @@ function ExamPage() {
   const isLast = current === questions.length - 1;
   const remainingViolations = integrity.maxViolations ? integrity.maxViolations - integrity.violations : null;
 
-  const typeLabel = { single_choice: 'Single answer', multi_choice: 'Multiple answers', text: 'Written answer', image_upload: 'Image answer' };
+  const typeLabel = { single_choice: t('Single answer'), multi_choice: t('Multiple answers'), text: t('Written answer'), image_upload: t('Image answer') };
 
   return (
     <div className={cx('grid min-h-screen grid-rows-[auto_1fr_auto] bg-paper', session.integrity.block_copy_paste && 'select-none')}>
@@ -620,7 +631,7 @@ function ExamPage() {
           <LogoMark size={22} />
           <p className="min-w-0 flex-1 truncate text-sm font-medium">
             {session.exam.title}
-            <span className="ml-3 font-mono text-xs font-normal text-faint">{questions.length} questions</span>
+            <span className="ml-3 font-mono text-xs font-normal text-faint">{tn(questions.length, '{{count}} question', '{{count}} questions')}</span>
           </p>
           <SaveStatus status={saveStatus} />
           <ViolationChip count={integrity.violations} max={integrity.maxViolations} />
@@ -628,9 +639,11 @@ function ExamPage() {
         </div>
         {showWarning && (
           <div className="border-t border-danger/25 bg-danger-soft px-4 py-2 text-center text-sm text-danger-ink" role="alert">
-            Violation recorded ({integrity.violations}{integrity.maxViolations ? ` of ${integrity.maxViolations}` : ''}).
-            {remainingViolations === 1 && ' One more and your exam is submitted automatically.'}
-            {remainingViolations > 1 && ` ${remainingViolations} more and your exam is submitted automatically.`}
+            {integrity.maxViolations
+              ? t('Violation recorded ({{n}} of {{max}}).', { n: integrity.violations, max: integrity.maxViolations })
+              : t('Violation recorded ({{n}}).', { n: integrity.violations })}
+            {remainingViolations === 1 && ` ${t('One more and your exam is submitted automatically.')}`}
+            {remainingViolations > 1 && ` ${t('{{n}} more and your exam is submitted automatically.', { n: remainingViolations })}`}
           </div>
         )}
       </header>
@@ -644,8 +657,8 @@ function ExamPage() {
                 <div className="flex items-baseline gap-4 border-b border-line-strong pb-3.5">
                   <span className="tabular font-mono text-[2.5rem] font-semibold leading-[0.9] tracking-[-0.02em]">{String(current + 1).padStart(2, '0')}</span>
                   <span className="font-mono text-xs leading-relaxed text-faint">
-                    <b className="font-medium text-muted">{typeLabel[question.type] || 'Question'}</b> · {question.max_score} mark{question.max_score === 1 ? '' : 's'}
-                    <br />Question {current + 1} of {questions.length}
+                    <b className="font-medium text-muted">{typeLabel[question.type] || t('Question')}</b> · {tn(question.max_score, '{{count}} mark', '{{count}} marks')}
+                    <br />{t('Question {{n}} of {{total}}', { n: current + 1, total: questions.length })}
                   </span>
                   <Button
                     variant="ghost"
@@ -654,7 +667,7 @@ function ExamPage() {
                     onClick={() => toggleFlag(question.id)}
                     aria-pressed={flagged.has(question.id)}
                   >
-                    {flagged.has(question.id) ? 'Flagged for review' : 'Flag for review'}
+                    {flagged.has(question.id) ? t('Flagged for review') : t('Flag for review')}
                   </Button>
                 </div>
                 <h2 className="my-7 max-w-[62ch] text-[1.2rem] font-normal leading-relaxed [text-wrap:pretty]">{question.title}</h2>
@@ -667,8 +680,8 @@ function ExamPage() {
                 />
                 {(question.type === 'single_choice' || question.type === 'multi_choice') && (
                   <p className="mt-5 flex flex-wrap items-center gap-2 font-mono text-xs text-faint" aria-hidden="true">
-                    <span className="kbd">1</span>–<span className="kbd">{Math.min(9, question.options?.length || 1)}</span> choose ·
-                    <span className="kbd">←</span><span className="kbd">→</span> move · <span className="kbd">F</span> flag
+                    <span className="kbd">1</span>–<span className="kbd">{Math.min(9, question.options?.length || 1)}</span> {t('choose')} ·
+                    <span className="kbd">←</span><span className="kbd">→</span> {t('move')} · <span className="kbd">F</span> {t('flag')}
                   </p>
                 )}
               </article>
@@ -676,9 +689,9 @@ function ExamPage() {
           </div>
         </main>
 
-        <aside className="border-l border-line bg-surface px-7 py-8" aria-label="Questions">
+        <aside className="border-l border-line bg-surface px-7 py-8" aria-label={t('Questions')}>
           <div className="sticky top-24">
-            <p className="tabular font-mono text-xs text-muted"><b className="block text-xl font-semibold text-ink">{answeredCount} of {questions.length}</b>answered</p>
+            <p className="tabular font-mono text-xs text-muted"><b className="block text-xl font-semibold text-ink">{t('{{n}} of {{total}}', { n: answeredCount, total: questions.length })}</b>{t('answered')}</p>
             <div className="mt-5">
               <QuestionNav questions={questions} answers={answers} flagged={flagged} current={current} onJump={setCurrent} />
             </div>
@@ -687,31 +700,31 @@ function ExamPage() {
       </div>
 
       <footer className="sticky bottom-0 z-20 flex items-center gap-3 border-t border-line bg-surface px-6 py-3">
-        <Button variant="secondary" disabled={current === 0} onClick={() => setCurrent(current - 1)}>Previous</Button>
-        <Button variant="secondary" disabled={isLast} onClick={() => setCurrent(current + 1)}>Next</Button>
+        <Button variant="secondary" disabled={current === 0} onClick={() => setCurrent(current - 1)}>{t('Previous')}</Button>
+        <Button variant="secondary" disabled={isLast} onClick={() => setCurrent(current + 1)}>{t('Next')}</Button>
         <span className="flex-1" />
-        <Button onClick={() => setConfirmSubmit(true)}>Submit exam</Button>
+        <Button onClick={() => setConfirmSubmit(true)}>{t('Submit exam')}</Button>
       </footer>
 
       <Modal
         open={confirmSubmit}
         onClose={() => setConfirmSubmit(false)}
-        title="Submit your exam?"
-        description="You can't change your answers after submitting."
+        title={t('Submit your exam?')}
+        description={t("You can't change your answers after submitting.")}
         size="sm"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setConfirmSubmit(false)}>Keep working</Button>
-            <Button onClick={submit} loading={submitting}>Submit exam</Button>
+            <Button variant="secondary" onClick={() => setConfirmSubmit(false)}>{t('Keep working')}</Button>
+            <Button onClick={submit} loading={submitting}>{t('Submit exam')}</Button>
           </>
         }
       >
         <div className="space-y-2 text-sm">
-          <p className="flex justify-between"><span className="text-muted">Answered</span><span className="tabular font-medium">{answeredCount} of {questions.length}</span></p>
-          {flagged.size > 0 && <p className="flex justify-between"><span className="text-muted">Marked for review</span><span className="tabular font-medium">{flagged.size}</span></p>}
-          <p className="flex justify-between"><span className="text-muted">Time left</span><span className="tabular font-mono">{formatClock(secondsLeft ?? 0)}</span></p>
+          <p className="flex justify-between"><span className="text-muted">{t('Answered')}</span><span className="tabular font-medium">{t('{{n}} of {{total}}', { n: answeredCount, total: questions.length })}</span></p>
+          {flagged.size > 0 && <p className="flex justify-between"><span className="text-muted">{t('Flagged for review')}</span><span className="tabular font-medium">{flagged.size}</span></p>}
+          <p className="flex justify-between"><span className="text-muted">{t('Time left')}</span><span className="tabular font-mono">{formatClock(secondsLeft ?? 0)}</span></p>
           {answeredCount < questions.length && (
-            <Alert tone="warn" className="mt-3">{questions.length - answeredCount} question{questions.length - answeredCount === 1 ? ' is' : 's are'} unanswered.</Alert>
+            <Alert tone="warn" className="mt-3">{tn(questions.length - answeredCount, '{{count}} question is unanswered.', '{{count}} questions are unanswered.')}</Alert>
           )}
         </div>
       </Modal>

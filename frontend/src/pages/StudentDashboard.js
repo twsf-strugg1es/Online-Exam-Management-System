@@ -5,28 +5,30 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Button, Card, EmptyState, PageLoader, cx } from '../components/ui';
-import { errorMessage, formatDateTime } from '../utils';
+import { errorMessage, formatDateTime, formatShortDate } from '../utils';
+import { useI18n } from '../i18n';
 
-const greeting = () => {
+const greeting = (t) => {
   const hour = new Date().getHours();
-  return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  return hour < 12 ? t('Good morning') : hour < 18 ? t('Good afternoon') : t('Good evening');
 };
 
-const opensIn = (start) => {
+const opensIn = (start, t) => {
   const minutes = Math.round((new Date(start) - Date.now()) / 60000);
-  if (minutes < 60) return `Opens in ${Math.max(1, minutes)} min`;
-  if (minutes < 24 * 60) return `Opens in ${Math.round(minutes / 60)} h`;
-  return `Opens ${formatDateTime(start)}`;
+  if (minutes < 60) return t('Opens in {{n}} min', { n: Math.max(1, minutes) });
+  if (minutes < 24 * 60) return t('Opens in {{n}} h', { n: Math.round(minutes / 60) });
+  return t('Opens {{date}}', { date: formatDateTime(start) });
 };
 
 function ExamCard({ exam, attempt, onOpen }) {
+  const { t } = useI18n();
   const inProgress = Boolean(attempt);
   const available = exam.is_active && !exam.is_submitted;
-  const [label, tone, dot] = inProgress ? ['In progress, timer running', 'text-warn', 'bg-current']
-    : exam.is_submitted ? ['Submitted', 'text-faint', 'bg-current opacity-50']
-      : exam.is_upcoming ? [opensIn(exam.start_time), 'text-ink', 'bg-[linear-gradient(90deg,currentColor_50%,transparent_50%)]']
-        : exam.is_expired ? ['Closed', 'text-faint', '']
-          : ['Open now', 'text-brand', 'bg-current'];
+  const [label, tone, dot] = inProgress ? [t('In progress, timer running'), 'text-warn', 'bg-current']
+    : exam.is_submitted ? [t('Submitted'), 'text-faint', 'bg-current opacity-50']
+      : exam.is_upcoming ? [opensIn(exam.start_time, t), 'text-ink', 'bg-[linear-gradient(90deg,currentColor_50%,transparent_50%)]']
+        : exam.is_expired ? [t('Closed'), 'text-faint', '']
+          : [t('Open now'), 'text-brand', 'bg-current'];
   return (
     <article className={cx('sheet flex flex-col px-5 pb-4 pt-5', inProgress && 'border-warn/60')}>
       <h3 className="text-[1.05rem] font-semibold leading-snug">{exam.title}</h3>
@@ -34,14 +36,14 @@ function ExamCard({ exam, attempt, onOpen }) {
         <span className={cx('status-dot', dot)} aria-hidden="true" />{label}
       </p>
       <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-3 font-mono text-[13px]">
-        <div><dt className="eyebrow">Time</dt><dd className="tabular mt-1">{exam.duration_minutes} min</dd></div>
-        <div><dt className="eyebrow">Qs</dt><dd className="tabular mt-1">{exam.question_count}</dd></div>
-        <div><dt className="eyebrow">{exam.is_upcoming ? 'Opens' : 'Closes'}</dt><dd className="tabular mt-1">{new Date(exam.is_upcoming ? exam.start_time : exam.end_time).toLocaleDateString([], { day: 'numeric', month: 'short' })}</dd></div>
+        <div><dt className="eyebrow">{t('Time')}</dt><dd className="tabular mt-1">{t('{{n}} min', { n: exam.duration_minutes })}</dd></div>
+        <div><dt className="eyebrow">{t('Qs')}</dt><dd className="tabular mt-1">{exam.question_count}</dd></div>
+        <div><dt className="eyebrow">{exam.is_upcoming ? t('Opens') : t('Closes')}</dt><dd className="tabular mt-1">{formatShortDate(exam.is_upcoming ? exam.start_time : exam.end_time)}</dd></div>
       </dl>
       {(available || inProgress) && (
         <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
-          <span className="font-mono text-xs text-faint">{exam.integrity?.require_fullscreen ? 'Runs in fullscreen' : 'Timed exam'}</span>
-          <Button size="sm" onClick={() => onOpen(exam, attempt)}>{inProgress ? 'Continue' : 'Start'}</Button>
+          <span className="font-mono text-xs text-faint">{exam.integrity?.require_fullscreen ? t('Runs in fullscreen') : t('Timed exam')}</span>
+          <Button size="sm" onClick={() => onOpen(exam, attempt)}>{inProgress ? t('Continue') : t('Start')}</Button>
         </div>
       )}
     </article>
@@ -62,6 +64,7 @@ function Section({ title, hint, count, children }) {
 
 function StudentDashboard() {
   const { user, currentMembership } = useAuth();
+  const { t, tn } = useI18n();
   const navigate = useNavigate();
   const [exams, setExams] = useState(null);
   const [unfinished, setUnfinished] = useState([]);
@@ -93,11 +96,11 @@ function StudentDashboard() {
     <AppShell>
       <div className="mb-10 border-b-2 border-ink pb-5">
         <p className="eyebrow mb-2">{currentMembership?.organization_name}</p>
-        <h1 className="text-[2rem] font-semibold leading-none tracking-[-0.025em]">{greeting()}{firstName && `, ${firstName}`}</h1>
+        <h1 className="text-[2rem] font-semibold leading-none tracking-[-0.025em]">{greeting(t)}{firstName && `, ${firstName}`}</h1>
         <p className="mt-2.5 text-sm text-muted">
           {available.length + inProgress.length
-            ? `You have ${available.length + inProgress.length} exam${available.length + inProgress.length === 1 ? '' : 's'} you can take right now.`
-            : upcoming.length ? `Your next exam ${opensIn(upcoming[0].start_time).toLowerCase()}.` : 'No exams are open right now.'}
+            ? tn(available.length + inProgress.length, 'You have {{count}} exam you can take right now.', 'You have {{count}} exams you can take right now.')
+            : upcoming.length ? t('Your next exam: {{when}}.', { when: opensIn(upcoming[0].start_time, t) }) : t('No exams are open right now.')}
         </p>
       </div>
 
@@ -107,29 +110,29 @@ function StudentDashboard() {
         <PageLoader />
       ) : list.length === 0 ? (
         <Card>
-          <EmptyState icon={LuBookOpen} title="No exams yet">
-            When {currentMembership?.organization_name || 'your organization'} publishes an exam for you, it appears here.
+          <EmptyState icon={LuBookOpen} title={t('No exams yet')}>
+            {t('When {{org}} publishes an exam for you, it appears here.', { org: currentMembership?.organization_name || t('your organization') })}
           </EmptyState>
         </Card>
       ) : (
         <>
           {inProgress.length > 0 && (
-            <Section title="Continue where you left off" count={inProgress.length} hint="The timer keeps running while you're away">
+            <Section title={t('Continue where you left off')} count={inProgress.length} hint={t("The timer keeps running while you're away")}>
               {inProgress.map((e) => <ExamCard key={e.id} exam={e} attempt={attemptFor(e)} onOpen={open} />)}
             </Section>
           )}
           {available.length > 0 && (
-            <Section title="Open now" count={available.length}>
+            <Section title={t('Open now')} count={available.length}>
               {available.map((e) => <ExamCard key={e.id} exam={e} onOpen={open} />)}
             </Section>
           )}
           {upcoming.length > 0 && (
-            <Section title="Upcoming" count={upcoming.length}>
+            <Section title={t('Upcoming')} count={upcoming.length}>
               {upcoming.map((e) => <ExamCard key={e.id} exam={e} onOpen={open} />)}
             </Section>
           )}
           {done.length > 0 && (
-            <Section title="Done" count={done.length}>
+            <Section title={t('Done')} count={done.length}>
               {done.map((e) => <ExamCard key={e.id} exam={e} onOpen={open} />)}
             </Section>
           )}
