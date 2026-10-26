@@ -176,4 +176,4 @@ cd frontend && npm start | npm test -- --watchAll=false | npm run build
 6. Unused legacy grading endpoints in `admin.py`: `/exams/attempts/{id}`, `/exams/attempts/{id}/evaluate`, `/answers/{id}/evaluate`, `/answers/{id}/evaluation`, `/attempts/{id}/results`. The frontend doesn't call them; remove them after confirming.
 7. Naive `datetime.utcnow` defaults in several models; prefer timezone-aware values.
 8. JWT in `localStorage`; JWT subject is the email (changing an email would invalidate sessions).
-9. The README's project-structure section is stale.
+9. ~~README project structure stale~~ Fixed in 1.7.
