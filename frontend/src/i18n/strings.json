@@ -592,6 +592,12 @@
   "Timezone": {},
   "Title": {},
   "Today": {},
+  "Too many attempts. Wait a minute and try again.": {
+    "source": "server"
+  },
+  "Too many failed sign-ins for this account. Wait 15 minutes and try again.": {
+    "source": "server"
+  },
   "Tried a middle-click paste (blocked)": {},
   "Tried to copy (blocked)": {},
   "Tried to cut (blocked)": {},

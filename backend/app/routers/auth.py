@@ -7,24 +7,33 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from .. import crud, schemas, models
 from ..security import verify_password, create_access_token, get_current_user
+from .. import rate_limit
+from ..rate_limit import limiter, per_ip
 
 router = APIRouter(tags=["Auth"])
 
 ACCESS_TOKEN_EXPIRES = timedelta(minutes=60)
 
 
-@router.post("/token")
+ACCOUNT_LOCKED = "Too many failed sign-ins for this account. Wait 15 minutes and try again."
+
+
+@router.post("/token", dependencies=[Depends(per_ip("login", rate_limit.LOGIN_PER_IP))])
 def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
     # OAuth2PasswordRequestForm uses field name "username"; we treat it as email
+    account_key = f"login-failed:{form_data.username.strip().lower()}"
+    limiter.check(account_key, rate_limit.LOGIN_FAILURES_PER_ACCOUNT, ACCOUNT_LOCKED)
     user = crud.get_user_by_email(db, form_data.username)
     if not user or not verify_password(form_data.password, user.hashed_password):
+        limiter.add(account_key)  # counted for unknown emails too, so the limit doesn't reveal which exist
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect username or password",
         )
+    limiter.clear(account_key)
     return _issue_token(user)
 
 
@@ -65,7 +74,10 @@ def _ensure_email_free(db: Session, email: str) -> None:
         )
 
 
-@router.post("/signup", response_model=schemas.UserWithMemberships, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/signup", response_model=schemas.UserWithMemberships, status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(per_ip("signup", rate_limit.SIGNUP_PER_IP))],
+)
 def signup(user_data: schemas.CandidateSignup, db: Session = Depends(get_db)):
     """Public signup. With a join code, the new user also becomes a candidate in that organization."""
     _ensure_email_free(db, user_data.email)
@@ -81,7 +93,10 @@ def signup(user_data: schemas.CandidateSignup, db: Session = Depends(get_db)):
     return _user_with_memberships(new_user)
 
 
-@router.post("/signup/organization", response_model=schemas.UserWithMemberships, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/signup/organization", response_model=schemas.UserWithMemberships, status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(per_ip("org-signup", rate_limit.ORG_SIGNUP_PER_IP))],
+)
 def signup_organization(data: schemas.OrganizationSignup, db: Session = Depends(get_db)):
     """Create a new organization together with its owner's account."""
     _ensure_email_free(db, data.email)

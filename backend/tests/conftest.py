@@ -24,6 +24,13 @@ def _make_engine():
     return create_engine(TEST_DATABASE_URL)
 
 
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits():
+    from app.rate_limit import limiter
+    limiter.reset()
+    yield
+
+
 @pytest.fixture(scope="function")
 def test_db():
     """Create a test database and tables."""

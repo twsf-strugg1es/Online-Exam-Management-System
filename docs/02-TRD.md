@@ -54,6 +54,7 @@ Backend environment (`backend/.env`):
 | `SECRET_KEY` | yes | JWT signing key; the app refuses to start without it |
 | `CORS_ORIGINS` | no | Comma-separated allowed frontend origins (default: localhost:3000, localhost:5173) |
 | `LOG_LEVEL` | no | `DEBUG` / `INFO` (default) / `WARNING` / `ERROR`. Logs are JSON lines on stdout |
+| `RATE_LIMITS` | no | `on` (default) / `off`. Off only for load tests |
 
 ## Authentication and roles
 
@@ -65,7 +66,8 @@ Backend environment (`backend/.env`):
   - Managers = owner, admin: members, groups, join codes, organization settings.
   - Only owners can grant, change or remove the owner role; an organization always keeps at least one owner.
 - **Organization context:** every organization-scoped request sends `X-Organization-Id`. `permissions.get_current_membership` resolves it to the caller's membership or returns 403. Route guards: `require_staff`, `require_manager`, `require_candidate`.
-- *(planned)* Password reset, email verification, Google sign-in, rate limiting on auth endpoints.
+- **Rate limits (2.6):** `app/rate_limit.py`, in-process counters (one API instance; several instances need Redis or Postgres). `POST /token`: 100/min per IP, and 10 failed sign-ins per account per 15 min (counted for unknown emails too; a success clears it). `/signup`: 60 per 10 min per IP; `/signup/organization`: 10/hour per IP; `/organizations/join`: 20 per 10 min per user. Over the limit → 429 with `Retry-After`. Per-IP limits are generous because a class signs in together from one school network. The client IP is `request.client.host`; uvicorn `--proxy-headers` trusts `X-Forwarded-For` only from `FORWARDED_ALLOW_IPS` (default 127.0.0.1), so set that to the load balancer's address in production.
+- *(planned)* Password reset, email verification, Google sign-in.
 
 ## External services and APIs
 
@@ -114,7 +116,7 @@ FastAPI app (backend/app)
 | Transport | HTTPS in production *(planned, at deploy)*; CORS restricted by `CORS_ORIGINS`. |
 | Sensitive data held | Name, email, optional date of birth and gender, answers, integrity events, uploaded images. *(planned)* webcam/ID images need explicit consent, a retention limit (e.g. 90 days after the exam closes) and deletion by the organization. |
 | Privacy law (global) | Before selling outside Bangladesh: GDPR (EU/UK) — lawful basis, data processing agreement for organizations, data export and deletion, subprocessor list, cookie consent, breach process; FERPA/COPPA considerations for US schools and under-13 users; Bangladesh's data protection rules for local customers. Webcam/biometric data (P2) is special-category data under GDPR: explicit consent, minimal retention, EU hosting option |
-| Known gaps | No rate limiting; JWT in `localStorage` (exposed to XSS); JWT subject is the email; no audit log. See Key decisions and the Implementation Plan. |
+| Known gaps | Rate limits are per process (fine for one instance); JWT in `localStorage` (exposed to XSS); no audit log. See Key decisions and the Implementation Plan. |
 
 ## Performance and reliability targets
 
@@ -164,6 +166,7 @@ cd frontend && npm start | npm test -- --watchAll=false | npm run build
 | Global product, Bangladesh launch | One codebase; local conventions are settings. Gets a paying pilot fast without hardcoding one country | Separate BD and global products: double the maintenance |
 | Region per deployment (not one global database) | Simple data-residency story for EU customers | Multi-region single database: complex, unnecessary at this scale |
 | Translations without a library (`src/i18n/`, ~100 lines on `Intl`) | `react-i18next` and `i18next` declare a TypeScript 5 peer that conflicts with CRA's TypeScript 4.9 (needs `--legacy-peer-deps` everywhere), and they add bundle weight the performance budget doesn't allow | `react-i18next` with forced peer resolution: hides real conflicts in every install |
+| Own rate limiter (`app/rate_limit.py`, ~100 lines) | Needs per-account failure counting and a class-sized per-IP allowance, which are easier to express directly; no new dependency | `slowapi`: decorators need `request` in every signature and still need custom logic for per-account failures |
 | CRA kept for now | Works; migrating isn't urgent | Vite: faster builds; a reasonable later task |
 | CSS-variable tokens + a small component set (`ui.js`) | One consistent look in light and dark; replaced several competing style systems | Component library (MUI/shadcn): heavier, generic look |
 

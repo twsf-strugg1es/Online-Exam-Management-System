@@ -9,6 +9,8 @@ from ..database import get_db
 from .. import crud, models, schemas
 from ..permissions import get_current_membership, require_manager, require_staff
 from ..security import get_current_user
+from .. import rate_limit
+from ..rate_limit import limiter
 
 router = APIRouter(tags=["Organizations"])
 
@@ -31,6 +33,7 @@ def join_organization(
     current_user: models.User = Depends(get_current_user),
 ):
     """Join an organization as a candidate with an organization or group join code."""
+    limiter.hit(f"join:{current_user.id}", rate_limit.JOIN_PER_USER, rate_limit.TOO_MANY)
     try:
         membership = crud.join_with_code(db, current_user, data.join_code.strip())
     except ValueError as e:

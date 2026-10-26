@@ -210,7 +210,7 @@ Added in `0007_indexes_unique_answers`: unique `answers (attempt_id, question_id
 |---|---|---|
 | Sign up (candidate) | `POST /signup` (+ optional join code) → then `POST /token` | Email verification link |
 | Sign up (organization) | `POST /signup/organization` creates the user + organization + owner membership | — |
-| Sign in | `POST /token` (form: username = email, password) → JWT (60 min) | Rate limit; Google sign-in |
+| Sign in | `POST /token` (form: username = email, password) → JWT (60 min, subject = user ID). Rate limited: 100/min per IP, 10 failures per account per 15 min → 429 | Google sign-in |
 | Session | `Authorization: Bearer`; `GET /me` returns the user + memberships; `POST /token/refresh` renews | httpOnly refresh cookie |
 | Select organization | Client stores `organizationId` and sends `X-Organization-Id` | — |
 | Change password | `POST /profile/change-password` (old + new) | — |
