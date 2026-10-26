@@ -92,6 +92,10 @@ class GroupMembersUpdate(BaseModel):
     user_ids: list[UUID]
 
 
+class BulkQuestionIds(BaseModel):
+    question_ids: list[UUID] = Field(min_length=1, max_length=500)
+
+
 class QuestionBase(BaseModel):
     title: str
     description: Optional[str] = None

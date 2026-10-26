@@ -151,6 +151,8 @@ class Question(Base):
     correct_answers = Column(JSON, nullable=False)
     max_score = Column(Integer, nullable=False, default=1)
     tags = Column(JSON, nullable=True, default=list)  # e.g., ["geography", "history"]
+    # Set instead of deleting once students have answered it, so past results stay intact
+    archived_at = Column(DateTime(timezone=True), nullable=True)
 
     exams = relationship("Exam", secondary=exam_questions, back_populates="questions")
 
@@ -176,6 +178,8 @@ class Exam(Base):
     block_copy_paste = Column(Boolean, nullable=False, default=True, server_default=sa_true())
     # Submit the attempt automatically once this many violations are recorded; None = never
     max_violations = Column(Integer, nullable=True)
+    # Set instead of deleting once anyone has started it; archived exams are hidden and can't be started
+    archived_at = Column(DateTime(timezone=True), nullable=True)
 
     questions = relationship("Question", secondary=exam_questions, back_populates="exams")
     groups = relationship("Group", secondary=exam_groups, back_populates="exams")

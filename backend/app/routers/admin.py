@@ -32,7 +32,7 @@ def _get_org_question(db: Session, question_id: UUID, membership: models.Members
         )
         .first()
     )
-    if not question:
+    if not question or question.archived_at is not None:
         raise HTTPException(status_code=404, detail="Question not found")
     return question
 
@@ -83,7 +83,10 @@ def list_questions(
     tag: str = Query(None, description="Filter by tag"),
 ):
     """List all questions for exam building with search and filter capabilities."""
-    query = db.query(models.Question).filter(models.Question.organization_id == membership.organization_id)
+    query = db.query(models.Question).filter(
+        models.Question.organization_id == membership.organization_id,
+        models.Question.archived_at.is_(None),
+    )
 
     if search:
         search_pattern = f"%{search}%"
@@ -125,61 +128,36 @@ def delete_question(
     db: Session = Depends(get_db),
     membership: models.Membership = Depends(require_staff),
 ):
-    """Delete a question by ID."""
+    """Delete a question, or archive it if exams or student answers use it (results are never erased)."""
     question = _get_org_question(db, question_id, membership)
-
-    db.delete(question)
-    db.commit()
-    return {"status": "success", "message": "Question deleted successfully"}
+    outcome = crud.remove_question(db, question)
+    message = "Question deleted" if outcome == "deleted" else "Question archived: it's used in an exam, so past results keep it"
+    return {"status": outcome, "message": message}
 
 
 @router.post("/questions/delete-bulk")
 def delete_bulk_questions(
-    request_body: dict = Body(...),
+    data: schemas.BulkQuestionIds,
     db: Session = Depends(get_db),
     membership: models.Membership = Depends(require_staff),
 ):
-    """Delete multiple questions by IDs."""
-    question_ids = request_body.get("question_ids", [])
-    deleted_count = 0
-    failed_count = 0
-
-    for question_id in question_ids:
-        try:
-            qid = UUID(str(question_id))
-            question = _get_org_question(db, qid, membership)
-
-            # First, find all answers for this question
-            answers = db.query(models.Answer).filter(
-                models.Answer.question_id == qid
-            ).all()
-
-            # Delete evaluations that reference these answers
-            for answer in answers:
-                db.query(models.Evaluation).filter(
-                    models.Evaluation.answer_id == answer.id
-                ).delete(synchronize_session=False)
-
-            # Then delete all answers for this question
-            db.query(models.Answer).filter(
-                models.Answer.question_id == qid
-            ).delete(synchronize_session=False)
-
-            # Finally delete the question
-            db.delete(question)
-            deleted_count += 1
-
-            # Commit after each successful deletion to prevent transaction abort
-            db.commit()
-
-        except Exception as e:
-            db.rollback()  # Rollback on error
-            failed_count += 1
-    return {
-        "status": "success",
-        "deleted": deleted_count,
-        "failed": failed_count
-    }
+    """Delete unused questions and archive used ones. Questions from other organizations are skipped."""
+    counts = {"deleted": 0, "archived": 0, "failed": 0}
+    for question_id in data.question_ids:
+        question = (
+            db.query(models.Question)
+            .filter(
+                models.Question.id == question_id,
+                models.Question.organization_id == membership.organization_id,
+                models.Question.archived_at.is_(None),
+            )
+            .first()
+        )
+        if not question:
+            counts["failed"] += 1
+            continue
+        counts[crud.remove_question(db, question)] += 1
+    return {"status": "success", **counts}
 
 
 @router.post("/upload-questions/")
@@ -707,40 +685,11 @@ def delete_exam(
     db: Session = Depends(get_db),
     membership: models.Membership = Depends(require_staff),
 ):
-    """Delete an exam and all associated data."""
+    """Delete an exam nobody has started; archive one with attempts so results and records are kept."""
     exam = _get_org_exam(db, exam_id, membership)
-
-    # Delete all attempts and their answers and evaluations
-    attempts = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.exam_id == exam_id
-    ).all()
-
-    for attempt in attempts:
-        # Get all answers for this attempt
-        answers = db.query(models.Answer).filter(
-            models.Answer.attempt_id == attempt.id
-        ).all()
-
-        # Delete evaluations for each answer first (respects FK constraint)
-        for answer in answers:
-            evals = db.query(models.Evaluation).filter(
-                models.Evaluation.answer_id == answer.id
-            ).all()
-            for eval_record in evals:
-                db.delete(eval_record)
-            # Delete the answer
-            db.delete(answer)
-
-        # Finally delete attempt
-        db.delete(attempt)
-
-    db.flush()  # Flush changes to ensure FK constraints are respected
-
-    # Delete the exam (CASCADE will automatically delete exam_questions entries)
-    db.delete(exam)
-    db.commit()
-
-    return {"status": "success", "message": "Exam deleted successfully"}
+    outcome = crud.remove_exam(db, exam)
+    message = "Exam deleted" if outcome == "deleted" else "Exam archived: students took it, so their results are kept"
+    return {"status": outcome, "message": message}
 
 
 @router.get("/exams/{exam_id}/attempts")

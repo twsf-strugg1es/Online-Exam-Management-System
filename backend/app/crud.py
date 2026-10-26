@@ -152,7 +152,42 @@ def create_exam(db: Session, exam: schemas.ExamCreate, organization_id: uuid.UUI
 
 def get_exams(db: Session, organization_id: uuid.UUID) -> list[models.Exam]:
     """Get all of an organization's exams."""
-    return db.query(models.Exam).filter(models.Exam.organization_id == organization_id).all()
+    return (
+        db.query(models.Exam)
+        .filter(models.Exam.organization_id == organization_id, models.Exam.archived_at.is_(None))
+        .all()
+    )
+
+
+def question_in_use(db: Session, question_id: uuid.UUID) -> bool:
+    """Whether deleting the question would erase part of an exam or a student's answer."""
+    answered = db.query(models.Answer.id).filter(models.Answer.question_id == question_id).first()
+    in_exam = db.query(models.exam_questions.c.exam_id).filter(models.exam_questions.c.question_id == question_id).first()
+    return bool(answered or in_exam)
+
+
+def remove_question(db: Session, question: models.Question) -> str:
+    """Delete an unused question; archive one that exams or answers refer to. Returns what happened."""
+    if question_in_use(db, question.id):
+        question.archived_at = datetime.now(timezone.utc)
+        db.commit()
+        return "archived"
+    db.delete(question)
+    db.commit()
+    return "deleted"
+
+
+def remove_exam(db: Session, exam: models.Exam) -> str:
+    """Delete an exam nobody has started; archive (and unpublish) one with attempts. Returns what happened."""
+    started = db.query(models.ExamAttempt.id).filter(models.ExamAttempt.exam_id == exam.id).first()
+    if started:
+        exam.archived_at = datetime.now(timezone.utc)
+        exam.is_published = False
+        db.commit()
+        return "archived"
+    db.delete(exam)
+    db.commit()
+    return "deleted"
 
 
 def get_exam_by_id(db: Session, exam_id: uuid.UUID) -> models.Exam | None:
@@ -173,6 +208,7 @@ def get_available_exams(db: Session, membership: models.Membership) -> list[mode
         .filter(
             models.Exam.is_published == True,
             models.Exam.organization_id == membership.organization_id,
+            models.Exam.archived_at.is_(None),
         )
         .all()
     )

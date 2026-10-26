@@ -79,6 +79,7 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | correct_answers | json | ✓ | | Value(s) from `options`; for text/image types, a reference answer or empty |
 | max_score | int | ✓ | 1 | |
 | tags | json | | `[]` | List of lowercase strings |
+| archived_at | timestamptz | | null | Set instead of deleting once an exam or answer uses the question; archived questions leave the bank and can't be added to new exams (migration 0005) |
 | *(planned)* default_time_limit_seconds | int | | null | Suggested limit when the question is used in a per-question exam (10–3600). Also an optional Excel column `time_limit_seconds` |
 
 ### exams
@@ -96,6 +97,7 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | require_fullscreen | bool | ✓ | true | |
 | block_copy_paste | bool | ✓ | true | |
 | max_violations | int | | null | 1–100; null = never auto-submit |
+| archived_at | timestamptz | | null | Set (and the exam unpublished) instead of deleting once anyone has started it; hidden from staff and candidate lists, results stay reachable (migration 0005) |
 | *(planned)* timing_mode | text | ✓ | `exam` | `exam` (one duration, free navigation) or `per_question` (one question at a time, forward only) |
 | *(planned)* default_question_seconds | int | | null | Per-question mode: limit used for questions without their own; null = no limit |
 
@@ -250,8 +252,8 @@ O = owner, A = admin, E = examiner, C = candidate (in the same organization). Ot
 | Data | Current behavior | Required behavior *(planned)* |
 |---|---|---|
 | Organization | Cascade-deletes memberships, groups, questions, exams | Owner-initiated deletion with a 30-day grace period + full export first |
-| Exam | Hard delete with all attempts, answers, evaluations, events | Archive instead of delete once any attempt exists; hard delete only for drafts |
-| Question | Single delete fails if answers reference it; **bulk delete removes candidates' past answers and grades** | Never destroy answers: archive (soft delete) questions used in any exam; only unused questions are hard-deleted |
+| Exam | **Done (2.7):** deleted only if nobody has started it; otherwise archived and unpublished, attempts, answers, grades and events kept | Same |
+| Question | **Done (2.7):** deleted only if no exam or answer uses it; otherwise archived. Answers and grades are never deleted | Same |
 | Candidate removed from organization | Membership deleted; attempts kept | Same |
 | User account | No deletion endpoint | Self-service deletion; anonymize attempts (keep scores, drop personal data) |
 | Integrity events | Kept forever | Keep for the life of the exam record |
@@ -261,6 +263,6 @@ O = owner, A = admin, E = examiner, C = candidate (in the same organization). Ot
 ## Migration and seed data
 
 - **Process:** every schema change is a new Alembic revision in `backend/migrations/versions/` named `000N_<what>.py`, with `down_revision` = the previous revision. Never edit an applied migration. New non-null columns need a `server_default`. Data fixes go in the same migration as the constraint they enable (see `0004`). Test `upgrade` on a copy of real data and against an empty database.
-- **History:** `0001_baseline` → `0002_organizations` (moves single-tenant data into "Default Organization": admins → owners, students → candidates, SSC/HSC/Admission → groups) → `0003_exam_integrity` → `0004_one_attempt_per_exam`.
+- **History:** `0001_baseline` → `0002_organizations` (moves single-tenant data into "Default Organization": admins → owners, students → candidates, SSC/HSC/Admission → groups) → `0003_exam_integrity` → `0004_one_attempt_per_exam` → `0005_archive_instead_of_delete`.
 - **Seed:** `python create_admin.py [email] [password] ["Org name"]` creates an organization and its owner (default `admin@example.com` with a random password printed once, "Demo Organization") and prints the join code. A sample question file is `sample_questions.xlsx`; the template is downloadable from the Question bank.
 - **Tests:** the pytest fixtures build the schema with `Base.metadata.create_all` on SQLite. Keep models and migrations in sync; *(planned)* a CI job runs `alembic upgrade head` on Postgres and compares it with the models.

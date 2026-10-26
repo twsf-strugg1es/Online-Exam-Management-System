@@ -143,14 +143,14 @@ function AdminExamsPage() {
   const deleteExam = async (exam) => {
     const ok = await confirm({
       title: `Delete “${exam.title}”?`,
-      description: 'All attempts, answers and grading for this exam are deleted too. This cannot be undone.',
+      description: 'If students have started it, it is archived instead: hidden from lists and closed, with their results and integrity records kept.',
       confirmLabel: 'Delete exam',
       danger: true,
     });
     if (!ok) return;
     try {
-      await api.delete(`/admin/exams/${exam.id}`);
-      setMessage({ tone: 'success', text: 'Exam deleted' });
+      const { data } = await api.delete(`/admin/exams/${exam.id}`);
+      setMessage({ tone: 'success', text: data.message });
       fetchExams();
     } catch (err) {
       setMessage({ tone: 'danger', text: errorMessage(err) });

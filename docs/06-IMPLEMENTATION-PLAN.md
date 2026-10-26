@@ -46,7 +46,7 @@ The product already exists (see "Completed"). Milestones 1–6 take it to a **pa
 | [ ] | 2.4 | Password reset | agent | 2.3 | `password_reset_tokens` table (hashed, 30 min, single use); 2 endpoints; `/forgot-password`, `/reset-password/:token` pages | PRD **AC14** passes; tests for reuse, expiry, unknown email | 2.3 |
 | [ ] | 2.5 | Email verification (soft) | agent | 2.3 | `users.email_verified_at`; verify link; banner until verified | Unverified users can still take exams (pilot) | 2.3 |
 | [ ] | 2.6 | Rate limiting on `/token`, signup, reset | agent | — | `slowapi` limits | Exceeding the limit → 429; test | — |
-| [ ] | 2.7 | Archive instead of destroy | agent | 05 Schema "Retention" | `questions.archived_at`, `exams.archived_at`; delete = archive once used | Deleting a used question never removes answers; past results still render; tests | 2.1 |
+| [x] | 2.7 | Archive instead of destroy | agent | 05 Schema "Retention" | `questions.archived_at`, `exams.archived_at`; delete = archive once used | Deleting a used question never removes answers; past results still render; tests | 2.1 |
 | [ ] | 2.8 | JWT subject = user ID (accept old email tokens for one release) | agent | — | `security.py` | Changing an email doesn't log the user out; test | — |
 
 ## Milestone 3: Core journey (pilot-ready exam operations)

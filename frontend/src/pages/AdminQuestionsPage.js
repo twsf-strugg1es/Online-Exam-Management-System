@@ -218,18 +218,21 @@ function AdminQuestionsPage() {
     const many = ids.length > 1;
     const ok = await confirm({
       title: many ? `Delete ${ids.length} questions?` : 'Delete this question?',
-      description: 'Students’ answers to these questions are deleted too. This cannot be undone.',
+      description: 'Questions used in an exam are archived instead: they leave the bank, but past results keep them. Unused questions are deleted.',
       confirmLabel: 'Delete',
       danger: true,
     });
     if (!ok) return;
     try {
+      let text;
       if (many) {
-        await api.post('/admin/questions/delete-bulk', { question_ids: ids });
+        const { data } = await api.post('/admin/questions/delete-bulk', { question_ids: ids });
+        text = [data.deleted && `${data.deleted} deleted`, data.archived && `${data.archived} archived (used in exams, kept for results)`]
+          .filter(Boolean).join(', ') || 'Nothing changed';
       } else {
-        await api.delete(`/admin/questions/${ids[0]}`);
+        text = (await api.delete(`/admin/questions/${ids[0]}`)).data.message;
       }
-      setMessage({ tone: 'success', text: many ? `${ids.length} questions deleted` : 'Question deleted' });
+      setMessage({ tone: 'success', text });
       setSelected(new Set());
       fetchQuestions();
     } catch (err) {
