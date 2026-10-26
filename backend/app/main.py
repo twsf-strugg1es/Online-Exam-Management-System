@@ -1,9 +1,14 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from . import models  # noqa: F401  # ensure models are imported so metadata has tables
+from .database import get_db
 from .routers import admin, auth, organizations, student, profile
 
 # The database schema is managed by Alembic migrations: run `alembic upgrade head`.
@@ -29,9 +34,14 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-async def read_root():
-    return {"message": "Hello"}
+@app.get("/health", tags=["Health"])
+def health(db: Session = Depends(get_db)):
+    """Liveness and database check for uptime monitors and container health checks."""
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        return JSONResponse(status_code=503, content={"status": "error", "database": "unreachable"})
+    return {"status": "ok", "database": "ok"}
 
 
 # Include routers AFTER middleware is configured

@@ -37,7 +37,7 @@ pip install -r requirements.txt
 alembic upgrade head
 python create_admin.py                       # demo org + owner admin@example.com / admin123
 python -m uvicorn app.main:app --reload --port 8000
-python -m pytest tests/ -q                   # must pass before every commit
+DATABASE_URL=sqlite:///:memory: SECRET_KEY=test python -m pytest tests/ -q   # must pass before every commit; tests use SQLite but app import needs both vars
 
 # frontend
 cd frontend
