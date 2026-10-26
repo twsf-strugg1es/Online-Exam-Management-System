@@ -92,7 +92,7 @@ function AnswerCard({ answer, index, onSaved }) {
             onChange={(e) => setComment(e.target.value.slice(0, COMMENT_LIMIT))}
             placeholder={t('Feedback for the student (optional)')}
           />
-          <p className="hint text-right">{comment.length}/{COMMENT_LIMIT}</p>
+          <p className="hint text-end">{comment.length}/{COMMENT_LIMIT}</p>
         </div>
         {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex justify-end">
@@ -135,7 +135,7 @@ function AdminEvaluateAnswersPage() {
   return (
     <AppShell width="narrow">
       <Link to={`/admin-exams/${data.exam.id}`} className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-        <LuArrowLeft className="h-4 w-4" /> {data.exam.title}
+        <LuArrowLeft className="h-4 w-4 rtl:-scale-x-100" /> {data.exam.title}
       </Link>
 
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">

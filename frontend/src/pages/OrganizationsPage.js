@@ -73,7 +73,7 @@ function OrganizationsPage() {
                   key={m.organization_id}
                   type="button"
                   onClick={() => open(m.organization_id)}
-                  className="group flex w-full items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-sunken/60"
+                  className="group flex w-full items-center gap-4 px-4 py-3.5 text-start transition-colors hover:bg-sunken/60"
                 >
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sunken text-sm font-semibold">
                     {m.organization_name.slice(0, 1).toUpperCase()}
@@ -85,7 +85,7 @@ function OrganizationsPage() {
                   {active ? (
                     <LuCheck className="h-4 w-4 text-brand" />
                   ) : (
-                    <LuArrowRight className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5" />
+                    <LuArrowRight className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
                   )}
                 </button>
               );

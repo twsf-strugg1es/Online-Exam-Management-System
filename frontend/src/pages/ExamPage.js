@@ -33,9 +33,9 @@ function RulesScreen({ exam, resuming, onStart, starting, error }) {
     <div className="min-h-screen bg-paper">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Logo />
-        <Link to="/student-account" className="btn btn-ghost btn-sm"><LuArrowLeft className="h-4 w-4" />{t('Back')}</Link>
+        <Link to="/student-account" className="btn btn-ghost btn-sm"><LuArrowLeft className="h-4 w-4 rtl:-scale-x-100" />{t('Back')}</Link>
       </header>
-      <main className="sheet sheet-margin mx-auto mb-16 mt-4 max-w-2xl px-6 pb-10 pt-9 sm:pl-14 sm:pr-12">
+      <main className="sheet sheet-margin mx-auto mb-16 mt-4 max-w-2xl px-6 pb-10 pt-9 sm:ps-14 sm:pe-12">
         <div className="flex items-baseline justify-between gap-4 border-b-2 border-ink pb-3.5">
           <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em]">{exam.title}</h1>
           <span className="eyebrow shrink-0">{resuming ? t('Continue') : t('Instructions')}</span>
@@ -161,7 +161,7 @@ function QuestionNav({ questions, answers, flagged, current, onJump }) {
               aria-current={i === current ? 'step' : undefined}
             >
               {String(i + 1).padStart(2, '0')}
-              {flagged.has(q.id) && <span className="absolute -right-[3px] -top-[3px] h-[9px] w-[9px] rounded-full border-2 border-surface bg-danger" />}
+              {flagged.has(q.id) && <span className="absolute -end-[3px] -top-[3px] h-[9px] w-[9px] rounded-full border-2 border-surface bg-danger" />}
             </button>
           );
         })}
@@ -169,7 +169,7 @@ function QuestionNav({ questions, answers, flagged, current, onJump }) {
       <div className="mt-5 space-y-2 border-t border-line pt-4 text-[13px] text-muted">
         <p className="flex items-center gap-2.5"><span className="bubble bubble-filled h-4 w-4" />{t('Answered')}</p>
         <p className="flex items-center gap-2.5"><span className="bubble h-4 w-4" />{t('Not answered')}</p>
-        <p className="flex items-center gap-2.5"><span className="relative"><span className="bubble h-4 w-4" /><span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-danger" /></span>{t('Flagged')}</p>
+        <p className="flex items-center gap-2.5"><span className="relative"><span className="bubble h-4 w-4" /><span className="absolute -end-1 -top-1 h-2 w-2 rounded-full bg-danger" /></span>{t('Flagged')}</p>
       </div>
     </div>
   );
@@ -330,7 +330,7 @@ function ResultsScreen({ results, submitReason }) {
             return (
               <Card key={q.id} className="px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-medium"><span className="tabular mr-2 text-muted">{i + 1}.</span>{q.title}</p>
+                  <p className="text-sm font-medium"><span className="tabular me-2 text-muted">{i + 1}.</span>{q.title}</p>
                   {correct === true && <Badge tone="brand">{t('Correct')}</Badge>}
                   {correct === false && <Badge tone="danger">{t('Incorrect')}</Badge>}
                   {correct === null && (q.type === 'text' || q.type === 'image_upload') && <Badge>{t('Graded later')}</Badge>}
@@ -572,8 +572,10 @@ function ExamPage() {
       if (e.target.closest?.('input[type="text"], textarea, [contenteditable="true"]')) return;
       const q = questions[current];
       if (!q) return;
-      if (e.key === 'ArrowRight' && current < questions.length - 1) { e.preventDefault(); setCurrent(current + 1); return; }
-      if (e.key === 'ArrowLeft' && current > 0) { e.preventDefault(); setCurrent(current - 1); return; }
+      const rtl = document.documentElement.dir === 'rtl';
+      const [nextKey, prevKey] = rtl ? ['ArrowLeft', 'ArrowRight'] : ['ArrowRight', 'ArrowLeft'];
+      if (e.key === nextKey && current < questions.length - 1) { e.preventDefault(); setCurrent(current + 1); return; }
+      if (e.key === prevKey && current > 0) { e.preventDefault(); setCurrent(current - 1); return; }
       if (e.key.toLowerCase() === 'f') { e.preventDefault(); toggleFlag(q.id); return; }
       const n = Number(e.key);
       const option = Number.isInteger(n) && n >= 1 ? q.options?.[n - 1] : undefined;
@@ -631,7 +633,7 @@ function ExamPage() {
           <LogoMark size={22} />
           <p className="min-w-0 flex-1 truncate text-sm font-medium">
             {session.exam.title}
-            <span className="ml-3 font-mono text-xs font-normal text-faint">{tn(questions.length, '{{count}} question', '{{count}} questions')}</span>
+            <span className="ms-3 font-mono text-xs font-normal text-faint">{tn(questions.length, '{{count}} question', '{{count}} questions')}</span>
           </p>
           <SaveStatus status={saveStatus} />
           <ViolationChip count={integrity.violations} max={integrity.maxViolations} />
@@ -663,7 +665,7 @@ function ExamPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={cx('ml-auto', flagged.has(question.id) && 'text-danger hover:text-danger')}
+                    className={cx('ms-auto', flagged.has(question.id) && 'text-danger hover:text-danger')}
                     onClick={() => toggleFlag(question.id)}
                     aria-pressed={flagged.has(question.id)}
                   >
@@ -689,7 +691,7 @@ function ExamPage() {
           </div>
         </main>
 
-        <aside className="border-l border-line bg-surface px-7 py-8" aria-label={t('Questions')}>
+        <aside className="border-s border-line bg-surface px-7 py-8" aria-label={t('Questions')}>
           <div className="sticky top-24">
             <p className="tabular font-mono text-xs text-muted"><b className="block text-xl font-semibold text-ink">{t('{{n}} of {{total}}', { n: answeredCount, total: questions.length })}</b>{t('answered')}</p>
             <div className="mt-5">

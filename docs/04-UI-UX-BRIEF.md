@@ -177,7 +177,7 @@ Rules that follow from the budget:
 
 - **No hardcoded copy.** Every visible string goes through `t()` / `tn()` (task 1.8 done). Keep sentences whole (no concatenation); plurals via i18n rules.
 - **Allow ~40% text expansion.** No fixed widths on text; buttons wrap gracefully.
-- **Right-to-left ready.** Logical utilities (`ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`); directional icons flip.
+- **Right-to-left ready (task 1.10 done).** Only logical utilities: `ms-*`/`me-*`, `ps-*`/`pe-*`, `start-*`/`end-*`, `text-start`/`text-end`, `border-s`/`border-e`, `rounded-s`/`rounded-e`. Never `ml-`, `pl-`, `left-`, `text-left`, `border-l`, `rounded-l`. Arrows that mean back/forward get `rtl:-scale-x-100`; anything moved with `translate-x` needs its `rtl:` opposite. Check with `?lang=en-XB` (pseudo-language laid out right to left). Latin pseudo-text shows punctuation in odd places under RTL; that's the browser's bidi algorithm, not a layout bug.
 - **Fonts per script**, loaded only when that language is used.
 - **Locale formatting** via `Intl` for dates, times, numbers and currency; show the timezone for exam windows when it differs from the viewer's.
 - **Neutral sample data** (names, places) in empty states, previews and marketing.

@@ -109,10 +109,11 @@
   }
   textarea.input { @apply h-auto py-2.5 leading-relaxed; }
   select.input {
-    @apply cursor-pointer appearance-none bg-no-repeat pr-9;
+    @apply cursor-pointer appearance-none bg-no-repeat pe-9;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%237d838d' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
     background-position: right 0.7rem center;
   }
+  [dir="rtl"] select.input { background-position: left 0.7rem center; }
 
   .label { @apply mb-1.5 block text-sm font-medium text-ink; }
   .hint { @apply mt-1.5 text-xs leading-relaxed text-muted; }
@@ -128,7 +129,7 @@
 
   .table { @apply w-full border-collapse text-sm; }
   .table th {
-    @apply border-b border-line-strong px-4 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-faint;
+    @apply border-b border-line-strong px-4 pb-2.5 pt-3 text-start font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-faint;
   }
   .table td { @apply border-b border-line px-4 py-3 align-middle; }
   .table tbody tr:last-child td { @apply border-b-0; }
@@ -147,5 +148,5 @@
   .tag { @apply inline-flex items-center whitespace-nowrap rounded-sm border border-line-strong px-1.5 py-[3px] font-mono text-[11px] font-medium tracking-[0.03em] text-muted; }
   .sheet { @apply relative border border-line bg-surface; }
   /* Red margin line, as on exam paper */
-  .sheet-margin::before { content: ""; @apply absolute inset-y-0 left-3 w-px bg-danger/35 sm:left-7; }
+  .sheet-margin::before { content: ""; @apply absolute inset-y-0 start-3 w-px bg-danger/35 sm:start-7; }
 }

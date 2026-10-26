@@ -10,13 +10,15 @@ import { setI18n } from '../utils';
  *   tn(count, '{{count}} question', '{{count}} questions')
  *
  * "en-XA" is a pseudo-language for finding strings that skipped t(): everything translated
- * renders as [Ŝîĝñ îñ], so plain English on screen is a miss.
+ * renders as [Ŝîĝñ îñ], so plain English on screen is a miss. "en-XB" is the same text laid out
+ * right to left, for checking layouts before a real RTL language (Arabic, Urdu) ships.
  */
 
 const CATALOGS = {
   en: { label: 'English', dir: 'ltr', messages: {} },
   bn: { label: 'বাংলা', dir: 'ltr', messages: {} }, // filled by task 4.13
   'en-XA': { label: 'Pseudo (test)', dir: 'ltr', messages: null, hidden: true },
+  'en-XB': { label: 'Pseudo RTL (test)', dir: 'rtl', messages: null, hidden: true },
 };
 
 const STORAGE_KEY = 'language';
@@ -24,6 +26,9 @@ const ACCENTS = { a: 'á', b: 'ƀ', c: 'ç', d: 'ð', e: 'é', f: 'ƒ', g: 'ĝ',
 
 const pseudo = (text) => `[${text.replace(/\{\{\w+\}\}|[A-Za-z]/g, (m) => (m.length > 1 ? m : ACCENTS[m] || m))}]`;
 const interpolate = (text, vars) => (vars ? text.replace(/\{\{(\w+)\}\}/g, (m, k) => (vars[k] ?? m)) : text);
+
+// Pseudo-languages format dates, numbers and plurals as English
+const baseLocale = (language) => (language.startsWith('en-X') ? 'en' : language);
 
 export function initialLanguage() {
   try {
@@ -43,7 +48,7 @@ export function initialLanguage() {
 
 export function makeTranslator(language) {
   const catalog = CATALOGS[language] || CATALOGS.en;
-  const plural = new Intl.PluralRules(language === 'en-XA' ? 'en' : language);
+  const plural = new Intl.PluralRules(baseLocale(language));
   const lookup = (key) => (catalog.messages ? catalog.messages[key] : undefined);
 
   const t = (key, vars) => {
@@ -69,7 +74,7 @@ export function I18nProvider({ children }) {
 
   useEffect(() => {
     const catalog = CATALOGS[language] || CATALOGS.en;
-    document.documentElement.lang = language === 'en-XA' ? 'en' : language;
+    document.documentElement.lang = baseLocale(language);
     document.documentElement.dir = catalog.dir;
   }, [language]);
 
@@ -85,7 +90,7 @@ export function I18nProvider({ children }) {
 
   const value = useMemo(() => {
     const { t, tn } = makeTranslator(language);
-    const locale = language === 'en-XA' ? 'en' : language;
+    const locale = baseLocale(language);
     setI18n({ t, locale }); // plain helpers (errorMessage, date formatting) follow the language too
     return { language, locale, setLanguage, t, tn };
   }, [language, setLanguage]);

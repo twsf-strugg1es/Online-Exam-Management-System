@@ -60,7 +60,7 @@ function Sidebar({ onNavigate }) {
       <button
         type="button"
         onClick={() => { onNavigate?.(); navigate('/organizations'); }}
-        className="group flex items-center gap-3 rounded border border-line bg-surface px-3 py-2.5 text-left transition-colors hover:border-line-strong"
+        className="group flex items-center gap-3 rounded border border-line bg-surface px-3 py-2.5 text-start transition-colors hover:border-line-strong"
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-ink">{currentMembership?.organization_name}</span>
@@ -114,7 +114,7 @@ export default function AppShell({ children, width = 'default' }) {
 
   return (
     <div className="min-h-screen bg-paper">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-line bg-paper lg:block">
+      <aside className="fixed inset-y-0 start-0 hidden w-64 border-e border-line bg-paper lg:block">
         <Sidebar />
       </aside>
 
@@ -128,10 +128,10 @@ export default function AppShell({ children, width = 'default' }) {
       {menuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 animate-fade-in bg-black/40" onClick={() => setMenuOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] animate-rise-in border-r border-line bg-paper">
+          <div className="absolute inset-y-0 start-0 w-72 max-w-[85vw] animate-rise-in border-e border-line bg-paper">
             <button
               type="button"
-              className="btn btn-ghost btn-icon absolute right-3 top-4"
+              className="btn btn-ghost btn-icon absolute end-3 top-4"
               onClick={() => setMenuOpen(false)}
               aria-label={t('Close menu')}
             >
@@ -142,7 +142,7 @@ export default function AppShell({ children, width = 'default' }) {
         </div>
       )}
 
-      <main className="lg:pl-64">
+      <main className="lg:ps-64">
         <div className={cx('mx-auto px-4 py-8 sm:px-8 lg:px-12 lg:py-10', width === 'narrow' ? 'max-w-3xl' : 'max-w-6xl')}>
           {children}
         </div>

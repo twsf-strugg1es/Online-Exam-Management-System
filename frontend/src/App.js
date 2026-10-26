@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { PageLoader } from './components/ui';
 import DesktopOnly from './components/DesktopOnly';
-import { useI18n } from './i18n';
+import { LANGUAGES, useI18n } from './i18n';
 import { setTimeZone } from './utils';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -25,16 +25,18 @@ import StudentProfilePage from './pages/StudentProfilePage';
 
 function App() {
   const { user, isLoading, currentMembership, isStaff, isManager, isCandidate } = useAuth();
-  const { setLanguage } = useI18n();
+  const { language, setLanguage } = useI18n();
 
   // Set during render so every date on this render already uses the organization's timezone
   setTimeZone(currentMembership?.timezone);
 
-  // The account's language wins, then the organization's; ?lang= in the URL overrides both
+  // The account's language wins, then the organization's. ?lang= in the URL overrides both, and a
+  // test pseudo-language (en-XA, en-XB) stays until it's changed, so it survives reloads
   const preferredLanguage = user?.language || currentMembership?.default_language;
   useEffect(() => {
-    if (preferredLanguage && !new URLSearchParams(window.location.search).has('lang')) setLanguage(preferredLanguage);
-  }, [preferredLanguage, setLanguage]);
+    const testing = !LANGUAGES.some((l) => l.code === language);
+    if (preferredLanguage && !testing && !new URLSearchParams(window.location.search).has('lang')) setLanguage(preferredLanguage);
+  }, [preferredLanguage, setLanguage]); // eslint-disable-line react-hooks/exhaustive-deps -- only when the preference changes
 
   if (isLoading) {
     return <div className="min-h-screen bg-paper"><PageLoader /></div>;

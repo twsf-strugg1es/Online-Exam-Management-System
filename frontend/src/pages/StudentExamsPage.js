@@ -56,11 +56,11 @@ function StudentExamsPage() {
                   <p className="truncate font-medium">{exam.exam_title}</p>
                   <p className="mt-0.5 text-xs text-muted">{formatDate(exam.end_time)}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <p className={cx('tabular text-lg font-semibold', scoreTone(exam.percentage))}>{Math.round(exam.percentage)}%</p>
                   <p className="tabular text-xs text-muted">{exam.score} / {exam.total_possible_score}</p>
                 </div>
-                <LuArrowRight className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5" />
+                <LuArrowRight className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
               </Link>
             ))}
           </Card>

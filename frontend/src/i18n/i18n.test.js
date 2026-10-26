@@ -23,3 +23,8 @@ test('the pseudo-language marks every translated string and keeps placeholders w
   expect(t('Hello, {{name}}', { name: 'Arif' })).toBe('[Héļļö, Arif]');
   expect(tn(2, '{{count}} question', '{{count}} questions')).toBe('[2 qûéšţîöñš]');
 });
+
+test('the right-to-left pseudo-language uses the same marked text', () => {
+  const { t } = makeTranslator('en-XB');
+  expect(t('Sign in')).toBe('[Ŝîĝñ îñ]');
+});

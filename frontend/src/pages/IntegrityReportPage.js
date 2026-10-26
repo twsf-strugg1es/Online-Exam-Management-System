@@ -69,7 +69,7 @@ function IntegrityReportPage() {
   return (
     <AppShell width="narrow">
       <Link to={`/admin-exams/${exam.id}`} className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-        <LuArrowLeft className="h-4 w-4" /> {exam.title}
+        <LuArrowLeft className="h-4 w-4 rtl:-scale-x-100" /> {exam.title}
       </Link>
 
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
@@ -116,7 +116,7 @@ function IntegrityReportPage() {
           </EmptyState>
         ) : (
           <ol className="relative px-5 py-4">
-            <span className="absolute bottom-6 left-[38px] top-6 w-px bg-line" aria-hidden />
+            <span className="absolute bottom-6 start-[38px] top-6 w-px bg-line" aria-hidden />
             {events.map((event, i) => {
               const info = EVENT_INFO[event.type] || { icon: LuInfo, label: () => event.type };
               const Icon = info.icon;

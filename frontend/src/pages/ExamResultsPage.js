@@ -75,7 +75,7 @@ function ExamResultsPage() {
   return (
     <AppShell>
       <Link to="/admin-exams" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-        <LuArrowLeft className="h-4 w-4" /> {t('Exams')}
+        <LuArrowLeft className="h-4 w-4 rtl:-scale-x-100" /> {t('Exams')}
       </Link>
 
       {error && <Alert tone="danger" className="mb-6">{error}</Alert>}
@@ -115,8 +115,8 @@ function ExamResultsPage() {
             ]}
           />
           <div className="relative mb-2 w-full sm:w-64">
-            <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search students')} className="h-9 pl-9" />
+            <LuSearch className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search students')} className="h-9 ps-9" />
           </div>
         </div>
 
@@ -131,7 +131,7 @@ function ExamResultsPage() {
                 <tr>
                   <th>{t('Student')}</th>
                   <th>{t('Status')}</th>
-                  <th className="text-right">{t('Score')}</th>
+                  <th className="text-end">{t('Score')}</th>
                   <th>{t('Integrity')}</th>
                   <th />
                 </tr>
@@ -155,7 +155,7 @@ function ExamResultsPage() {
                         <Badge tone="info">{t('In progress')}</Badge>
                       )}
                     </td>
-                    <td className="tabular whitespace-nowrap text-right">
+                    <td className="tabular whitespace-nowrap text-end">
                       {a.is_submitted ? (
                         <>
                           <span className="font-medium">{a.score}</span>

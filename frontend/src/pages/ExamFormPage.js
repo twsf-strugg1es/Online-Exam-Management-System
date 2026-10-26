@@ -93,7 +93,7 @@ function ExamFormPage() {
   return (
     <AppShell>
       <Link to="/admin-exams" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-        <LuArrowLeft className="h-4 w-4" /> {t('Exams')}
+        <LuArrowLeft className="h-4 w-4 rtl:-scale-x-100" /> {t('Exams')}
       </Link>
       <PageHeader title={t('New exam')} />
 
@@ -137,8 +137,8 @@ function ExamFormPage() {
               <>
                 <div className="border-b border-line p-3">
                   <div className="relative">
-                    <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search questions')} className="pl-9" />
+                    <LuSearch className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search questions')} className="ps-9" />
                   </div>
                 </div>
                 <div className="max-h-[420px] divide-y divide-line overflow-y-auto">

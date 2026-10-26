@@ -15,7 +15,7 @@ function ScoreBar({ value }) {
       <span className="h-1.5 w-20 overflow-hidden rounded-full bg-sunken">
         <span className={`block h-full rounded-full ${tone}`} style={{ width: `${Math.min(100, value)}%` }} />
       </span>
-      <span className="tabular w-9 text-right text-sm">{value}%</span>
+      <span className="tabular w-9 text-end text-sm">{value}%</span>
     </span>
   );
 }
@@ -103,8 +103,8 @@ function AdminStudentsPage() {
         <Card className="overflow-hidden">
           <div className="flex flex-wrap gap-2 border-b border-line p-3">
             <div className="relative min-w-[200px] flex-1">
-              <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search by name or email')} className="pl-9" />
+              <LuSearch className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search by name or email')} className="ps-9" />
             </div>
             {groups.length > 0 && (
               <Select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="w-auto">
@@ -140,7 +140,7 @@ function AdminStudentsPage() {
                     <td><ScoreBar value={s.overall || 0} /></td>
                     <td className="whitespace-nowrap text-muted">{formatDate(s.joined_at)}</td>
                     {isManager && (
-                      <td className="text-right">
+                      <td className="text-end">
                         <Button variant="danger-ghost" size="sm" icon={LuUserMinus} onClick={() => remove(s)} aria-label={t('Remove from organization')} />
                       </td>
                     )}

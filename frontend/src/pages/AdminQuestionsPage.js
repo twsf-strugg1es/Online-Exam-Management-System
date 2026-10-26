@@ -108,7 +108,7 @@ function ImportDialog({ open, onClose, onImported }) {
           {preview.questions.map((q, i) => (
             <div key={i} className="rounded-lg border border-line px-4 py-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="text-sm font-medium"><span className="tabular mr-2 text-muted">{i + 1}.</span>{q.title}</p>
+                <p className="text-sm font-medium"><span className="tabular me-2 text-muted">{i + 1}.</span>{q.title}</p>
                 <div className="flex gap-1.5">
                   <Badge>{t(QUESTION_TYPE_LABELS[q.type] || '')}</Badge>
                   <Badge tone={COMPLEXITY_TONES[q.complexity]}>{t(q.complexity)}</Badge>
@@ -283,8 +283,8 @@ function AdminQuestionsPage() {
         <Card className="overflow-hidden">
           <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
             <div className="relative min-w-[200px] flex-1">
-              <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search questions')} className="pl-9" />
+              <LuSearch className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search questions')} className="ps-9" />
             </div>
             <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="w-auto">
               <option value="">{t('All types')}</option>
@@ -316,7 +316,7 @@ function AdminQuestionsPage() {
                   <th>{t('Question')}</th>
                   <th>{t('Type')}</th>
                   <th>{t('Difficulty')}</th>
-                  <th className="text-right">{t('Points')}</th>
+                  <th className="text-end">{t('Points')}</th>
                   <th className="w-24" />
                 </tr>
               </thead>
@@ -325,12 +325,12 @@ function AdminQuestionsPage() {
                   <tr key={q.id} className={cx(selected.has(q.id) && 'bg-brand-soft/30')}>
                     <td><Checkbox checked={selected.has(q.id)} onChange={() => toggle(q.id)} /></td>
                     <td className="max-w-md">
-                      <button type="button" onClick={() => setViewing(q)} className="text-left font-medium hover:text-brand">{q.title}</button>
+                      <button type="button" onClick={() => setViewing(q)} className="text-start font-medium hover:text-brand">{q.title}</button>
                       {q.tags?.length > 0 && <p className="mt-0.5 text-xs text-muted">{q.tags.map((tag) => `#${tag}`).join(' ')}</p>}
                     </td>
                     <td className="whitespace-nowrap text-muted">{t(QUESTION_TYPE_LABELS[q.type] || q.type)}</td>
                     <td><Badge tone={COMPLEXITY_TONES[q.complexity]}>{t(q.complexity)}</Badge></td>
-                    <td className="tabular text-right">{q.max_score}</td>
+                    <td className="tabular text-end">{q.max_score}</td>
                     <td>
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="sm" icon={LuEye} onClick={() => setViewing(q)} aria-label={t('View')} />

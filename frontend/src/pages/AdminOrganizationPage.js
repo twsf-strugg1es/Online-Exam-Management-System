@@ -218,14 +218,14 @@ function AdminOrganizationPage() {
               <div className="overflow-x-auto">
                 <table className="table">
                   <thead>
-                    <tr><th>{t('Group')}</th><th>{t('Join code')}</th><th className="text-right">{t('Students')}</th><th /></tr>
+                    <tr><th>{t('Group')}</th><th>{t('Join code')}</th><th className="text-end">{t('Students')}</th><th /></tr>
                   </thead>
                   <tbody>
                     {groups.map((g) => (
                       <tr key={g.id}>
                         <td className="font-medium">{g.name}</td>
                         <td><span className="code-chip">{g.join_code}</span></td>
-                        <td className="tabular text-right">{g.member_count}</td>
+                        <td className="tabular text-end">{g.member_count}</td>
                         <td>
                           <div className="flex justify-end gap-1">
                             <CopyButton text={signupLink(g.join_code)} label={t('Link')} />
@@ -296,7 +296,7 @@ function AdminOrganizationPage() {
                           <div className="flex flex-wrap gap-1">
                             {m.groups.length === 0 && <span className="text-muted">—</span>}
                             {m.groups.map((g) => (
-                              <Badge key={g.id} tone="brand" className="pr-1">
+                              <Badge key={g.id} tone="brand" className="pe-1">
                                 {g.name}
                                 <button
                                   type="button"
@@ -348,7 +348,7 @@ function AdminOrganizationPage() {
                   return (
                     <tr key={m.user_id}>
                       <td>
-                        <p className="font-medium">{m.full_name || m.email}{isMe && <span className="ml-2 text-xs font-normal text-muted">{t('you')}</span>}</p>
+                        <p className="font-medium">{m.full_name || m.email}{isMe && <span className="ms-2 text-xs font-normal text-muted">{t('you')}</span>}</p>
                         {m.full_name && <p className="text-xs text-muted">{m.email}</p>}
                       </td>
                       <td>
@@ -361,7 +361,7 @@ function AdminOrganizationPage() {
                           {(locked ? ['owner'] : assignableRoles).map((r) => <option key={r} value={r}>{t(ROLE_LABELS[r])}</option>)}
                         </Select>
                       </td>
-                      <td className="text-right">
+                      <td className="text-end">
                         {!locked && !isMe && (
                           <Button
                             variant="danger-ghost"

@@ -33,7 +33,7 @@ function StudentResultsPage() {
   return (
     <AppShell width="narrow">
       <Link to="/student-exams" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-        <LuArrowLeft className="h-4 w-4" /> {t('Results')}
+        <LuArrowLeft className="h-4 w-4 rtl:-scale-x-100" /> {t('Results')}
       </Link>
 
       <h1 className="text-2xl font-semibold tracking-tight">{result.exam_title}</h1>
@@ -60,7 +60,7 @@ function StudentResultsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs text-muted">{t(QUESTION_TYPE_LABELS[answer.question_type] || '')}</p>
-                  <p className="mt-0.5 text-sm font-medium"><span className="tabular mr-2 text-muted">{i + 1}.</span>{answer.question_title}</p>
+                  <p className="mt-0.5 text-sm font-medium"><span className="tabular me-2 text-muted">{i + 1}.</span>{answer.question_title}</p>
                 </div>
                 {manual && evaluation?.score_awarded != null && (
                   <Badge tone={evaluation.score_awarded > 0 ? 'brand' : 'danger'}>{t('{{n}} pts', { n: evaluation.score_awarded })}</Badge>

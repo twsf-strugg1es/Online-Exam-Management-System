@@ -66,11 +66,11 @@ function ExamMenu({ exam, onPublishToggle, onDelete }) {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-20 mt-1 w-48 animate-fade-in overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-pop">
+          <div className="absolute end-0 z-20 mt-1 w-48 animate-fade-in overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-pop">
             <button
               type="button"
               onClick={() => { setOpen(false); onPublishToggle(exam); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-sunken"
+              className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-sunken"
             >
               {exam.is_published ? <LuEyeOff className="h-4 w-4 text-muted" /> : <LuSend className="h-4 w-4 text-muted" />}
               {exam.is_published ? t('Unpublish') : t('Publish')}
@@ -78,7 +78,7 @@ function ExamMenu({ exam, onPublishToggle, onDelete }) {
             <button
               type="button"
               onClick={() => { setOpen(false); onDelete(exam); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-danger hover:bg-danger-soft"
+              className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm text-danger hover:bg-danger-soft"
             >
               <LuTrash2 className="h-4 w-4" />
               {t('Delete')}

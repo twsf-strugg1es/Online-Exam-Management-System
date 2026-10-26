@@ -75,7 +75,7 @@ export function Field({ label, hint, error, htmlFor, children, className, option
       {label && (
         <label htmlFor={htmlFor} className="label">
           {label}
-          {optional && <span className="ml-1.5 font-normal text-muted">{t('optional')}</span>}
+          {optional && <span className="ms-1.5 font-normal text-muted">{t('optional')}</span>}
         </label>
       )}
       {children}
@@ -117,7 +117,7 @@ export function Switch({ checked, onChange, label, description, disabled }) {
           onChange={(e) => onChange(e.target.checked)}
         />
         <span className="h-5 w-9 rounded-full bg-line transition-colors peer-checked:bg-brand peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40" />
-        <span className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
+        <span className="absolute start-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4 rtl:peer-checked:-translate-x-4" />
       </span>
     </label>
   );
@@ -313,7 +313,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
             {description && <p className="mt-1 text-sm leading-relaxed text-muted">{description}</p>}
           </div>
           {onClose && (
-            <button type="button" onClick={onClose} className="-mr-1 rounded-md p-1 text-muted hover:bg-sunken hover:text-ink" aria-label={t('Close')}>
+            <button type="button" onClick={onClose} className="-me-1 rounded-md p-1 text-muted hover:bg-sunken hover:text-ink" aria-label={t('Close')}>
               <LuX className="h-4 w-4" />
             </button>
           )}
