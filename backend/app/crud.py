@@ -334,14 +334,26 @@ def save_answer(
     return answer
 
 
-def calculate_and_save_score(
-    db: Session, attempt: models.ExamAttempt, reason: str = models.SUBMIT_STUDENT
-) -> models.ExamAttempt:
-    """Auto-grade an exam attempt, compute total possible score, and save results."""
-    # Get the exam with questions
+def finish_attempt(
+    db: Session, attempt: models.ExamAttempt, reason: str = models.SUBMIT_STUDENT, ended_at: datetime | None = None
+) -> bool:
+    """Close an attempt and auto-grade it. Returns False when something else closed it first
+    (a second tab, a retried request, the abandoned-attempt job): it's scored exactly once."""
     exam = db.query(models.Exam).filter(models.Exam.id == attempt.exam_id).first()
     if not exam:
         raise ValueError("Exam not found")
+    ended_at = ended_at or datetime.now(timezone.utc)
+
+    # Claim it atomically; on PostgreSQL the row stays locked until the commit below
+    claimed = (
+        db.query(models.ExamAttempt)
+        .filter(models.ExamAttempt.id == attempt.id, models.ExamAttempt.end_time.is_(None))
+        .update({models.ExamAttempt.end_time: ended_at}, synchronize_session=False)
+    )
+    if not claimed:
+        db.rollback()
+        db.refresh(attempt)
+        return False
 
     # Get all answers for this attempt
     answers = (
@@ -377,14 +389,20 @@ def calculate_and_save_score(
                 if correct_norm == student_norm:
                     total_score += float(question.max_score or 0)
 
-    # Update attempt with score, total possible, and end time
     attempt.score = float(total_score)  # type: ignore
     attempt.total_possible_score = float(total_possible)  # type: ignore
-    attempt.end_time = datetime.now(timezone.utc)  # type: ignore
+    attempt.end_time = ended_at  # type: ignore
     attempt.submit_reason = reason  # type: ignore
     db.commit()
-    # Refresh the object to ensure it has the committed values
     db.refresh(attempt)
+    return True
+
+
+def calculate_and_save_score(
+    db: Session, attempt: models.ExamAttempt, reason: str = models.SUBMIT_STUDENT, ended_at: datetime | None = None
+) -> models.ExamAttempt:
+    """Close and grade an attempt; if it was already closed, return it as it was saved."""
+    finish_attempt(db, attempt, reason, ended_at)
     return attempt
 
 

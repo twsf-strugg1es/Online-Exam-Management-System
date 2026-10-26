@@ -54,6 +54,7 @@ Backend environment (`backend/.env`):
 | `SECRET_KEY` | yes | JWT signing key; the app refuses to start without it |
 | `CORS_ORIGINS` | no | Comma-separated allowed frontend origins (default: localhost:3000, localhost:5173) |
 | `LOG_LEVEL` | no | `DEBUG` / `INFO` (default) / `WARNING` / `ERROR`. Logs are JSON lines on stdout |
+| `BACKGROUND_JOBS` | no | `on` (default) / `off`. Runs the abandoned-attempt finalizer inside the API; turn off when cron runs `python -m app.jobs finalize-attempts` instead |
 | `RATE_LIMITS` | no | `on` (default) / `off`. Off only for load tests |
 | `APP_URL` | prod: yes | The frontend's public URL, used in emailed links (default `http://localhost:3000`) |
 | `EMAIL_BACKEND` | prod: yes | `console` (default: writes `.eml` files to `EMAIL_OUTBOX_DIR`, sends nothing), `smtp`, `memory` (tests) |
@@ -180,7 +181,7 @@ cd frontend && npm start | npm test -- --watchAll=false | npm run build
 ## Known technical debt
 
 1. Image answers stored in the database (move to object storage).
-2. **Abandoned attempts are never finalized:** an attempt is scored only when the candidate submits, the page auto-submits, or the candidate resumes after the deadline. If they never return, `end_time` stays empty. Needs a scheduled job that finalizes overdue attempts.
+2. ~~Abandoned attempts are never finalized~~ Fixed in 3.1: `app/jobs.py` runs every 60 s inside the API (`main.lifespan`; `BACKGROUND_JOBS=off` disables it) and scores attempts whose deadline + 30 s grace has passed, as `time_up`, ending at the deadline. Cron can run the same job: `python -m app.jobs finalize-attempts`. `crud.finish_attempt` claims an attempt atomically (`UPDATE … WHERE end_time IS NULL`), so a submit, a second tab and the job can't score it twice.
 3. The Excel import changes any tag outside a hardcoded list of 9 into `"others"` (`routers/admin.py`).
 4. No single-question create/edit endpoint or UI (Excel import only); exams can't be edited after creation.
 5. ~~Debug prints and no structured logging~~ Done: JSON logs to stdout via `app/logging_config.py` (one `app.request` line per request with `request_id`, `method`, `path`, `status`, `duration_ms`, `user_id`, `organization_id`, `role`); every response has an `X-Request-ID` header; unexpected 500s return a generic message with that reference instead of exception text. Health check: `GET /health` (200, or 503 when the database is unreachable).

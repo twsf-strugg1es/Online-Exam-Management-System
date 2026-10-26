@@ -263,7 +263,7 @@ def resume_exam(
     now = datetime.now(timezone.utc)
     deadline = crud.get_attempt_deadline(attempt, exam)
     if now > deadline:
-        crud.calculate_and_save_score(db, attempt, reason=models.SUBMIT_TIME_UP)
+        crud.calculate_and_save_score(db, attempt, reason=models.SUBMIT_TIME_UP, ended_at=deadline)
         return {
             "exam": {"id": str(exam.id), "title": exam.title, "auto_submitted": True},
             "attempt": _attempt_payload(attempt),

@@ -53,7 +53,7 @@ The product already exists (see "Completed"). Milestones 1–6 take it to a **pa
 
 | ✓ | ID | Task | Owner | Inputs | Output | Definition of done | Depends on |
 |---|---|---|---|---|---|---|---|
-| [ ] | 3.1 | Finalize abandoned attempts | agent | 02 TRD debt #2 | A scheduled job (APScheduler or cron calling an internal endpoint) that scores attempts past their deadline + grace as `time_up` | An attempt with no submit is finalized within 2 minutes of its deadline; test with a mocked clock | 1.3 |
+| [x] | 3.1 | Finalize abandoned attempts | agent | 02 TRD debt #2 | `app/jobs.py`: an asyncio loop in the API (every 60 s, no new dependency) plus a cron entry point; scores attempts past their deadline + grace as `time_up`, ending at the deadline; scoring is claimed atomically so it happens once | An attempt with no submit is finalized within 2 minutes of its deadline; test with a mocked clock | 1.3 |
 | [ ] | 3.2 | Single-question create/edit | agent | 03 App Flow (question editor) | `POST/PUT /admin/questions`; editor page with type-specific fields | All 4 types can be created and edited; a used question → editing creates a new version or is blocked (decide and document) | 2.7 |
 | [ ] | 3.3 | Edit exam before it opens | agent | — | `PUT /admin/exams/{id}`; `/admin-exams/:id/edit` | Allowed while Draft/Scheduled and no attempts exist; otherwise 409 with a reason | 2.2 |
 | [ ] | 3.4 | Free tags | agent | 02 TRD debt #3 | Remove the hardcoded list in the import; tag autocomplete | Imported tags are kept as written (lower-cased) | — |

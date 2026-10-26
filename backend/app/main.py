@@ -1,4 +1,6 @@
+import asyncio
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,7 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from . import models, notify  # noqa: F401  # models: ensure metadata has tables
+from . import jobs, models, notify  # noqa: F401  # models: ensure metadata has tables
 from .database import get_db
 from .logging_config import configure_logging, request_logging_middleware
 from .routers import admin, auth, email_verification, organizations, password_reset, student, profile
@@ -15,8 +17,19 @@ from .routers import admin, auth, email_verification, organizations, password_re
 configure_logging()
 notify.warn_if_not_sending()
 
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Start the background jobs (e.g. finalizing abandoned attempts) with the API."""
+    task = asyncio.create_task(jobs.run_forever()) if jobs.jobs_enabled() else None
+    yield
+    if task:
+        task.cancel()
+
+
 # The database schema is managed by Alembic migrations: run `alembic upgrade head`.
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # Comma-separated list of frontend origins allowed to call the API
 allowed_origins = [
