@@ -50,7 +50,7 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 |---|---|---|---|---|
 | F1 | Organizations, roles (owner/admin/examiner/candidate), multi-organization accounts | Each institution gets a private space; a student can belong to two centers | P0 | Built |
 | F2 | Join codes for the organization and for each group; groups (batches/classes) | Students self-enroll in the right batch | P0 | Built |
-| F3 | Question bank: single choice, multiple choice, written text, image upload; tags, difficulty | Reuse questions across exams | P0 | Built (Excel import only, no single-question editor) |
+| F3 | Question bank: single choice, multiple choice, short/written answer (typed in a text box, graded by staff), image upload; tags, difficulty | Reuse questions across exams | P0 | Built (Excel import only, no single-question editor) |
 | F4 | Excel import with template and preview | Bring existing question sets in minutes | P0 | Built |
 | F5 | Exams: schedule window, duration, question selection, target groups, publish/unpublish | Run timed exams for specific batches | P0 | Built (no editing after creation) |
 | F6 | Exam taking: auto-save, resume after reload, timer, question navigator, flag for review | Weak connections and accidents don't cost answers | P0 | Built |
@@ -73,6 +73,7 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 | F26 | Public landing page: product story, features, pricing placeholder, sign-up calls to action; responsive and phone-friendly; restrained scroll effects | Explains TestKori to institutions; the only phone experience in v1 | P0 | Planned |
 | F27 | Launch waitlist: a public `/waitlist` page (linked from the landing page) where visitors leave their email and get one email when TestKori launches | Builds an audience before launch | P0 | Planned |
 | F28 | Product video on the landing page: YouTube embed (privacy-enhanced, loads only when played); a styled "video coming soon" placeholder until the owner sets the link | Shows the product in action without slowing the page | P0 | Planned |
+| F29 | Per-question time limits: an exam's timing mode is either **whole exam** (today: one duration for the test) or **per question** (each question has its own limit that the teacher sets; MCQ and short answer alike). Per-question mode shows one question at a time, moves on automatically when its time ends, and doesn't allow going back | Matches timed quiz and rapid-fire formats; stops students spending all their time on one question or looking answers up | P1 | Planned |
 | F24 | Global readiness: Stripe/Paddle card payments, GDPR tools (data export, deletion, data processing agreement, cookie consent), global SMS (Twilio), optional EU data hosting | Sell outside Bangladesh legally | P3 | Planned |
 | F22 | Webcam snapshots + face checks, ID photo, Safe Exam Browser, live proctor dashboard | Higher-stakes exams and hiring | P2 | Planned |
 | F23 | Plans, billing (bKash/SSLCommerz), branding, audit log, Google sign-in, paid public mock tests | Revenue and enterprise readiness | P3 | Planned |
@@ -130,6 +131,7 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 - US14. As any user, I want to reset my password by email, so I can get back in without contacting anyone.
 - US15. As an admin, I want to upload a spreadsheet of students, so a whole batch is enrolled and invited at once.
 - US16. As a coaching center, I want negative marking and a merit list, so results match admission-test practice.
+- US18. As a teacher, I want to give each question its own time limit (or none), so the exam paces students the way a quiz-master would.
 - US17. As an examiner, I want each student to get a random set of questions drawn from tagged pools, so answer sharing is less useful.
 
 ## Acceptance criteria
@@ -158,6 +160,10 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 - AC22 (F27). Given a visitor on `/waitlist`, when they submit a valid email, then they see "You're on the list" and the email is stored once (submitting it again shows the same message and creates no duplicate); an invalid email shows an inline error; the response never reveals whether an email was already on the list.
 - AC23 (F27). Given the owner triggers the launch email, then every waitlisted address that hasn't unsubscribed gets exactly one email with an unsubscribe link.
 - AC24 (F28). Given no video link is set, the landing page shows the "video coming soon" placeholder at 16:9 with no layout shift; given a link is set, the placeholder becomes a thumbnail with a play button, and the YouTube player loads only after a click.
+- AC25 (F29). Given an exam in whole-exam mode, behavior is exactly today's: one timer, free navigation between questions until the deadline.
+- AC26 (F29). Given an exam in per-question mode where question 3 has a 45-second limit, when the candidate opens question 3, then a 45-second countdown starts on the server; at 0 the current answer is kept, the question locks, and question 4 opens; pressing **Next** earlier also locks question 3; no request can change question 3's answer afterwards, and the candidate can't navigate back to it.
+- AC27 (F29). Given a candidate in per-question mode reloads or loses connection, when they resume, then they return to the same open question with the server's remaining time (the countdown kept running), never a fresh timer.
+- AC28 (F29). Given a per-question exam, the overall deadline still applies: the exam ends at whichever comes first, the last question's time running out or `start + duration` / the window closing. A question with "no limit" waits until the candidate presses Next.
 - AC18 (US17). Given a pool rule "5 random easy questions tagged physics", each attempt gets 5 questions from that set, and the same 5 after a reload, even if the bank changes meanwhile.
 
 ## Open questions

@@ -76,6 +76,9 @@ Without a code: signup → `/organizations` → enter a join code → `/student-
 **J4. Take an exam (candidate)** ← the critical path
 `/student-account` → **Open now** → **Start** → `/exam/:id` **Rules** screen (duration, question count, protections) → **Start exam** (enters fullscreen if required; the timer starts on the server now) → answer questions; the navigator shows answered/flagged → **Submit** → confirm dialog "Submit your exam?" → **Finished** screen (score for objective questions, or "Awaiting grading").
 
+**J4b. Take a per-question timed exam (candidate)**
+Rules screen also says "Each question has its own time. You can't go back." → **Start exam** → one question at a time with a question timer (and the overall timer) → answer → **Next** (or the timer ends and the next question opens by itself) → after the last question: Finished. The question map shows progress only; past questions are locked and not clickable.
+
 **J5. Review and grade (examiner)**
 `/admin-exams` → click an exam → `/admin-exams/:examId` → tab **Needs review** → risk badge → **Report** (`/admin-integrity/:attemptId`) to see the timeline → back → **Grade** (`/admin-evaluate-answers/:attemptId`) → Correct/Incorrect + comment per answer → the score updates.
 

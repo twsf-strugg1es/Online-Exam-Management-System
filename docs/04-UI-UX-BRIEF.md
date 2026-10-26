@@ -114,6 +114,7 @@ Tailwind rule: class names written literally (lookup objects like `BUTTON_VARIAN
 | Candidate · Exams | Continue where you left off (warn) → Open now → Upcoming → Done. Each card: title, time left / opens at, one button |
 | Candidate · Rules | Exam title · duration · question count · each protection in one plain sentence · **Start exam** (bottom) |
 | Candidate · Exam | Slim top bar (title, violation chip, timer) · question · answers as large tap rows · bottom bar: Previous · question map · Next/Submit. The question map opens as a sheet on phones |
+| Candidate · Exam (per-question mode) | Same layout; a question timer next to the question number (mono, counts down; warn at 10 s, danger at 5 s, color only); "Next question" replaces Previous/Next; the question map greys out locked questions |
 | Candidate · Blocked | Full-screen plain panel: what happened, that it was recorded, one button to return |
 | Candidate · Finished | Outcome first (score or "Awaiting grading") · submit reason if not the student · View results |
 

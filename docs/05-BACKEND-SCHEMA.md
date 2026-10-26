@@ -79,6 +79,7 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | correct_answers | json | ✓ | | Value(s) from `options`; for text/image types, a reference answer or empty |
 | max_score | int | ✓ | 1 | |
 | tags | json | | `[]` | List of lowercase strings |
+| *(planned)* default_time_limit_seconds | int | | null | Suggested limit when the question is used in a per-question exam (10–3600). Also an optional Excel column `time_limit_seconds` |
 
 ### exams
 | Field | Type | Required | Default | Notes |
@@ -95,6 +96,8 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | require_fullscreen | bool | ✓ | true | |
 | block_copy_paste | bool | ✓ | true | |
 | max_violations | int | | null | 1–100; null = never auto-submit |
+| *(planned)* timing_mode | text | ✓ | `exam` | `exam` (one duration, free navigation) or `per_question` (one question at a time, forward only) |
+| *(planned)* default_question_seconds | int | | null | Per-question mode: limit used for questions without their own; null = no limit |
 
 ### exam_attempts
 | Field | Type | Required | Default | Notes |
@@ -150,6 +153,23 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | unsubscribed_at | timestamptz | | | Set from the unsubscribe link; excluded from all sends |
 
 Not organization-scoped: it belongs to TestKori itself. Read only by a platform-admin command (`python manage_waitlist.py export|send-launch`), never by an organization's staff.
+
+### exam_questions *(existing join table; planned columns)*
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| position | int | | null | Teacher's order (shuffling still applies per candidate if on) |
+| time_limit_seconds | int | | null | Per-question mode only; overrides the question's default; null = exam default, then no limit |
+
+### attempt_question_timings *(planned, per-question mode only)*
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| attempt_id | uuid | ✓ | | FK exam_attempts, cascade; PK with question_id |
+| question_id | uuid | ✓ | | FK questions |
+| opened_at | timestamptz | ✓ | server now | When the server showed this question |
+| limit_seconds | int | | | Copied at open time, so later edits can't change a running question |
+| closed_at | timestamptz | | | Set on Next, on time-out (lazily on the next request, or by the 3.1 job) or on submit; after it, the answer can't change |
+
+Server rules: only one open question per attempt; answers to a question are accepted only while it is open and before `opened_at + limit_seconds + 5 s`; opening the next question closes the current one.
 
 ### Indexes
 Existing: `users.email` (unique), the `organization_id` columns on memberships/groups/questions/exams, `memberships.user_id`, `integrity_events.attempt_id`, `exam_attempts (exam_id, student_id)` (unique constraint), unique join codes.
