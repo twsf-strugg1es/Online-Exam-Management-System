@@ -7,12 +7,13 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from . import models  # noqa: F401  # ensure models are imported so metadata has tables
+from . import models, notify  # noqa: F401  # models: ensure metadata has tables
 from .database import get_db
 from .logging_config import configure_logging, request_logging_middleware
 from .routers import admin, auth, organizations, student, profile
 
 configure_logging()
+notify.warn_if_not_sending()
 
 # The database schema is managed by Alembic migrations: run `alembic upgrade head`.
 app = FastAPI()

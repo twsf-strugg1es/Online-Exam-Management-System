@@ -55,6 +55,9 @@ Backend environment (`backend/.env`):
 | `CORS_ORIGINS` | no | Comma-separated allowed frontend origins (default: localhost:3000, localhost:5173) |
 | `LOG_LEVEL` | no | `DEBUG` / `INFO` (default) / `WARNING` / `ERROR`. Logs are JSON lines on stdout |
 | `RATE_LIMITS` | no | `on` (default) / `off`. Off only for load tests |
+| `EMAIL_BACKEND` | prod: yes | `console` (default: writes `.eml` files to `EMAIL_OUTBOX_DIR`, sends nothing), `smtp`, `memory` (tests) |
+| `EMAIL_FROM` | with smtp | Sender, e.g. `TestKori <no-reply@testkori.com>` (owner decision) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` | with smtp | Any provider's SMTP relay. Port 587 uses STARTTLS, 465 uses TLS |
 
 ## Authentication and roles
 
@@ -166,6 +169,7 @@ cd frontend && npm start | npm test -- --watchAll=false | npm run build
 | Global product, Bangladesh launch | One codebase; local conventions are settings. Gets a paying pilot fast without hardcoding one country | Separate BD and global products: double the maintenance |
 | Region per deployment (not one global database) | Simple data-residency story for EU customers | Multi-region single database: complex, unnecessary at this scale |
 | Translations without a library (`src/i18n/`, ~100 lines on `Intl`) | `react-i18next` and `i18next` declare a TypeScript 5 peer that conflicts with CRA's TypeScript 4.9 (needs `--legacy-peer-deps` everywhere), and they add bundle weight the performance budget doesn't allow | `react-i18next` with forced peer resolution: hides real conflicts in every install |
+| Email through SMTP (`app/notify.py`), not a provider SDK | Every candidate provider (SES, Brevo, Mailgun, Postmark, Google Workspace) offers SMTP, so the owner's provider choice is configuration, not code; no SDK dependency | Provider HTTP API: slightly better error detail, but ties the code to one vendor before the owner has chosen |
 | Own rate limiter (`app/rate_limit.py`, ~100 lines) | Needs per-account failure counting and a class-sized per-IP allowance, which are easier to express directly; no new dependency | `slowapi`: decorators need `request` in every signature and still need custom logic for per-account failures |
 | CRA kept for now | Works; migrating isn't urgent | Vite: faster builds; a reasonable later task |
 | CSS-variable tokens + a small component set (`ui.js`) | One consistent look in light and dark; replaced several competing style systems | Component library (MUI/shadcn): heavier, generic look |

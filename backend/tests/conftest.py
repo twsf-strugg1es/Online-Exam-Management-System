@@ -1,5 +1,7 @@
 import pytest
 import os
+
+os.environ.setdefault("EMAIL_BACKEND", "memory")  # tests read sent emails from notify.outbox
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
