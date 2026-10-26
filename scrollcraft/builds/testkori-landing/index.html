@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TestKori · Fair exams in any browser</title>
+<meta name="description" content="Teachers set short, timed tests. Students take them on a locked-down page. Every tab switch is on the record. Join the waitlist.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="scrollcraft.css">
+<style>
+  :root {
+    --sc-canvas: #F6F4EE;   /* paper */
+    --sc-surface: #FBFAF6;  /* a sheet on the paper */
+    --sc-ink: #141414;
+    --sc-ink-soft: #57544E;
+    --sc-accent: #0B6E4F;   /* the marker */
+    --sc-accent-ink: #FFFFFF;
+    --sc-font-display: "IBM Plex Sans", system-ui, sans-serif;
+    --sc-font-text: "IBM Plex Sans", system-ui, sans-serif;
+    --sc-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --sc-r-sm: 3px; --sc-r-md: 4px; --sc-r-lg: 6px;
+    --sc-shadow-color: 40 12% 30%;
+    --rule: #DCD8CC;
+    --rule-strong: #C3BEAF;
+    --faint: #7E7A71;
+    --redpen: #B3261E;
+    --highlight: #DCEFE5;
+    --hall: #121311;        /* the exam hall, used only by the peak */
+    --hall-ink: #ECEAE3;
+    --hall-soft: #A9A69D;
+    --bar-h: 60px;
+  }
+
+  /* ---------- atoms ---------- */
+  .mono { font-family: var(--sc-font-mono); }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .label { font: 500 0.72rem/1.2 var(--sc-font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+  .mark { width: 28px; height: 28px; flex: none; }
+  .bubble { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--sc-ink-soft); display: inline-grid; place-items: center; font: 600 0.75rem/1 var(--sc-font-mono); color: var(--sc-ink-soft); flex: none; transition: background-color 140ms var(--sc-ease-out), border-color 140ms var(--sc-ease-out), color 140ms var(--sc-ease-out); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 44px; padding: 0 1.15rem; border-radius: var(--sc-r-sm); border: 1px solid transparent; font: 500 0.95rem/1 var(--sc-font-text); cursor: pointer; text-decoration: none; white-space: nowrap; transition: background-color 140ms var(--sc-ease-out), border-color 140ms var(--sc-ease-out), transform 120ms var(--sc-ease-out); }
+  .btn:active { transform: translateY(1px); }
+  .btn-marker { background: var(--sc-accent); color: var(--sc-accent-ink); }
+  .btn-quiet { border-color: var(--rule-strong); color: var(--sc-ink); background: transparent; }
+  @media (hover: hover) and (pointer: fine) {
+    .btn-marker:hover { background: #08573F; }
+    .btn-quiet:hover { background: var(--sc-surface); }
+  }
+  .link { color: var(--sc-ink); font-weight: 500; text-decoration: underline; text-decoration-color: var(--sc-accent); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  :focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; }
+
+  /* ---------- the paper's header strip (chrome = nav) ---------- */
+  .paperbar { position: fixed; inset: 0 0 auto; z-index: var(--sc-z-chrome); height: var(--bar-h); display: flex; align-items: center; gap: 1.25rem; padding: 0 var(--sc-gutter); background: color-mix(in oklab, var(--sc-canvas) 94%, transparent); border-bottom: 1px solid var(--rule); }
+  .paperbar__brand { display: inline-flex; align-items: center; gap: 0.6rem; font-weight: 600; letter-spacing: -0.015em; color: var(--sc-ink); text-decoration: none; }
+  .paperbar__brand small { font: 500 0.7rem/1 var(--sc-font-mono); color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; margin-left: 0.25rem; }
+  .qmap { display: flex; gap: 6px; margin-left: auto; }
+  .qmap a { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--rule-strong); display: grid; place-items: center; font: 600 0.62rem/1 var(--sc-font-mono); color: var(--faint); text-decoration: none; transition: background-color 140ms var(--sc-ease-out), border-color 140ms var(--sc-ease-out), color 140ms var(--sc-ease-out); }
+  .qmap a.done { background: var(--sc-accent); border-color: var(--sc-accent); color: var(--sc-accent-ink); }
+  .qmap a[aria-current="true"] { box-shadow: 0 0 0 2px var(--sc-canvas), 0 0 0 3.5px var(--sc-ink); }
+  .proctor { display: inline-flex; align-items: center; gap: 0.5rem; font: 500 0.72rem/1 var(--sc-font-mono); color: var(--sc-ink-soft); border: 1px solid var(--rule-strong); border-radius: var(--sc-r-sm); padding: 0.45rem 0.6rem; background: transparent; cursor: pointer; letter-spacing: 0.04em; }
+  .proctor b { color: var(--sc-ink); font-weight: 600; }
+  .proctor.hit { border-color: var(--redpen); color: var(--redpen); }
+  .proctor.hit b { color: var(--redpen); }
+  .clock { font: 600 1.05rem/1 var(--sc-font-mono); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+  .clock small { font: 500 0.62rem/1 var(--sc-font-mono); color: var(--faint); letter-spacing: 0.08em; margin-right: 0.4rem; vertical-align: 2px; }
+  .clock.out { color: var(--redpen); }
+  .paperbar .btn { min-height: 36px; padding: 0 0.9rem; font-size: 0.88rem; }
+
+  /* log drawer */
+  .log { position: fixed; z-index: calc(var(--sc-z-chrome) + 1); top: calc(var(--bar-h) + 8px); right: var(--sc-gutter); width: min(360px, calc(100vw - 2rem)); background: var(--sc-surface); border: 1px solid var(--rule-strong); border-radius: var(--sc-r-md); box-shadow: var(--sc-e2); padding: 1rem 1.1rem; opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity 160ms var(--sc-ease-out), transform 160ms var(--sc-ease-out); }
+  .log.open { opacity: 1; transform: none; pointer-events: auto; }
+  .log h2 { font-size: 0.95rem; font-weight: 600; margin: 0 0 0.25rem; }
+  .log p { margin: 0 0 0.75rem; font-size: 0.82rem; color: var(--sc-ink-soft); line-height: 1.5; }
+  .log ol:empty { display: none; }
+  .log ol { list-style: none; margin: 0; padding: 0; max-height: 40vh; overflow: auto; overscroll-behavior: contain; border-top: 1px solid var(--rule); }
+  .log li { display: grid; grid-template-columns: 4.6rem 1fr; gap: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid var(--rule); font-size: 0.82rem; }
+  .log li time { font: 400 0.75rem/1.5 var(--sc-font-mono); color: var(--faint); }
+  .log li.v span { color: var(--redpen); }
+  .log .empty { color: var(--faint); font-size: 0.82rem; padding-top: 0.6rem; }
+
+  .toast { position: fixed; z-index: calc(var(--sc-z-chrome) + 2); left: 50%; top: calc(var(--bar-h) + 14px); transform: translate(-50%, -8px); max-width: min(560px, calc(100vw - 2rem)); background: var(--sc-ink); color: #F6F4EE; padding: 0.75rem 1rem; border-radius: var(--sc-r-md); font-size: 0.9rem; line-height: 1.45; box-shadow: var(--sc-e2); opacity: 0; pointer-events: none; transition: opacity 180ms var(--sc-ease-out), transform 180ms var(--sc-ease-out); }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast b { color: #FF9A92; font-weight: 600; }
+
+  /* ---------- shared sheet ---------- */
+  main { padding-top: var(--bar-h); }
+  .sheet { position: relative; background: var(--sc-surface); border: 1px solid var(--rule); }
+  .qhead { display: flex; align-items: baseline; gap: 1rem; padding-bottom: 0.9rem; border-bottom: 2px solid var(--sc-ink); }
+  .qno { font: 600 clamp(2rem, 1.6rem + 1.6vw, 2.75rem)/0.9 var(--sc-font-mono); letter-spacing: -0.02em; }
+  .qhead h2 { font-size: var(--sc-t-xl); font-weight: 600; letter-spacing: var(--sc-track-snug); line-height: 1.12; margin: 0; text-wrap: balance; }
+  .qmeta { margin-left: auto; text-align: right; }
+  .lede { font-size: var(--sc-t-lg); line-height: 1.5; color: var(--sc-ink-soft); max-width: 58ch; text-wrap: pretty; margin: 0; }
+  .sec { padding-block: clamp(4rem, 8vw, 8rem); }
+
+  /* ---------- Q1 hero ---------- */
+  .hero { min-height: calc(100svh - var(--bar-h)); display: grid; align-content: center; padding-block: clamp(2rem, 5vh, 4rem); }
+  .hero .sheet { padding: clamp(1.5rem, 4vw, 3.25rem) clamp(1.25rem, 4.5vw, 3.75rem) clamp(1.5rem, 3vw, 2.5rem) clamp(2.25rem, 6vw, 5rem); display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(2rem, 5vw, 4.5rem); align-items: start; }
+  .hero .sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: clamp(1.1rem, 3vw, 2.6rem); width: 1px; background: var(--redpen); opacity: 0.4; }
+  .hero h1 { font-size: clamp(2.5rem, 1.6rem + 3.4vw, 4.6rem); line-height: 0.98; letter-spacing: var(--sc-track-tight); font-weight: 600; margin: 0.6rem 0 1.1rem; text-wrap: balance; }
+  .hero__cta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; margin-top: 1.75rem; }
+  .hero__cta .note { font-size: 0.88rem; color: var(--sc-ink-soft); }
+  .q1 { border-left: 1px solid var(--rule); padding-left: clamp(1.25rem, 3vw, 2.5rem); }
+  .q1 .q1head { display: flex; gap: 0.9rem; align-items: baseline; padding-bottom: 0.7rem; border-bottom: 1px solid var(--rule-strong); }
+  .q1 .q1head b { font: 600 1.6rem/1 var(--sc-font-mono); }
+  .q1 .q1head p { margin: 0; font-weight: 500; font-size: 1.12rem; line-height: 1.35; }
+  .opts { list-style: none; margin: 0; padding: 0; }
+  .opt { display: flex; align-items: center; gap: 1rem; padding: 0.85rem 0.6rem; border-bottom: 1px solid var(--rule); cursor: pointer; transition: background-color 140ms var(--sc-ease-out); }
+  .opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .opt:has(input:focus-visible) { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+  @media (hover: hover) and (pointer: fine) { .opt:hover { background: var(--sc-canvas); } }
+  .opt:has(input:checked) { background: var(--highlight); }
+  .opt:has(input:checked) .bubble { background: var(--sc-accent); border-color: var(--sc-accent); color: var(--sc-accent-ink); }
+  .answer-note { min-height: 4.6em; margin: 1rem 0 0; font-size: 0.98rem; line-height: 1.55; color: var(--sc-ink-soft); }
+  .answer-note em { font-style: normal; color: var(--sc-accent); font-weight: 600; }
+
+  /* ---------- Q2 tension ---------- */
+  .q2 { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(2rem, 6vw, 6rem); align-items: start; }
+  .faults { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule-strong); counter-reset: f; }
+  .faults li { counter-increment: f; display: grid; grid-template-columns: 2.4rem 1fr auto; gap: 1rem; align-items: baseline; padding: 1.05rem 0; border-bottom: 1px solid var(--rule); font-size: var(--sc-t-base); }
+  .faults li::before { content: counter(f, upper-alpha); font: 600 0.8rem/1 var(--sc-font-mono); width: 26px; height: 26px; border: 1.5px solid var(--sc-ink-soft); border-radius: 50%; display: grid; place-items: center; color: var(--sc-ink-soft); }
+  .faults .pen { font: 500 0.78rem/1.3 var(--sc-font-mono); color: var(--redpen); text-align: right; max-width: 15ch; }
+
+  /* ---------- Q3 silence ---------- */
+  .silence { min-height: 78svh; display: grid; align-content: center; }
+  .silence p.big { font-size: clamp(1.9rem, 1.3rem + 2.6vw, 3.4rem); line-height: 1.05; letter-spacing: var(--sc-track-snug); font-weight: 600; margin: 0.8rem 0 1rem; max-width: 20ch; text-wrap: balance; }
+  .silence .copyme { display: inline-block; border-bottom: 1.5px dashed var(--rule-strong); padding-bottom: 2px; }
+
+  /* ---------- Q3 peak: the exam hall ---------- */
+  .peak [data-sc-stage] { background: var(--hall); color: var(--hall-ink); display: grid; align-content: center; padding: calc(var(--bar-h) + 1.5rem) var(--sc-gutter) 1.5rem; }
+  .peak .hall { width: 100%; max-width: var(--sc-maxw); margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr); gap: clamp(1.25rem, 3vw, 2.5rem); align-items: stretch; }
+  .peak .caption { grid-column: 1 / -1; display: grid; position: relative; min-height: 3.2em; }
+  .peak .caption p { grid-area: 1 / 1; margin: 0; font-size: var(--sc-t-lg); line-height: 1.35; color: var(--hall-ink); max-width: 46ch; }
+  .peak .caption p b { color: #7FD8B3; font-weight: 600; }
+  .demo { position: relative; background: #1B1C1A; border: 1px solid #2E2F2B; border-radius: var(--sc-r-md); overflow: hidden; display: grid; grid-template-rows: auto 1fr auto; }
+  .demo__top { display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1.1rem; border-bottom: 1px solid #2E2F2B; font-size: 0.88rem; }
+  .demo__top .t { font-weight: 500; }
+  .demo__top .t span { font: 400 0.75rem/1 var(--sc-font-mono); color: var(--hall-soft); margin-left: 0.5rem; }
+  .demo__top .right { margin-left: auto; display: flex; gap: 1rem; align-items: center; }
+  .vchip { font: 500 0.72rem/1 var(--sc-font-mono); border: 1px solid #45463F; border-radius: var(--sc-r-sm); padding: 0.4rem 0.55rem; color: var(--hall-soft); letter-spacing: 0.04em; }
+  .vchip b { color: var(--hall-ink); }
+  .vchip.hit { border-color: #F07068; color: #F07068; }
+  .vchip.hit b { color: #F07068; }
+  .qclock { font: 600 1.2rem/1 var(--sc-font-mono); font-variant-numeric: tabular-nums; }
+  .qclock.low { color: #E0A84A; } .qclock.zero { color: #F07068; }
+  .demo__body { position: relative; padding: clamp(1.1rem, 2.5vw, 1.8rem) clamp(1.1rem, 3vw, 2.2rem); }
+  .demo__q { font-size: 1.08rem; line-height: 1.55; margin: 0.6rem 0 1rem; max-width: 52ch; user-select: text; }
+  .demo .opt { border-bottom-color: #2E2F2B; padding: 0.7rem 0.5rem; }
+  .demo .opt .bubble { border-color: #8E8B82; color: #BEBBB2; width: 28px; height: 28px; }
+  @media (hover: hover) and (pointer: fine) { .demo .opt:hover { background: #232421; } }
+  .demo .opt:has(input:checked) { background: #14352A; }
+  .demo .opt:has(input:checked) .bubble { background: #3DBB8E; border-color: #3DBB8E; color: #07261B; }
+  .demo__short { margin-top: 1rem; display: grid; gap: 0.4rem; }
+  .demo__short label { font: 500 0.7rem/1 var(--sc-font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--hall-soft); }
+  .demo__short input { background: transparent; border: none; border-bottom: 1.5px solid #6D6A62; color: var(--hall-ink); padding: 0.45rem 0.1rem; font-size: 1rem; outline: none; }
+  .demo__short input:focus { border-bottom-color: #3DBB8E; }
+  .demo__foot { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.75rem 1.1rem; border-top: 1px solid #2E2F2B; font: 400 0.75rem/1.4 var(--sc-font-mono); color: var(--hall-soft); }
+  .demo__foot button { background: transparent; color: var(--hall-ink); border: 1px solid #45463F; border-radius: var(--sc-r-sm); min-height: 36px; padding: 0 0.8rem; font: 500 0.82rem/1 var(--sc-font-text); cursor: pointer; }
+  @media (hover: hover) and (pointer: fine) { .demo__foot button:hover { background: #232421; } }
+  .lockout { position: absolute; inset: 0; z-index: 3; background: #121311; display: grid; place-content: center; text-align: center; padding: 2rem; gap: 0.75rem; opacity: 0; pointer-events: none; transition: opacity 160ms var(--sc-ease-out); }
+  .lockout.on { opacity: 1; pointer-events: auto; }
+  .lockout h3 { margin: 0; font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; }
+  .lockout p { margin: 0 auto; max-width: 40ch; color: var(--hall-soft); font-size: 0.95rem; line-height: 1.5; }
+  .lockout .stamp { font: 600 0.78rem/1 var(--sc-font-mono); color: #F07068; letter-spacing: 0.06em; text-transform: uppercase; }
+  .lockout button { justify-self: center; margin-top: 0.5rem; background: #3DBB8E; color: #07261B; border: none; border-radius: var(--sc-r-sm); min-height: 44px; padding: 0 1.1rem; font: 600 0.92rem/1 var(--sc-font-text); cursor: pointer; }
+  .report { background: #1B1C1A; border: 1px solid #2E2F2B; border-radius: var(--sc-r-md); padding: 1.1rem 1.2rem; display: grid; align-content: start; gap: 0.9rem; }
+  .report h3 { margin: 0; font-size: 0.95rem; font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; }
+  .risk { font: 600 0.7rem/1 var(--sc-font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 0.35rem 0.5rem; border-radius: var(--sc-r-sm); background: #14352A; color: #7FD8B3; }
+  .risk.review { background: #3A2C12; color: #E0A84A; } .risk.high { background: #3A1B19; color: #F07068; }
+  .report ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid #2E2F2B; }
+  .report ol:empty { display: none; }
+  .report li { display: grid; grid-template-columns: 4.4rem 1fr; gap: 0.6rem; padding: 0.55rem 0; border-bottom: 1px solid #2E2F2B; font-size: 0.85rem; line-height: 1.4; }
+  .report li time { font: 400 0.74rem/1.5 var(--sc-font-mono); color: var(--hall-soft); }
+  .report li.v span { color: #F07068; }
+  .report .empty { color: var(--hall-soft); font-size: 0.85rem; padding-top: 0.6rem; line-height: 1.5; }
+  .report .fine { margin: 0; font-size: 0.78rem; color: var(--hall-soft); line-height: 1.5; }
+
+  /* ---------- Q4 shuffle ---------- */
+  .q4 { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(2rem, 5vw, 5rem); align-items: start; }
+  .papers { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(0.9rem, 2vw, 1.5rem); }
+  .paper { padding: 1rem 1.1rem 1.2rem; }
+  .paper header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 0.6rem; border-bottom: 1.5px solid var(--sc-ink); margin-bottom: 0.4rem; }
+  .paper header b { font-weight: 600; font-size: 0.95rem; }
+  .paper ol { list-style: none; margin: 0; padding: 0; }
+  .paper li { display: grid; grid-template-columns: 1.9rem 1fr; gap: 0.6rem; padding: 0.6rem 0; border-bottom: 1px solid var(--rule); font-size: 0.9rem; line-height: 1.35; will-change: transform; }
+  .paper li .n { font: 600 0.78rem/1.35 var(--sc-font-mono); color: var(--faint); }
+  .paper li .ch { display: flex; gap: 0.35rem; margin-top: 0.35rem; }
+  .paper li .ch span { font: 500 0.66rem/1 var(--sc-font-mono); border: 1px solid var(--rule-strong); border-radius: 50%; width: 20px; height: 20px; display: grid; place-items: center; color: var(--sc-ink-soft); }
+  .paper li .ch span.k { background: var(--sc-accent); border-color: var(--sc-accent); color: #fff; }
+  .shuffle-row { display: flex; gap: 1rem; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; }
+
+  /* ---------- Q5 marking ---------- */
+  .q5 [data-sc-stage] { display: grid; align-content: center; padding: calc(var(--bar-h) + 1rem) 0 1rem; }
+  .q5__grid { display: grid; grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr); gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+  .register { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+  .register th { text-align: left; font: 500 0.68rem/1 var(--sc-font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); padding: 0.7rem 0.6rem; border-bottom: 1px solid var(--rule-strong); }
+  .register td { padding: 0.72rem 0.6rem; border-bottom: 1px solid var(--rule); }
+  .register td.score { font: 600 0.95rem/1 var(--sc-font-mono); font-variant-numeric: tabular-nums; }
+  .register td.state { font: 500 0.75rem/1.2 var(--sc-font-mono); color: var(--faint); white-space: nowrap; }
+  .register tr.marked td.state { color: var(--sc-accent); }
+  .register tr.queued td.state { color: #8A5300; }
+  .register .bar { height: 6px; background: var(--rule); border-radius: 3px; overflow: hidden; width: 7rem; }
+  .register .bar i { display: block; height: 100%; width: 100%; background: var(--sc-accent); transform-origin: left; transform: scaleX(var(--w, 0)); }
+
+  /* ---------- Q6 timing ---------- */
+  .seg { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: var(--sc-r-sm); padding: 3px; gap: 3px; margin: 1.5rem 0 1.75rem; }
+  .seg label { position: relative; }
+  .seg input { position: absolute; opacity: 0; }
+  .seg span { display: block; padding: 0.6rem 1rem; border-radius: 2px; font-size: 0.92rem; font-weight: 500; color: var(--sc-ink-soft); cursor: pointer; transition: background-color 140ms var(--sc-ease-out), color 140ms var(--sc-ease-out); }
+  .seg input:checked + span { background: var(--sc-ink); color: var(--sc-canvas); }
+  .seg input:focus-visible + span { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+  .timeline { display: flex; gap: 4px; height: 64px; align-items: stretch; }
+  .timeline .blk { flex: var(--f, 1); border: 1px solid var(--rule-strong); border-radius: 2px; background: var(--sc-surface); display: flex; flex-direction: column; justify-content: space-between; padding: 0.45rem 0.55rem; min-width: 0; transition: flex-grow 320ms var(--sc-ease-out), background-color 140ms; }
+  .timeline .blk b { font: 600 0.72rem/1 var(--sc-font-mono); }
+  .timeline .blk span { font: 400 0.7rem/1 var(--sc-font-mono); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .timeline.whole .blk { border-left-width: 0; border-right-width: 0; border-radius: 0; }
+  .timeline.whole .blk:first-child { border-left-width: 1px; } .timeline.whole .blk:last-child { border-right-width: 1px; }
+  .timeline.whole { gap: 0; }
+  .timeline-axis { display: flex; justify-content: space-between; font: 400 0.72rem/1 var(--sc-font-mono); color: var(--faint); margin-top: 0.6rem; }
+  .timing-note { margin-top: 1.25rem; max-width: 60ch; color: var(--sc-ink-soft); }
+  .q6 { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+
+  /* ---------- Q7 video ---------- */
+  .video { position: relative; aspect-ratio: 16 / 9; width: 100%; background: var(--sc-ink); border-radius: var(--sc-r-md); overflow: hidden; color: #F6F4EE; }
+  .video__ph, .video__facade { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 0.9rem; text-align: center; padding: 1.5rem; border: 0; background: transparent; color: inherit; font: inherit; width: 100%; height: 100%; }
+  .video__ph::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(to bottom, transparent 0 31px, rgb(255 255 255 / 0.05) 31px 32px); }
+  .video__ph .play, .video__facade .play { width: 72px; height: 72px; border-radius: 50%; border: 1.5px solid currentColor; display: grid; place-items: center; position: relative; }
+  .video__ph .play::after, .video__facade .play::after { content: ""; margin-left: 5px; border-style: solid; border-width: 11px 0 11px 18px; border-color: transparent transparent transparent currentColor; }
+  .video__ph b { font-size: 1.15rem; font-weight: 600; position: relative; }
+  .video__ph span { font: 400 0.78rem/1.4 var(--sc-font-mono); color: #A9A69D; position: relative; }
+  .video__facade { cursor: pointer; }
+  .video__facade img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .video__facade .play { background: rgb(20 20 20 / 0.7); color: #fff; }
+  .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+  /* ---------- Q8 plans ---------- */
+  .plans { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(2rem, 5vw, 5rem); align-items: start; border-top: 2px solid var(--sc-ink); padding-top: 1.25rem; }
+  .plans dl { margin: 0; display: grid; grid-template-columns: 11rem 1fr; border-top: 1px solid var(--rule-strong); }
+  .plans dt, .plans dd { margin: 0; padding: 0.9rem 0; border-bottom: 1px solid var(--rule); }
+  .plans dt { font: 500 0.75rem/1.5 var(--sc-font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+
+  /* ---------- Q9 close ---------- */
+  .close { padding-block: clamp(4rem, 9vw, 8rem) 2rem; }
+  .close .sheet { padding: clamp(1.75rem, 4vw, 3.25rem) clamp(1.25rem, 4.5vw, 3.75rem) clamp(1.75rem, 4vw, 3rem) clamp(2.25rem, 6vw, 5rem); max-width: 54rem; }
+  .close .sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: clamp(1.1rem, 3vw, 2.6rem); width: 1px; background: var(--redpen); opacity: 0.4; }
+  .wl { display: grid; grid-template-columns: 1fr auto; gap: 1rem 1.25rem; align-items: end; margin-top: 2rem; }
+  .wl label { grid-column: 1 / -1; font: 500 0.72rem/1 var(--sc-font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-ink-soft); }
+  .wl input[type="email"] { border: none; border-bottom: 1.5px solid var(--sc-ink-soft); background: transparent; font-size: 1.25rem; padding: 0.55rem 0.1rem; outline: none; min-width: 0; }
+  .wl input[type="email"]:focus { border-bottom-color: var(--sc-accent); box-shadow: 0 1.5px 0 0 var(--sc-accent); }
+  .wl .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .wl .msg { grid-column: 1 / -1; margin: 0; font-size: 0.92rem; color: var(--sc-ink-soft); min-height: 1.5em; }
+  .wl .msg.err { color: var(--redpen); }
+  .wl .msg.ok { color: var(--sc-accent); font-weight: 600; }
+  .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; margin-top: clamp(3rem, 6vw, 5rem); padding-top: 1.25rem; border-top: 1px solid var(--rule); font: 400 0.78rem/1.5 var(--sc-font-mono); color: var(--faint); }
+  .foot a { color: var(--sc-ink-soft); }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 1100px) { .qmap { display: none; } .paperbar__brand small { display: none; } }
+  @media (max-width: 860px) {
+    .hero .sheet, .q2, .q4, .q5__grid, .q6, .plans, .peak .hall { grid-template-columns: 1fr; }
+    .q1 { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: 1.5rem; }
+    .peak .report { display: none; }
+    .plans dl { grid-template-columns: 1fr; }
+    .plans dt { padding-bottom: 0; border-bottom: 0; }
+  }
+  @media (max-width: 640px) {
+    :root { --bar-h: 56px; }
+    .paperbar { gap: 0.6rem; }
+    .paperbar .btn { display: none; }
+    .proctor { padding: 0.4rem 0.5rem; }
+    .proctor .lbl { display: none; }
+    .hero h1 { font-size: clamp(2.2rem, 1.4rem + 4vw, 2.8rem); }
+    .papers { grid-template-columns: 1fr; }
+    .papers .paper:nth-child(2) { display: none; }
+    .faults li { grid-template-columns: 2.2rem 1fr; }
+    .faults .pen { grid-column: 2; text-align: left; max-width: none; }
+    .register .bar { display: none; }
+    .register td.state { white-space: normal; }
+    .register th:nth-child(4), .register td:nth-child(4) { display: none; }
+    .wl { grid-template-columns: 1fr; }
+    .demo__top .t span { display: none; }
+    .timeline .blk span { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .paper li { transition: none !important; }
+    .timeline .blk { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<span data-sc-progress></span>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#0B6E4F"/><circle cx="16" cy="16" r="9.5" fill="#fff"/><path d="M11.6 16.3l3.1 3.1 5.9-6.3" fill="none" stroke="#0B6E4F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<!-- The exam paper's header strip IS the navigation: brand, question map, the live proctor record, the clock, and the paper's "hand in" button. -->
+<header class="paperbar">
+  <a class="paperbar__brand" href="#q1" aria-label="TestKori, back to the top"><svg class="mark" aria-hidden="true"><use href="#mark"/></svg>TestKori<small>Demo paper</small></a>
+  <nav class="qmap" aria-label="Questions on this page">
+    <a href="#q1" data-q="1" aria-label="Question 1">1</a><a href="#q2" data-q="2" aria-label="Question 2">2</a><a href="#q3" data-q="3" aria-label="Question 3">3</a><a href="#q4" data-q="4" aria-label="Question 4">4</a><a href="#q5" data-q="5" aria-label="Question 5">5</a><a href="#q6" data-q="6" aria-label="Question 6">6</a><a href="#q7" data-q="7" aria-label="Question 7">7</a><a href="#q8" data-q="8" aria-label="Question 8">8</a><a href="#q9" data-q="9" aria-label="Question 9">9</a>
+  </nav>
+  <button class="proctor" type="button" aria-expanded="false" aria-controls="log" id="proctorBtn"><span class="lbl">LEFT THIS PAGE</span> <b id="leftCount">0</b></button>
+  <span class="clock" id="clock" aria-label="Time left on this demo paper"><small>TIME</small><span id="clockVal">10:00</span></span>
+  <a class="btn btn-marker" href="waitlist.html">Join the waitlist</a>
+</header>
+
+<aside class="log" id="log" aria-label="What this page has recorded">
+  <h2>This page is watching, like an exam does</h2>
+  <p>Leaving the tab and copying are recorded here, the way TestKori records them during a real exam. Nothing leaves your browser.</p>
+  <ol id="logList"></ol>
+  <div class="empty" id="logEmpty">Nothing recorded yet.</div>
+</aside>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<main>
+
+  <!-- Q1 · CURIOSITY: the surface, already open -->
+  <section id="q1" class="hero sc-wrap" data-q-section="1">
+    <div class="sheet">
+      <div>
+        <span class="label">Online exams for schools, coaching centers and hiring teams</span>
+        <h1>Fair exams in any browser.</h1>
+        <p class="lede">Teachers set short, timed tests. Students take them on a locked-down page. Every tab switch is on the record.</p>
+        <div class="hero__cta">
+          <a class="btn btn-marker" href="waitlist.html">Join the waitlist</a>
+          <span class="note">Launching soon. One email when it opens.</span>
+        </div>
+      </div>
+      <form class="q1" aria-labelledby="q1-stem" onsubmit="return false">
+        <div class="q1head"><b>01</b><p id="q1-stem">How do you run tests today?</p></div>
+        <ul class="opts" role="radiogroup" aria-labelledby="q1-stem">
+          <li><label class="opt"><input type="radio" name="q1" value="paper"><span class="bubble" aria-hidden="true">A</span>On paper, in a room</label></li>
+          <li><label class="opt"><input type="radio" name="q1" value="forms"><span class="bubble" aria-hidden="true">B</span>A form link, like Google Forms</label></li>
+          <li><label class="opt"><input type="radio" name="q1" value="chat"><span class="bubble" aria-hidden="true">C</span>A PDF in a group chat</label></li>
+          <li><label class="opt"><input type="radio" name="q1" value="none"><span class="bubble" aria-hidden="true">D</span>I'm not running any yet</label></li>
+        </ul>
+        <p class="answer-note" id="q1-note" aria-live="polite">Pick one. It's a real question, and the answer changes what this page says next.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- Q2 · UNEASE -->
+  <section id="q2" class="sec sc-wrap" data-q-section="2" data-sc-act="flow">
+    <div class="q2">
+      <div>
+        <div class="qhead"><span class="qno">02</span><span class="qmeta label">5 marks</span></div>
+        <h2 style="font-size:var(--sc-t-2xl);line-height:1.04;letter-spacing:var(--sc-track-snug);margin:1.25rem 0 1rem;text-wrap:balance">What goes wrong when nobody is watching?</h2>
+        <p class="lede" id="q2-lede">An online test only measures what students know if the test is the only thing on their screen.</p>
+      </div>
+      <ol class="faults" data-sc-in data-sc-stagger="60">
+        <li>A second tab with the notes open. <span class="pen">nothing notices</span></li>
+        <li>Copy the question, paste it into a search box or a chatbot. <span class="pen">nothing notices</span></li>
+        <li>One paper for everyone, so answers travel through the group chat. <span class="pen">same order for all</span></li>
+        <li>The time limit is on the honour system. <span class="pen">no real clock</span></li>
+        <li>Then someone marks all of it by hand. <span class="pen">your evening</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Q3 · ANTICIPATION: authored silence before the peak -->
+  <section id="q3" class="silence sc-wrap" data-q-section="3">
+    <div>
+      <div class="qhead" style="max-width:40rem"><span class="qno">03</span><span class="qmeta label">Practical</span></div>
+      <p class="big">Now try to cheat on this page.</p>
+      <p class="lede">Switch to another tab and come back. Or copy <span class="copyme">this exact sentence</span>.</p>
+    </div>
+  </section>
+
+  <!-- Q3 · PEAK: the exam hall. Pinned so the visitor can act inside it. The demo surface is the ground, so the stage is never empty. -->
+  <section class="peak" data-sc-act="pin" data-sc-span="2.6" aria-label="Live demo: the exam page" id="peak">
+    <div data-sc-stage>
+      <div class="hall">
+        <div class="caption" aria-live="off">
+          <p data-sc-cue="0 0.36 0">This is the page your students see. <b>Leave this tab now</b> and come back.</p>
+          <p data-sc-cue="0.3 0.68">Try copying the question, or pasting into the answer box.</p>
+          <p data-sc-cue="0.62 1">Three times and the exam hands itself in. You get the record.</p>
+        </div>
+
+        <div class="demo" id="demo">
+          <div class="demo__top">
+            <svg class="mark" style="width:22px;height:22px" aria-hidden="true"><use href="#mark"/></svg>
+            <span class="t">Physics · Quiz 3<span>Demo exam</span></span>
+            <div class="right">
+              <span class="vchip" id="vchip">LEFT EXAM <b id="vCount">0</b> / 3</span>
+              <span class="qclock" id="qclock" aria-label="Time left on this question">00:45</span>
+            </div>
+          </div>
+          <div class="demo__body" id="demoBody">
+            <span class="label" style="color:var(--hall-soft)">Question 4 of 10 · single answer · 45 seconds</span>
+            <p class="demo__q" id="demoQ">A ball is thrown straight up at 20 m/s. Taking g = 10 m/s², how long until it reaches its highest point?</p>
+            <ul class="opts" role="radiogroup" aria-label="Demo answer">
+              <li><label class="opt"><input type="radio" name="dq" value="a"><span class="bubble" aria-hidden="true">A</span>1 second</label></li>
+              <li><label class="opt"><input type="radio" name="dq" value="b"><span class="bubble" aria-hidden="true">B</span>2 seconds</label></li>
+              <li><label class="opt"><input type="radio" name="dq" value="c"><span class="bubble" aria-hidden="true">C</span>4 seconds</label></li>
+            </ul>
+            <div class="demo__short">
+              <label for="demoShort">Short answer: explain in one line</label>
+              <input id="demoShort" type="text" autocomplete="off" placeholder="Type here. Pasting is blocked.">
+            </div>
+            <div class="lockout" id="lockout" role="alertdialog" aria-modal="false" aria-labelledby="lockTitle" aria-describedby="lockText">
+            <span class="stamp" id="lockStamp">Recorded</span>
+            <h3 id="lockTitle">You left the exam</h3>
+            <p id="lockText">The questions were hidden while you were away.</p>
+            <button type="button" id="lockBack">Back to the exam</button>
+          </div>
+          </div>
+          <div class="demo__foot">
+            <span>Copy, paste and right-click are blocked here</span>
+            <button type="button" id="simulate">Simulate leaving</button>
+          </div>
+        </div>
+
+        <aside class="report" aria-label="Integrity report for this demo attempt">
+          <h3>What the teacher sees <span class="risk" id="risk">Clean</span></h3>
+          <ol id="reportList"></ol>
+          <div class="empty" id="reportEmpty">Nothing recorded yet. Leave this tab and come back.</div>
+          <p class="fine">In a real exam the clipboard is also cleared when the exam starts, and a fullscreen exit counts the same as leaving.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- Q4 · CONFIDENCE: one paper becomes many -->
+  <section id="q4" class="sec sc-wrap" data-q-section="4" data-sc-act="flow">
+    <div class="q4">
+      <div>
+        <div class="qhead"><span class="qno">04</span><span class="qmeta label">Shuffled</span></div>
+        <h2 style="font-size:var(--sc-t-2xl);line-height:1.04;letter-spacing:var(--sc-track-snug);margin:1.25rem 0 1rem;text-wrap:balance">Same exam. A different paper for every student.</h2>
+        <p class="lede">Questions and answer choices come in a different order for each student, and stay put if they reload. Answers shared in a group chat stop lining up.</p>
+        <div class="shuffle-row">
+          <button class="btn btn-quiet" type="button" id="reshuffle">Seat two other students</button>
+          <span class="label" id="seats">Seats 07 and 12</span>
+        </div>
+      </div>
+      <div class="papers">
+        <figure class="sheet paper" data-sc-reveal="up" data-sc-reveal-at="0.08 0.34" style="margin:0">
+          <header><b id="nameA">Student, seat 07</b><span class="label">Paper A</span></header>
+          <ol id="paperA"></ol>
+        </figure>
+        <figure class="sheet paper" data-sc-reveal="up" data-sc-reveal-at="0.14 0.40" style="margin:0">
+          <header><b id="nameB">Student, seat 12</b><span class="label">Paper B</span></header>
+          <ol id="paperB"></ol>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- Q5 · RELIEF: the register fills itself in -->
+  <section id="q5" class="q5" data-q-section="5" data-sc-act="pin" data-sc-span="1.7">
+    <div data-sc-stage>
+      <div class="sc-wrap q5__grid">
+        <div>
+          <div class="qhead"><span class="qno">05</span><span class="qmeta label">Marking</span></div>
+          <h2 style="font-size:var(--sc-t-2xl);line-height:1.04;letter-spacing:var(--sc-track-snug);margin:1.25rem 0 1rem;text-wrap:balance">Marked before you leave the room.</h2>
+          <p class="lede">Multiple-choice answers are scored the moment a student hands in. Written answers wait for you in one queue, with the integrity record beside each one.</p>
+        </div>
+        <div class="sheet" style="padding:0.5rem 1rem 1rem">
+          <table class="register" aria-label="Sample class register">
+            <thead><tr><th>Seat</th><th>Student</th><th>Score</th><th></th><th>State</th></tr></thead>
+            <tbody id="register"></tbody>
+          </table>
+          <p class="label" style="margin:0.8rem 0 0">Sample class · names are placeholders</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Q6 · CONTROL: one switch, a different exam -->
+  <section id="q6" class="sec sc-wrap" data-q-section="6" data-sc-act="flow">
+    <div class="q6">
+      <div>
+        <div class="qhead"><span class="qno">06</span><span class="qmeta label">Timing</span></div>
+        <h2 style="font-size:var(--sc-t-2xl);line-height:1.04;letter-spacing:var(--sc-track-snug);margin:1.25rem 0 1rem;text-wrap:balance">Time the whole paper, or every question.</h2>
+        <p class="lede">The clock runs on the server, so a reload or a changed device clock buys nothing.</p>
+        <fieldset class="seg" style="border:1px solid var(--rule-strong)">
+          <legend class="label" style="position:absolute;left:-9999px">Timing mode</legend>
+          <label><input type="radio" name="timing" value="whole" checked><span>Whole paper</span></label>
+          <label><input type="radio" name="timing" value="per"><span>Per question</span></label>
+        </fieldset>
+      </div>
+      <div>
+        <div class="timeline whole" id="timeline" aria-hidden="true"></div>
+        <div class="timeline-axis" aria-hidden="true"><span>Start</span><span id="axisEnd">20:00</span></div>
+        <p class="timing-note" id="timingNote" aria-live="polite">One clock for the paper. Students move freely between questions until time runs out.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Q7 · INTEREST: the product video. Set data-video-url to a YouTube link and the placeholder becomes the player. -->
+  <section id="q7" class="sec sc-wrap" data-q-section="7" style="padding-top:0">
+    <div class="qhead" style="margin-bottom:1.5rem"><span class="qno">07</span><h2>See a whole exam, start to finish</h2><span class="qmeta label">Video</span></div>
+    <div class="video" id="video" data-video-url="" data-sc-in>
+      <div class="video__ph">
+        <span class="play" aria-hidden="true"></span>
+        <b>Product video coming soon</b>
+        <span>A teacher sets a test, a class takes it, the results arrive.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Q8 · plans: information, compressed -->
+  <section id="q8" class="sec sc-wrap" data-q-section="8" style="padding-top:0">
+    <div class="plans">
+      <div>
+        <div style="display:flex;gap:1rem;align-items:baseline"><span class="qno">08</span><h2 style="margin:0;font-size:var(--sc-t-xl);font-weight:600;letter-spacing:var(--sc-track-snug)">Plans</h2></div>
+        <p class="lede" style="margin-top:1rem">Pricing is announced at launch. People on the waitlist hear first.</p>
+      </div>
+      <dl>
+        <dt>Who it's for</dt><dd>Schools and colleges, coaching centers, and teams that screen job candidates.</dd>
+        <dt>What you need</dt><dd>A browser on a laptop or desktop for each student. Nothing to install.</dd>
+        <dt>Your data</dt><dd>Each organization's questions, students and results stay private to it.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <!-- Q9 · RESOLVE: the last question is a real input -->
+  <section id="q9" class="close sc-wrap" data-q-section="9">
+    <div class="sheet">
+      <div class="qhead"><span class="qno">09</span><span class="qmeta label">Last question</span></div>
+      <h2 style="font-size:var(--sc-t-2xl);line-height:1.04;letter-spacing:var(--sc-track-snug);margin:1.25rem 0 0.6rem;text-wrap:balance">Where should we tell you when TestKori opens?</h2>
+      <p class="lede">One email when we launch. Unsubscribe any time.</p>
+      <form class="wl" id="wlForm" novalidate>
+        <label for="wlEmail">Your email</label>
+        <input id="wlEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@school.edu" required>
+        <span class="hp" aria-hidden="true"><label for="wlWebsite">Leave this empty</label><input id="wlWebsite" name="website" tabindex="-1" autocomplete="off"></span>
+        <button class="btn btn-marker" type="submit">Join the waitlist</button>
+        <p class="msg" id="wlMsg" aria-live="polite"></p>
+      </form>
+      <p class="label" style="margin:0.5rem 0 0">Prototype: this form doesn't save yet</p>
+    </div>
+    <footer class="foot">
+      <span>TestKori · fair exams in any browser</span>
+      <span><a href="waitlist.html">Waitlist</a> · <a href="#q1">Back to question 1</a></span>
+    </footer>
+  </section>
+
+</main>
+
+<script src="scrollcraft.js"></script>
+<script>ScrollCraft.mount(document.body);</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clockFmt = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.max(0, s % 60)).padStart(2, '0')}`;
+  const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  /* ---------- toast ---------- */
+  let toastTimer;
+  function toast(html, ms = 4200) {
+    const t = $('toast'); t.innerHTML = html; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+  }
+
+  /* ---------- the page-wide record (signature move) ---------- */
+  const record = [];
+  function log(kind, text) {
+    record.push({ kind, text, at: now() });
+    const li = document.createElement('li');
+    if (kind === 'violation') li.className = 'v';
+    li.innerHTML = `<time>${record.at(-1).at}</time><span>${esc(text)}</span>`;
+    $('logList').prepend(li); $('logEmpty').hidden = true;
+  }
+  let leftCount = 0, awaySince = null;
+  function markLeft() {
+    if (awaySince !== null) return;
+    awaySince = Date.now();
+    demoAway(true);
+  }
+  function markBack() {
+    if (awaySince === null) return;
+    const secs = Math.max(1, Math.round((Date.now() - awaySince) / 1000));
+    awaySince = null;
+    leftCount += 1;
+    $('leftCount').textContent = leftCount;
+    $('proctorBtn').classList.add('hit');
+    log('violation', `Left this page for ${secs} s`);
+    const inDemo = demoInView();
+    demoAway(false, secs);
+    if (!inDemo) toast(`You left this page for <b>${secs} s</b>. During a TestKori exam that's a recorded violation, and the questions are hidden until you're back.`);
+  }
+  document.addEventListener('visibilitychange', () => (document.hidden ? markLeft() : markBack()));
+  window.addEventListener('blur', () => { if (!document.hidden && !filePicker) markLeft(); });
+  window.addEventListener('focus', markBack);
+  let filePicker = false;
+
+  // Copying anywhere is allowed (it's a website), but recorded and explained. Inside the demo exam it's blocked.
+  document.addEventListener('copy', (e) => {
+    if ($('demo').contains(e.target)) return;
+    log('flag', 'Copied text');
+    toast('Copied. On a TestKori exam page, copying is <b>blocked and flagged</b>.');
+  });
+
+  $('proctorBtn').addEventListener('click', () => {
+    const open = $('log').classList.toggle('open');
+    $('proctorBtn').setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { $('log').classList.remove('open'); $('proctorBtn').setAttribute('aria-expanded', 'false'); } });
+
+  /* ---------- clock: a real ten-minute paper ---------- */
+  let left = 600;
+  const clockTick = setInterval(() => {
+    left -= 1;
+    $('clockVal').textContent = clockFmt(Math.max(0, left));
+    if (left <= 0) { clearInterval(clockTick); $('clock').classList.add('out'); $('clockVal').textContent = "Time's up"; toast("Time's up on the demo paper. On TestKori, the exam would hand itself in now. Keep reading, though.", 6000); }
+  }, 1000);
+
+  /* ---------- question map: fills as each question is passed ---------- */
+  const mapLinks = [...document.querySelectorAll('.qmap a')];
+  const sections = [...document.querySelectorAll('[data-q-section]')];
+  const seen = new Set();
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((en) => {
+      if (!en.isIntersecting) return;
+      const q = en.target.dataset.qSection;
+      for (let i = 1; i <= Number(q); i++) seen.add(String(i));
+      mapLinks.forEach((a) => {
+        a.classList.toggle('done', seen.has(a.dataset.q) && a.dataset.q !== q);
+        a.setAttribute('aria-current', String(a.dataset.q === q));
+      });
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  sections.forEach((s) => io.observe(s));
+
+  /* ---------- Q1: the answer changes what the page says ---------- */
+  const notes = {
+    paper: 'Fair, but slow. <em>TestKori scores the multiple-choice part the moment students hand in</em>, and you mark written answers in one queue.',
+    forms: 'Quick to set up, and easy to cheat: nothing notices a second tab. <em>TestKori notices, hides the questions, and keeps the record.</em>',
+    chat: 'The answers travel faster than the PDF. <em>TestKori gives every student a differently ordered paper.</em>',
+    none: 'Then start with one short quiz. <em>Set it, share a join code, and the results arrive marked.</em>',
+  };
+  const q2Lede = {
+    forms: 'You already know this list. Form links were never built to stop it.',
+    chat: 'You already know this list. A shared PDF makes most of it easy.',
+  };
+  document.querySelectorAll('input[name="q1"]').forEach((r) => r.addEventListener('change', () => {
+    $('q1-note').innerHTML = notes[r.value];
+    if (q2Lede[r.value]) $('q2-lede').textContent = q2Lede[r.value];
+  }));
+
+  /* ---------- PEAK: the demo exam reacts to the visitor ---------- */
+  const peak = $('peak');
+  let violations = 0, submitted = false;
+  function demoInView() { const r = peak.getBoundingClientRect(); return r.top < innerHeight * 0.6 && r.bottom > innerHeight * 0.4; }
+  function report(kind, text) {
+    const li = document.createElement('li');
+    if (kind === 'violation') li.className = 'v';
+    li.innerHTML = `<time>${now()}</time><span>${esc(text)}</span>`;
+    $('reportList').prepend(li); $('reportEmpty').hidden = true;
+    const flags = $('reportList').children.length - violations;
+    const risk = $('risk');
+    risk.className = 'risk' + (submitted || violations >= 3 ? ' high' : violations || flags ? ' review' : '');
+    risk.textContent = submitted ? 'High risk' : violations || flags ? 'Review' : 'Clean';
+  }
+  function demoAway(away, secs) {
+    if (submitted) return;
+    const lock = $('lockout');
+    if (away) {
+      lock.classList.add('on');
+      $('lockStamp').textContent = `Left at ${now()}`;
+      $('lockTitle').textContent = 'You left the exam';
+      $('lockText').textContent = 'The questions are hidden while you are away. This is being recorded.';
+      return;
+    }
+    violations += 1;
+    $('vCount').textContent = violations;
+    $('vchip').classList.add('hit');
+    report('violation', `Left the exam for ${secs} s`);
+    if (violations >= 3) {
+      submitted = true;
+      report('violation', 'Submitted automatically after 3 violations');
+      $('lockStamp').textContent = 'Submitted automatically';
+      $('lockTitle').textContent = 'Your exam has been handed in';
+      $('lockText').textContent = 'You left the exam 3 times, the limit your teacher set. Your answers so far were saved and the teacher gets the full record.';
+      $('lockBack').textContent = 'Reset the demo';
+    } else {
+      $('lockStamp').textContent = `Recorded · away ${secs} s`;
+      $('lockTitle').textContent = 'Welcome back';
+      $('lockText').textContent = `You were away ${secs} seconds. That's violation ${violations} of 3; at 3 the exam hands itself in.`;
+    }
+    lock.classList.add('on');
+  }
+  $('lockBack').addEventListener('click', () => {
+    if (submitted) {
+      submitted = false; violations = 0;
+      $('vCount').textContent = '0'; $('vchip').classList.remove('hit');
+      $('reportList').innerHTML = ''; $('reportEmpty').hidden = false;
+      $('risk').className = 'risk'; $('risk').textContent = 'Clean';
+      $('lockBack').textContent = 'Back to the exam';
+    }
+    $('lockout').classList.remove('on');
+  });
+  $('simulate').addEventListener('click', () => {
+    demoAway(true);
+    setTimeout(() => demoAway(false, 3), 900);
+    log('violation', 'Simulated leaving the demo exam (3 s)');
+  });
+  const demo = $('demo');
+  ['copy', 'cut'].forEach((ev) => demo.addEventListener(ev, (e) => { e.preventDefault(); report('flag', ev === 'copy' ? 'Copy attempt blocked' : 'Cut attempt blocked'); }));
+  demo.addEventListener('paste', (e) => { e.preventDefault(); report('flag', 'Paste attempt blocked'); });
+  demo.addEventListener('drop', (e) => { e.preventDefault(); report('flag', 'Drag-and-drop paste blocked'); });
+  demo.addEventListener('contextmenu', (e) => { e.preventDefault(); report('flag', 'Right-click blocked'); });
+  demo.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x', 'p', 's', 'u'].includes(k)) { e.preventDefault(); report('flag', `Shortcut blocked (${e.ctrlKey ? 'Ctrl' : 'Cmd'}+${k.toUpperCase()})`); }
+  });
+
+  /* ---------- Q4: seeded shuffle, the same algorithm idea as the product ---------- */
+  const QUESTIONS = [
+    { t: 'Unit of force', c: ['newton', 'joule', 'watt', 'pascal'] },
+    { t: 'Speed of light in a vacuum, roughly', c: ['3×10⁸ m/s', '3×10⁶ m/s', '340 m/s', '9.8 m/s'] },
+    { t: 'What does a voltmeter measure?', c: ['potential difference', 'current', 'resistance', 'power'] },
+    { t: 'A ball thrown up at 20 m/s reaches the top after…', c: ['2 s', '1 s', '4 s', '20 s'] },
+    { t: 'Which is a vector?', c: ['velocity', 'speed', 'mass', 'energy'] },
+  ];
+  function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+  function shuffled(arr, r) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function renderPaper(el, seed) {
+    const r = rng(seed);
+    const order = shuffled(QUESTIONS.map((q, i) => i), r);
+    const first = new Map([...el.children].map((li) => [li.dataset.k, li.getBoundingClientRect().top]));
+    el.innerHTML = order.map((qi, pos) => {
+      const q = QUESTIONS[qi];
+      const opts = shuffled(q.c.map((c, i) => ({ c, key: i === 0 })), r);
+      return `<li data-k="${qi}"><span class="n">${String(pos + 1).padStart(2, '0')}</span><span>${q.t}<span class="ch">${opts.map((o, i) => `<span class="${o.key ? 'k' : ''}" title="${esc(o.c)}">${'ABCD'[i]}</span>`).join('')}</span></span></li>`;
+    }).join('');
+    if (reduce || !first.size) return;
+    [...el.children].forEach((li) => {   // FLIP: animate each question from its old slot to its new one
+      const before = first.get(li.dataset.k); if (before === undefined) return;
+      const dy = before - li.getBoundingClientRect().top; if (!dy) return;
+      li.style.transform = `translateY(${dy}px)`; li.style.transition = 'none';
+      requestAnimationFrame(() => { li.style.transition = 'transform 520ms cubic-bezier(0.23, 1, 0.32, 1)'; li.style.transform = ''; });
+    });
+  }
+  let seats = [7, 12];
+  function seat() { renderPaper($('paperA'), seats[0] * 7919); renderPaper($('paperB'), seats[1] * 7919); $('nameA').textContent = `Student, seat ${String(seats[0]).padStart(2, '0')}`; $('nameB').textContent = `Student, seat ${String(seats[1]).padStart(2, '0')}`; $('seats').textContent = `Seats ${String(seats[0]).padStart(2, '0')} and ${String(seats[1]).padStart(2, '0')}`; }
+  seat();
+  $('reshuffle').addEventListener('click', () => { seats = [1 + Math.floor(Math.random() * 40), 1 + Math.floor(Math.random() * 40)]; if (seats[0] === seats[1]) seats[1] = (seats[1] % 40) + 1; seat(); });
+
+  /* ---------- Q5: the register fills in as the act advances ---------- */
+  const CLASS = [
+    ['03', '[Student name]', 17, 20, 'marked'], ['07', '[Student name]', 14, 20, 'marked'], ['11', '[Student name]', 18, 20, 'queued'],
+    ['12', '[Student name]', 9, 20, 'marked'], ['19', '[Student name]', 15, 20, 'marked'], ['24', '[Student name]', 12, 20, 'queued'],
+  ];
+  $('register').innerHTML = CLASS.map(([s, n]) => `<tr><td class="mono tnum">${s}</td><td>${n}</td><td class="score">··</td><td><span class="bar"><i></i></span></td><td class="state">Writing…</td></tr>`).join('');
+  const rows = [...$('register').children];
+
+  /* ---------- per-frame work driven by the engine's --sc-p ---------- */
+  const q5 = $('q5');
+  function frame() {
+    const pp = parseFloat(peak.style.getPropertyValue('--sc-p')) || 0;     // peak: scroll is the question clock
+    const secs = Math.round(45 * (1 - Math.min(1, pp)));
+    const qc = $('qclock'); qc.textContent = clockFmt(secs);
+    qc.classList.toggle('low', secs <= 10 && secs > 5); qc.classList.toggle('zero', secs <= 5);
+    const p5 = parseFloat(q5.style.getPropertyValue('--sc-p')) || 0;     // register
+    rows.forEach((tr, i) => {
+      const [, , score, total, state] = CLASS[i];
+      const t = Math.min(1, Math.max(0, (p5 - i * 0.11) / 0.22));
+      if (t >= 1) {
+        tr.className = state;
+        tr.cells[2].textContent = state === 'queued' ? `${score - 4}+?` : `${score}/${total}`;
+        tr.cells[4].textContent = state === 'queued' ? 'Yours to mark' : 'Marked';
+      } else { tr.className = ''; tr.cells[2].textContent = '··'; tr.cells[4].textContent = t > 0 ? 'Handed in' : 'Writing…'; }
+      tr.cells[3].querySelector('i').style.setProperty('--w', (t * (score / total)).toFixed(3));
+    });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  /* ---------- Q6: timing switch ---------- */
+  const PER = [45, 30, 60, 45, 90];
+  function timing(mode) {
+    const tl = $('timeline');
+    tl.className = 'timeline ' + mode;
+    tl.innerHTML = PER.map((s, i) => `<div class="blk" style="--f:${mode === 'per' ? s : 1}"><b>Q${i + 1}</b><span>${mode === 'per' ? s + ' s' : 'free'}</span></div>`).join('');
+    $('axisEnd').textContent = mode === 'per' ? clockFmt(PER.reduce((a, b) => a + b, 0)) : '20:00';
+    $('timingNote').textContent = mode === 'per'
+      ? 'Each question gets its own time, set by the teacher. When it runs out, the answer is kept, the question locks and the next one opens. No going back.'
+      : 'One clock for the paper. Students move freely between questions until time runs out.';
+  }
+  document.querySelectorAll('input[name="timing"]').forEach((r) => r.addEventListener('change', () => timing(r.value)));
+  timing('whole');
+
+  /* ---------- Q7: YouTube facade (no third-party request until play) ---------- */
+  const video = $('video');
+  const url = video.dataset.videoUrl;
+  const id = url && (url.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/) || [])[1];
+  if (id) {
+    video.innerHTML = `<button class="video__facade" type="button" aria-label="Play the TestKori product video"><img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy"><span class="play" aria-hidden="true"></span></button>`;
+    video.querySelector('button').addEventListener('click', () => {
+      video.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="TestKori product video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+    }, { once: true });
+  }
+
+  /* ---------- Q9: waitlist form (prototype: validates, doesn't save) ---------- */
+  $('wlForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = $('wlEmail').value.trim(), msg = $('wlMsg');
+    if ($('wlWebsite').value) return;    // bot trap
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { msg.className = 'msg err'; msg.textContent = 'That email doesn\'t look right. Check it and try again.'; $('wlEmail').focus(); return; }
+    msg.className = 'msg ok'; msg.textContent = 'You\'re on the list. We\'ll email you once, when TestKori opens.';
+  });
+})();
+</script>
+</body>
+</html>
