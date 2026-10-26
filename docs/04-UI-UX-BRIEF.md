@@ -7,7 +7,7 @@ Status: living document · Last updated 2026-10-12 · Implemented in `frontend/s
 
 ## Audience and tone
 
-- **Audience:** global, launching in Bangladesh. Students (mostly 15–25) on low/mid-range Android phones and mobile data; teachers and trainers on laptops; HR teams. **Design for the weakest device, the slowest connection and a stressed user first.**
+- **Audience:** global, launching in Bangladesh. Students (mostly 15–25), teachers, trainers and HR teams, **on desktop and laptop browsers** (v1 is desktop only; phones get the landing page). Many use old, low-spec PCs and slow connections. **Design for the weakest PC, the slowest connection and a stressed user first.**
 - **Three adjectives:** **calm · clear · trustworthy.**
 - **Voice:** plain, specific, sentence case, short. Say what happens and why ("Leaving fullscreen hides the questions. It's recorded."). No hype, exclamation marks, emoji or jokes. Never claim cheating is impossible.
 - **Avoid the "AI template" look:** purple/blue gradients, glassmorphism and blur, glowing shadows, oversized hero illustrations, decorative blobs, rows of identical cards with icons, gradient text, everything rounded to 24 px.
@@ -87,7 +87,7 @@ Use `src/components/ui.js`. Don't hand-roll alternatives, and don't add new vari
 | `Badge` | Status only; short text; one badge per row where possible |
 | `Alert` | Inline, at the top of the area it concerns; dismissible unless it's blocking |
 | `Tabs` | Max 4; counts optional |
-| `Modal` / `useConfirm()` | Only for confirmation or a short focused task. No multi-step flows in modals. On phones it opens as a bottom sheet |
+| `Modal` / `useConfirm()` | Only for confirmation or a short focused task. No multi-step flows in modals |
 | `EmptyState` | Icon, one-line title, one sentence, one action |
 | `PageHeader`, `Stat`, `Spinner`, `PageLoader` | Standard scaffolding |
 
@@ -95,13 +95,12 @@ Tailwind rule: class names written literally (lookup objects like `BUTTON_VARIAN
 
 ## Layout rules
 
-- **Mobile first.** Design the 360 px layout first, then enhance. Breakpoints: `sm` 640 px (wider padding), `lg` 1024 px (sidebar appears, auth side panel shows).
+- **Desktop first, 1024 px minimum.** Design at 1280 × 800 (the most common laptop), check at 1024 × 768 and 1920 × 1080. Narrower than 1024 px the app shows the `DesktopOnly` screen; only the landing page, login and signup are responsive down to 360 px.
 - **Widths:** content `max-w-6xl`; forms and reading `max-w-3xl`; the exam question column `max-w-2xl`.
-- **Spacing scale (4 px base):** 4 · 8 · 12 · 16 · 24 · 32 · 48. Page gutter 16 px on mobile, 32 px on larger screens. 24–32 px between sections; 16–20 px inside cards.
-- **Staff screens:** lists/tables over card grids. **Candidate screens:** simple stacked cards, one per exam.
-- **Phones:** no horizontal page scroll; wide tables become stacked rows (label: value); sticky bottom bar for the primary action on long forms and in the exam.
-- **Thumb zone:** on phones, primary actions sit at the bottom (exam Next/Submit, form Save), not in the top bar.
-- **Phone-first vs. desktop-first screens:** candidate screens and staff review/grading screens are designed at 360 px first. Authoring screens (exam builder, question editor, imports, analytics) are designed for desktop first. On phones they get a basic responsive pass plus a dismissible `Alert tone="info"`: "This screen is easier on a computer." with a **Continue** action. Never hide or block them. See PRD "Mobile vs. desktop".
+- **Spacing scale (4 px base):** 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64. Page gutter 32 px. 24–32 px between sections; 16–20 px inside cards.
+- **Staff screens:** lists and tables over card grids; use the width (side-by-side panels, sticky filters) instead of stacking.
+- **Exam screen:** question column centered at reading width, question map in a fixed right rail, timer and violation chip in a slim top bar. Everything works by keyboard (number keys pick answers, arrow keys move between questions).
+- **Pointer and keyboard first:** hover states behind `@media (hover: hover)`, shortcuts shown in tooltips, click targets at least 32 px.
 
 ## Screen notes
 
@@ -135,15 +134,16 @@ Tailwind rule: class names written literally (lookup objects like `BUTTON_VARIAN
 | Short rise (6 px) | 150–200 ms | Dialog/sheet panel only |
 | Color/opacity transition | 150 ms | Hover, pressed, focus |
 
-- **Not allowed:** page-load animations, staggered lists, parallax, bouncing, skeleton shimmer loops, animated gradients, looping or decorative animation.
+- **Landing page exception:** restrained scroll-driven reveals and one signature scroll moment are allowed there (see `scroll-craft`), `transform` and `opacity` only, fully static under reduced motion. The app itself stays still.
+- **Not allowed in the app:** page-load animations, staggered lists, parallax, bouncing, skeleton shimmer loops, animated gradients, looping or decorative animation.
 - Spinners only after 300 ms of waiting (avoid flicker).
 - The timer's last minute changes **color** (warn → danger); it does not pulse. The "Live" badge is static.
 - Only `opacity` and `transform` are animated (GPU-cheap). Never animate layout, shadows or blur.
 - `prefers-reduced-motion: reduce` turns all motion off.
 
-## Performance budget (cheap smartphones)
+## Performance budget (low-end PCs and slow connections)
 
-Target device: ~$100 Android phone (2 GB RAM, 4-core), Chrome, throttled 3G (1.6 Mbps, 150 ms RTT).
+Target device: an old office or lab PC (dual-core, 4 GB RAM, integrated graphics), Chrome or Edge, on a slow connection (throttled "Fast 3G": 1.6 Mbps, 150 ms RTT). The landing page is also budgeted for a mid-range phone.
 
 | Metric | Budget |
 |---|---|
@@ -168,7 +168,7 @@ Rules that follow from the budget:
 - WCAG 2.2 AA: text contrast 4.5:1, UI elements 3:1, in both themes.
 - Every input has a visible `<label>`; errors are announced (`role="alert"`); dialogs trap and restore focus; Esc closes.
 - Full keyboard use with a visible focus ring (`:focus-visible`, 2 px brand).
-- Touch targets ≥ 44 × 44 px on touch devices (answers, navigation, submit).
+- Click targets at least 32 × 32 px; answers are full-width rows. Landing page touch targets at least 44 × 44 px.
 - Text scales to 200% without breaking layout; no text in images.
 - Theme follows `prefers-color-scheme` on first visit; the choice is remembered.
 

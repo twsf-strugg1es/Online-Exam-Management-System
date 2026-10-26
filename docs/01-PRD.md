@@ -69,32 +69,32 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 | F19 | More question types (true/false, fill-in-the-blank, numeric, matching, ordering), math (KaTeX), images in questions | Covers science and math subjects | P1 | Planned |
 | F20 | Sections, extra time per candidate, offline-tolerant saving, grade-by-question, analytics | Serious exam operations | P1 | Planned |
 | F21 | Internationalization: translation-ready UI (English default, Bengali first translation), locale-aware dates and numbers, per-organization language/timezone/currency, right-to-left support | One codebase serves Bangladesh and global customers | P0 (framework) / P1 (languages) | Planned |
+| F25 | Clipboard protection during exams: clipboard cleared when the exam starts and each time the candidate returns; every paste route blocked (keys, menu, drag-and-drop, middle-click); attempts flagged | Text copied before or outside the exam can't be pasted in | P0 | Planned |
+| F26 | Public landing page: product story, features, pricing placeholder, sign-up calls to action; responsive and phone-friendly; restrained scroll effects | Explains TestKori to institutions; the only phone experience in v1 | P0 | Planned |
 | F24 | Global readiness: Stripe/Paddle card payments, GDPR tools (data export, deletion, data processing agreement, cookie consent), global SMS (Twilio), optional EU data hosting | Sell outside Bangladesh legally | P3 | Planned |
 | F22 | Webcam snapshots + face checks, ID photo, Safe Exam Browser, live proctor dashboard | Higher-stakes exams and hiring | P2 | Planned |
 | F23 | Plans, billing (bKash/SSLCommerz), branding, audit log, Google sign-in, paid public mock tests | Revenue and enterprise readiness | P3 | Planned |
 
-## Mobile vs. desktop
+## Platform: desktop web app (version one)
 
-**Rule: candidates get everything on mobile; staff get quick tasks on mobile and heavy authoring on desktop.**
+**Decision (2026-10-26): version one is a desktop web app. Phones get only the public landing page.**
 
-| Area | Phone | Desktop |
+| Surface | Desktop / laptop (1024 px and wider) | Tablet / phone (narrower) |
 |---|---|---|
-| Candidate: join, exams list, take exam, results, account | ✅ Full (primary platform) | ✅ Full |
-| Staff: exam results, integrity reports, grading written/image answers | ✅ Full | ✅ Full |
-| Staff: publish/unpublish, member and join-code management, groups | ✅ Full | ✅ Full |
-| Staff: create/edit exam, question editor, Excel import, bulk student import | ⚠️ "Best on a computer" notice, can continue | ✅ Full |
-| Staff: analytics, merit-list export, organization settings | ⚠️ "Best on a computer" notice, can continue | ✅ Full |
-| Integrity: fullscreen requirement | Android ✅ · iPhone ❌ (no Fullscreen API; tab/app switching still recorded) | ✅ |
-| Integrity: Safe Exam Browser *(planned)* | ❌ (desktop-only by nature) | ✅ |
-| Integrity: webcam snapshots *(planned)* | ✅ | ✅ |
+| Landing page (public) | Yes | Yes, fully responsive |
+| Login, signup, join | Yes | Yes, so people can sign up from a link on their phone |
+| Everything else: staff screens, candidate dashboard, **taking exams**, results | Yes | No: "Open TestKori on a computer" screen |
 
-Desktop-only screens are never hidden or blocked on phones. They show a one-line notice and still work, so nobody gets stuck. Phone layouts for these screens get a basic responsive pass, not a dedicated mobile design.
+- The "use a computer" screen says what to do next ("Open TestKori on a laptop or desktop and sign in"), keeps the user signed in, and is never a dead end.
+- Window width decides, not device sniffing: a 1024 px tablet in landscape counts as a computer.
+- **Why:** integrity features (fullscreen, focus tracking, clipboard control, later Safe Exam Browser) work fully only in desktop browsers, and one well-designed layout ships faster than two.
+- **Tradeoff, accepted for now:** many Bangladeshi students only own a phone. Pilot customers need computer access (labs, centers, hiring teams). Revisit after the pilot; a mobile candidate experience is planned work, not a non-goal.
 
-**Acceptance:** AC19. Given a phone at 360 px width, when a candidate completes J2, J4 and J6 (see App Flow), then every step works without horizontal scrolling or zooming. AC20. Given a staff member on a phone opening "New exam", then they see the "Best on a computer" notice and can still create the exam.
+**Acceptance:** AC19. Given a browser window 1024 px or wider, every journey in the App Flow works without horizontal scrolling. AC20. Given a phone at 390 px, the landing page, login and signup work fully, and any other route shows the "Open TestKori on a computer" screen with a working sign-out.
 
 ## Out of scope for version one
 
-- A native mobile app. The web app must work well on mobile browsers; a PWA comes later.
+- Mobile and tablet use of the app itself (v1 is desktop only; phones get the landing page). A mobile candidate experience and a PWA come after the pilot.
 - Live human video proctoring.
 - LMS features: courses, lessons, assignments, attendance.
 - Webcam/AI proctoring (P2), billing (P3). The pilot is free or invoiced manually.
@@ -152,6 +152,7 @@ Desktop-only screens are never hidden or blocked on phones. They show a one-line
 - AC15 (US15). Given an XLSX file with 200 rows (3 invalid), when the admin uploads it, then a preview shows 197 valid and 3 errors with reasons; confirming creates or links 197 candidates in the chosen groups and sends invites.
 - AC16 (US16). Given negative marking of 0.25, a candidate with 10 correct, 4 wrong and 6 blank answers on 1-mark questions scores 9.0.
 - AC17 (US16). Given a closed exam, the merit list ranks by score (higher first), then by time taken (shorter first); tied candidates share a rank.
+- AC21 (F25). Given an exam with copy/paste protection on, when the candidate presses Start exam, then the clipboard is cleared; pasting by Ctrl/Cmd+V, Shift+Insert, the context menu, drag-and-drop or middle-click inserts nothing and records a `copy_paste` flag.
 - AC18 (US17). Given a pool rule "5 random easy questions tagged physics", each attempt gets 5 questions from that set, and the same 5 after a reload, even if the bank changes meanwhile.
 
 ## Open questions

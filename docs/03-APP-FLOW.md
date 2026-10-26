@@ -7,6 +7,7 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 
 | Entry | URL | Who |
 |---|---|---|
+| *(planned)* Landing page | `/` (signed out) | Institutions evaluating TestKori; anyone on a phone |
 | Direct visit / bookmark | `/` → redirects by state (see Navigation rules) | Everyone |
 | Login | `/login` | Returning users |
 | Student signup link with code | `/signup?code=K7M2QX9P` (code prefilled, upper-cased) | Candidates invited by an institution |
@@ -44,20 +45,18 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | *(planned)* Bulk import students | modal on Organization → Students | Upload, preview, confirm, report | — | Managers |
 | *(planned)* Merit list / export | tab on Exam results | Ranked list, XLSX/PDF export | attempts | Staff |
 
-## Mobile vs. desktop
+## Desktop only (version one)
 
-Policy: see PRD "Mobile vs. desktop". Per screen:
+Policy: see PRD "Platform: desktop web app".
 
-| Screen | Phone |
+| Route | Narrower than 1024 px |
 |---|---|
-| Login, signups, Organizations, Account | Full |
-| Candidate: Exams, Exam, Results list, Result detail | **Full: primary platform; designed phone-first** |
-| Staff: Exams list, Exam results, Integrity report, Grade answers, Students | Full |
-| Staff: Organization (Invite & groups, Students, Staff) | Full |
-| Staff: New exam / Edit exam, Question bank import, Question editor, Bulk student import | "Best on a computer" notice + **Continue anyway** |
-| Staff: Organization → Settings, analytics, exports *(planned)* | "Best on a computer" notice + **Continue anyway** |
+| `/` landing page *(planned)* | Fully responsive |
+| `/login`, `/signup`, `/signup/organization` | Work (phone-friendly forms) |
+| Every other route | `DesktopOnly` screen: logo, "TestKori works on a computer", one line on why (exams need a full browser), what to open, and **Sign out** |
 
-Notice behavior: shown at the top of the screen below 1024 px width; dismissing it hides it for that screen for the session (remembered in `sessionStorage`). It never blocks the form.
+- A `matchMedia("(min-width: 1024px)")` check, re-evaluated on resize, so widening a window or rotating a tablet lets the user straight in.
+- A running exam is never interrupted by a resize: the attempt keeps running and the screen asks to widen the window. Leaving fullscreen is already recorded.
 
 ## Primary journeys
 

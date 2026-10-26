@@ -5,9 +5,9 @@ Status: living document · Last updated 2026-10-12 · Describes the system **as 
 
 ## Platforms
 
-- **Web only**: a responsive single-page app for desktop and mobile browsers.
-- Supported: the last 2 versions of Chrome, Edge, Firefox and Safari; Android Chrome on low-end devices (2 GB RAM, 3G) is a first-class target.
-- iOS Safari works, but it has no Fullscreen API, so the fullscreen requirement is skipped there (see Key decisions).
+- **Web only, desktop first**: version one is a desktop web app (1024 px and wider). Narrower, only the public landing page, login and signup work; other routes show a "use a computer" screen.
+- Supported: the last 2 versions of Chrome, Edge, Firefox and Safari on Windows, macOS and Linux; old low-spec PCs are a first-class target. The landing page also supports mobile Safari and Android Chrome.
+- Clipboard clearing uses the async Clipboard API (`navigator.clipboard.writeText`), which needs a focused page; it's best effort, and paste blocking doesn't depend on it.
 - *(planned)* An installable PWA. There are no native apps.
 
 ## Frontend and hosting
