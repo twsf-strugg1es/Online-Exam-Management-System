@@ -308,33 +308,30 @@ def save_answer(
     if answer_in.question_id not in {q.id for q in exam.questions}:
         raise ValueError("Question does not belong to this exam")
 
-    # Check if answer already exists
-    existing_answer = (
-        db.query(models.Answer)
-        .filter(
-            models.Answer.attempt_id == attempt_id,
-            models.Answer.question_id == answer_in.question_id,
+    def existing() -> models.Answer | None:
+        return (
+            db.query(models.Answer)
+            .filter(models.Answer.attempt_id == attempt_id, models.Answer.question_id == answer_in.question_id)
+            .first()
         )
-        .first()
-    )
 
-    if existing_answer:
-        # Update existing answer
-        existing_answer.answer_data = answer_in.answer_data
-        db.commit()
-        db.refresh(existing_answer)
-        return existing_answer
+    answer = existing()
+    if answer is None:
+        answer = models.Answer(attempt_id=attempt_id, question_id=answer_in.question_id, answer_data=answer_in.answer_data)
+        db.add(answer)
+        try:
+            db.commit()
+        except IntegrityError:
+            # Another save (a second tab, a retried request) inserted it first: update that one
+            db.rollback()
+            answer = existing()
+            answer.answer_data = answer_in.answer_data
+            db.commit()
     else:
-        # Create new answer
-        new_answer = models.Answer(
-            attempt_id=attempt_id,
-            question_id=answer_in.question_id,
-            answer_data=answer_in.answer_data,
-        )
-        db.add(new_answer)
+        answer.answer_data = answer_in.answer_data
         db.commit()
-        db.refresh(new_answer)
-        return new_answer
+    db.refresh(answer)
+    return answer
 
 
 def calculate_and_save_score(

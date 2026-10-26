@@ -11,6 +11,7 @@ from sqlalchemy import (
     Table,
     Float,
     Date,
+    Index,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSON
@@ -170,6 +171,8 @@ class Question(Base):
 
 class Exam(Base):
     __tablename__ = "exams"
+    # The exams list and the student dashboard filter by organization and sort by start
+    __table_args__ = (Index("ix_exams_organization_start", "organization_id", "start_time"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organization_id = Column(
@@ -204,7 +207,7 @@ class ExamAttempt(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     exam_id = Column(UUID(as_uuid=True), ForeignKey("exams.id"), nullable=False)
-    student_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    student_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     start_time = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
     end_time = Column(DateTime(timezone=True), nullable=True)
     score = Column(Float, nullable=True)
@@ -256,6 +259,8 @@ class IntegrityEvent(Base):
 
 class Answer(Base):
     __tablename__ = "answers"
+    # One answer per question per attempt; also serves as the index on attempt_id
+    __table_args__ = (UniqueConstraint("attempt_id", "question_id", name="uq_answer_attempt_question"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     attempt_id = Column(UUID(as_uuid=True), ForeignKey("exam_attempts.id"), nullable=False)
@@ -270,7 +275,7 @@ class Evaluation(Base):
     __tablename__ = "evaluations"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    answer_id = Column(UUID(as_uuid=True), ForeignKey("answers.id"), nullable=False)
+    answer_id = Column(UUID(as_uuid=True), ForeignKey("answers.id"), nullable=False, index=True)
     evaluated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)  # Teacher/Admin
     is_correct = Column(Boolean, nullable=True)  # True=right, False=wrong, None=not evaluated
     comment = Column(String(100), nullable=True)  # Max 100 characters

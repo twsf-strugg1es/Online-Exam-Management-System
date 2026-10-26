@@ -179,7 +179,7 @@ Server rules: only one open question per attempt; answers to a question are acce
 
 ### Indexes
 Existing: `users.email` (unique), the `organization_id` columns on memberships/groups/questions/exams, `memberships.user_id`, `integrity_events.attempt_id`, `exam_attempts (exam_id, student_id)` (unique constraint), unique join codes.
-**Missing; add with the next migration:** `answers.attempt_id`, a unique `answers (attempt_id, question_id)` (today the upsert is enforced only in code), `evaluations.answer_id`, `exam_attempts.student_id`, `exams (organization_id, start_time)`.
+Added in `0007_indexes_unique_answers`: unique `answers (attempt_id, question_id)` (`uq_answer_attempt_question`, also the index for `attempt_id`; duplicates were removed first, keeping the evaluated one), `evaluations.answer_id`, `exam_attempts.student_id`, `exams (organization_id, start_time)`. `crud.save_answer` catches the unique violation when two saves race and updates the row that won.
 
 ## Relationships
 
