@@ -5,7 +5,7 @@ import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Badge, Card, EmptyState, Input, PageLoader, Stat, Tabs } from '../components/ui';
 import { ProtectionIcons, StatusBadge } from './AdminExamsPage';
-import { errorMessage, formatDateTime, formatDuration, percent } from '../utils';
+import { errorMessage, formatDateTime, formatDuration, formatExamTime, percent } from '../utils';
 import { useI18n } from '../i18n';
 
 export const RISK = {
@@ -87,7 +87,7 @@ function ExamResultsPage() {
             <StatusBadge exam={exam} />
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted">
-            <span className="flex items-center gap-1.5"><LuCalendar className="h-3.5 w-3.5" />{formatDateTime(exam.start_time)} – {formatDateTime(exam.end_time)}</span>
+            <span className="flex items-center gap-1.5"><LuCalendar className="h-3.5 w-3.5" />{formatDateTime(exam.start_time)} – {formatExamTime(exam.end_time)}</span>
             <span className="flex items-center gap-1.5"><LuClock className="h-3.5 w-3.5" />{t('{{n}} min', { n: exam.duration_minutes })}</span>
             <span className="flex items-center gap-1.5"><LuUsers className="h-3.5 w-3.5" />{exam.groups?.length ? exam.groups.map((g) => g.name).join(', ') : t('Everyone')}</span>
             <ProtectionIcons exam={exam} />

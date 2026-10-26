@@ -44,11 +44,7 @@ def _user_with_memberships(user: models.User) -> schemas.UserWithMemberships:
     return schemas.UserWithMemberships(
         **schemas.User.model_validate(user).model_dump(),
         memberships=[
-            schemas.MembershipOut(
-                organization_id=m.organization_id,
-                organization_name=m.organization.name,
-                role=m.role,
-            )
+            crud.membership_out(m)
             for m in sorted(user.memberships, key=lambda m: m.organization.name.lower())
         ],
     )
@@ -89,6 +85,6 @@ def signup_organization(data: schemas.OrganizationSignup, db: Session = Depends(
     """Create a new organization together with its owner's account."""
     _ensure_email_free(db, data.email)
     owner = crud.create_user(db, data, commit=False)
-    crud.create_organization(db, data.organization_name.strip(), owner)
+    crud.create_organization(db, data.organization_name.strip(), owner, locale=data)
     db.refresh(owner)
     return _user_with_memberships(owner)

@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { LuCopy, LuRefreshCw, LuTrash2, LuPlus, LuX, LuCheck, LuLink } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import { Alert, Badge, Button, Card, CardHeader, EmptyState, Input, PageHeader, PageLoader, Select, Tabs, useConfirm } from '../components/ui';
+import { Alert, Badge, Button, Card, CardHeader, EmptyState, Field, Input, PageHeader, PageLoader, Select, Tabs, useConfirm } from '../components/ui';
 import { ROLE_LABELS, errorMessage } from '../utils';
-import { useI18n } from '../i18n';
+import { LANGUAGES, useI18n } from '../i18n';
 
 const signupLink = (code) => `${window.location.origin}/signup?code=${code}`;
 
@@ -25,6 +25,83 @@ function CopyButton({ text, label }) {
     <Button variant="secondary" size="sm" icon={copied ? LuCheck : LuCopy} onClick={copy}>
       {copied ? t('Copied') : label || t('Copy link')}
     </Button>
+  );
+}
+
+// Every IANA timezone the browser knows (plus UTC and the current one, which older browsers may lack)
+const timeZoneOptions = (current) => {
+  const known = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [];
+  return [...new Set(['UTC', ...known, current].filter(Boolean))];
+};
+const currencyOptions = (current) => {
+  const known = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('currency') : [];
+  return [...new Set([...known, current].filter(Boolean))];
+};
+const displayNames = (locale, type) => {
+  try {
+    return new Intl.DisplayNames([locale], { type });
+  } catch {
+    return null; // older browsers: show the codes alone
+  }
+};
+
+function RegionSettings({ org, onSave }) {
+  const { t, locale } = useI18n();
+  const initial = { timezone: org.timezone, default_language: org.default_language, country: org.country || '', currency: org.currency || '' };
+  const [form, setForm] = useState(initial);
+  const zones = useMemo(() => timeZoneOptions(org.timezone), [org.timezone]);
+  const currencies = useMemo(() => currencyOptions(org.currency), [org.currency]);
+  const regionNames = useMemo(() => displayNames(locale, 'region'), [locale]);
+  const currencyNames = useMemo(() => displayNames(locale, 'currency'), [locale]);
+  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+
+  let countryName = null;
+  if (/^[A-Z]{2}$/.test(form.country)) {
+    try {
+      countryName = regionNames?.of(form.country);
+    } catch {
+      countryName = null;
+    }
+  }
+  const unchanged = Object.keys(initial).every((key) => initial[key] === form[key]);
+
+  return (
+    <Card>
+      <CardHeader title={t('Region and language')} description={t('Exam opening and closing times are shown in this timezone to everyone in the organization.')} />
+      <form className="grid gap-5 p-5 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); onSave(form); }}>
+        <Field label={t('Timezone')} htmlFor="timezone">
+          <Select id="timezone" value={form.timezone} onChange={set('timezone')}>
+            {zones.map((zone) => <option key={zone} value={zone}>{zone.replace(/_/g, ' ')}</option>)}
+          </Select>
+        </Field>
+        <Field label={t('Default language')} htmlFor="defaultLanguage" hint={t("Members who haven't picked a language see this one.")}>
+          <Select id="defaultLanguage" value={form.default_language} onChange={set('default_language')}>
+            {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+          </Select>
+        </Field>
+        <Field label={t('Country')} htmlFor="country" optional hint={countryName || t('Two-letter code, such as BD or GB.')}>
+          <Input
+            id="country"
+            value={form.country}
+            onChange={(e) => setForm({ ...form, country: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })}
+            maxLength={2}
+            autoComplete="off"
+          />
+        </Field>
+        <Field label={t('Currency')} htmlFor="currency" optional>
+          <Select id="currency" value={form.currency} onChange={set('currency')}>
+            <option value="">{t('Not set')}</option>
+            {currencies.map((code) => {
+              const name = currencyNames?.of(code);
+              return <option key={code} value={code}>{name && name !== code ? `${code} · ${name}` : code}</option>;
+            })}
+          </Select>
+        </Field>
+        <div className="flex justify-end sm:col-span-2">
+          <Button type="submit" disabled={unchanged}>{t('Save')}</Button>
+        </div>
+      </form>
+    </Card>
   );
 }
 
@@ -329,22 +406,32 @@ function AdminOrganizationPage() {
       )}
 
       {tab === 'settings' && (
-        <Card>
-          <CardHeader title={t('Organization name')} description={t('Shown to your staff and students.')} />
-          <form
-            className="flex gap-2 p-5"
-            onSubmit={(e) => {
-              e.preventDefault();
-              act(async () => {
-                await api.patch('/org', { name: orgName.trim() });
-                await refreshUser(); // the name shows in the sidebar and organization picker
-              }, t('Organization renamed'));
-            }}
-          >
-            <Input value={orgName} onChange={(e) => setOrgName(e.target.value)} minLength={2} required />
-            <Button type="submit" disabled={orgName.trim() === org.name}>{t('Save')}</Button>
-          </form>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader title={t('Organization name')} description={t('Shown to your staff and students.')} />
+            <form
+              className="flex gap-2 p-5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                act(async () => {
+                  await api.patch('/org', { name: orgName.trim() });
+                  await refreshUser(); // the name shows in the sidebar and organization picker
+                }, t('Organization renamed'));
+              }}
+            >
+              <Input value={orgName} onChange={(e) => setOrgName(e.target.value)} minLength={2} required />
+              <Button type="submit" disabled={orgName.trim() === org.name}>{t('Save')}</Button>
+            </form>
+          </Card>
+          <RegionSettings
+            key={[org.timezone, org.default_language, org.country, org.currency].join('|')}
+            org={org}
+            onSave={(form) => act(async () => {
+              await api.patch('/org', form);
+              await refreshUser(); // the timezone and language come with the membership
+            }, t('Settings saved'))}
+          />
+        </div>
       )}
       {confirmDialog}
     </AppShell>

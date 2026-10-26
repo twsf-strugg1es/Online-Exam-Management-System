@@ -4,14 +4,14 @@ import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Button, Card, CardHeader, Field, Input, PageHeader, PageLoader, Select } from '../components/ui';
 import { ROLE_LABELS, errorMessage } from '../utils';
-import { useI18n } from '../i18n';
+import { LANGUAGES, useI18n } from '../i18n';
 
-// Account settings for anyone signed in: name, gender and password
+// Account settings for anyone signed in: name, gender, language and password
 function StudentProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const { user, currentMembership, refreshUser } = useAuth();
   const { t } = useI18n();
   const [profile, setProfile] = useState(null);
-  const [details, setDetails] = useState({ full_name: '', gender: '' });
+  const [details, setDetails] = useState({ full_name: '', gender: '', language: '' });
   const [passwords, setPasswords] = useState({ old_password: '', new_password: '', confirm_password: '' });
   const [detailsMessage, setDetailsMessage] = useState(null);
   const [passwordMessage, setPasswordMessage] = useState(null);
@@ -21,7 +21,7 @@ function StudentProfilePage() {
     api.get('/profile/student')
       .then((res) => {
         setProfile(res.data);
-        setDetails({ full_name: res.data.full_name || '', gender: res.data.gender || '' });
+        setDetails({ full_name: res.data.full_name || '', gender: res.data.gender || '', language: res.data.language || '' });
       })
       .catch((err) => setDetailsMessage({ tone: 'danger', text: errorMessage(err, 'Failed to load your profile') }));
   }, []);
@@ -31,9 +31,9 @@ function StudentProfilePage() {
     setDetailsMessage(null);
     setSaving('details');
     try {
-      const res = await api.put('/profile/student', { full_name: details.full_name.trim(), gender: details.gender || null });
+      const res = await api.put('/profile/student', { full_name: details.full_name.trim(), gender: details.gender || null, language: details.language || null });
       setProfile(res.data);
-      await refreshUser(); // the name shows in the sidebar
+      await refreshUser(); // the name shows in the sidebar; the language applies straight away
       setDetailsMessage({ tone: 'success', text: t('Saved') });
     } catch (err) {
       setDetailsMessage({ tone: 'danger', text: errorMessage(err, 'Could not save') });
@@ -67,7 +67,9 @@ function StudentProfilePage() {
 
   if (!profile && !detailsMessage) return <AppShell width="narrow"><PageLoader /></AppShell>;
 
-  const unchanged = profile && details.full_name === (profile.full_name || '') && details.gender === (profile.gender || '');
+  const unchanged = profile && details.full_name === (profile.full_name || '') && details.gender === (profile.gender || '')
+    && details.language === (profile.language || '');
+  const orgLanguage = LANGUAGES.find((l) => l.code === currentMembership?.default_language);
 
   return (
     <AppShell width="narrow">
@@ -90,6 +92,12 @@ function StudentProfilePage() {
                   <option value="female">{t('Female')}</option>
                   <option value="male">{t('Male')}</option>
                   <option value="other">{t('Other')}</option>
+                </Select>
+              </Field>
+              <Field label={t('Language')} htmlFor="language">
+                <Select id="language" value={details.language} onChange={(e) => setDetails({ ...details, language: e.target.value })}>
+                  <option value="">{orgLanguage ? t('Organization default ({{language}})', { language: orgLanguage.label }) : t('Organization default')}</option>
+                  {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
                 </Select>
               </Field>
             </div>

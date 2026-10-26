@@ -13,14 +13,6 @@ from ..security import get_current_user
 router = APIRouter(tags=["Organizations"])
 
 
-def _membership_out(membership: models.Membership) -> schemas.MembershipOut:
-    return schemas.MembershipOut(
-        organization_id=membership.organization_id,
-        organization_name=membership.organization.name,
-        role=membership.role,
-    )
-
-
 @router.post("/organizations", response_model=schemas.MembershipOut, status_code=status.HTTP_201_CREATED)
 def create_organization(
     data: schemas.OrganizationCreate,
@@ -29,7 +21,7 @@ def create_organization(
 ):
     """Create a new organization owned by the current user."""
     org = crud.create_organization(db, data.name.strip(), current_user)
-    return _membership_out(crud.get_membership(db, current_user.id, org.id))
+    return crud.membership_out(crud.get_membership(db, current_user.id, org.id))
 
 
 @router.post("/organizations/join", response_model=schemas.MembershipOut)
@@ -43,30 +35,49 @@ def join_organization(
         membership = crud.join_with_code(db, current_user, data.join_code.strip())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return _membership_out(membership)
+    return crud.membership_out(membership)
 
 
 # --- The current organization (selected with the X-Organization-Id header) ---
+
+def _locale(org: models.Organization) -> dict:
+    return {
+        "country": org.country,
+        "default_language": org.default_language,
+        "timezone": org.timezone,
+        "currency": org.currency,
+    }
+
 
 @router.get("/org")
 def get_current_organization(membership: models.Membership = Depends(get_current_membership)):
     """The current organization; managers also get its join code."""
     org = membership.organization
-    result = {"id": str(org.id), "name": org.name, "role": membership.role}
+    result = {"id": str(org.id), "name": org.name, "role": membership.role, **_locale(org)}
     if membership.role in models.MANAGER_ROLES:
         result["join_code"] = org.join_code
     return result
 
 
 @router.patch("/org")
-def rename_organization(
-    data: schemas.OrganizationCreate,
+def update_organization(
+    data: schemas.OrganizationUpdate,
     db: Session = Depends(get_db),
     membership: models.Membership = Depends(require_manager),
 ):
-    membership.organization.name = data.name.strip()
+    """Rename the organization or change its locale. Only the fields sent change."""
+    org = membership.organization
+    changes = data.model_dump(exclude_unset=True)
+    if changes.get("name") is not None:
+        org.name = changes["name"].strip()
+    for field in ("default_language", "timezone"):  # required columns: null means "leave it"
+        if changes.get(field) is not None:
+            setattr(org, field, changes[field])
+    for field in ("country", "currency"):  # optional columns: empty clears
+        if field in changes:
+            setattr(org, field, changes[field])
     db.commit()
-    return {"id": str(membership.organization_id), "name": membership.organization.name}
+    return {"id": str(org.id), "name": org.name, **_locale(org)}
 
 
 @router.post("/org/join-code/regenerate")

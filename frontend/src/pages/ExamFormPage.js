@@ -6,18 +6,15 @@ import AppShell from '../components/AppShell';
 import {
   Alert, Badge, Button, Card, CardHeader, Checkbox, EmptyState, Field, Input, PageHeader, Select, Switch, cx,
 } from '../components/ui';
-import { QUESTION_TYPE_LABELS, errorMessage } from '../utils';
+import { QUESTION_TYPE_LABELS, errorMessage, fromZonedInput, timeZoneLabel, toZonedInput } from '../utils';
 import { useI18n } from '../i18n';
-
-// datetime-local inputs work in the browser's local time without a timezone
-const toLocalInput = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
 const defaultTimes = () => {
   const start = new Date();
   start.setMinutes(0, 0, 0);
   start.setHours(start.getHours() + 1);
   const end = new Date(start.getTime() + 2 * 3600 * 1000);
-  return { start: toLocalInput(start), end: toLocalInput(end) };
+  return { start: toZonedInput(start), end: toZonedInput(end) };
 };
 
 function ExamFormPage() {
@@ -55,7 +52,7 @@ function ExamFormPage() {
   const visibleQuestions = questions.filter((q) => !search || q.title.toLowerCase().includes(search.toLowerCase()));
   const totalPoints = questions.filter((q) => selectedQuestions.has(q.id)).reduce((sum, q) => sum + q.max_score, 0);
 
-  const windowMinutes = (new Date(form.end) - new Date(form.start)) / 60000;
+  const windowMinutes = (fromZonedInput(form.end) - fromZonedInput(form.start)) / 60000;
   const scheduleProblem =
     !form.start || !form.end ? null
       : windowMinutes <= 0 ? t('The exam must close after it opens.')
@@ -74,8 +71,8 @@ function ExamFormPage() {
       const res = await api.post('/admin/exams/', {
         title: form.title.trim(),
         // Send real instants (UTC), so the exam opens at the same moment wherever the server runs
-        start_time: new Date(form.start).toISOString(),
-        end_time: new Date(form.end).toISOString(),
+        start_time: fromZonedInput(form.start).toISOString(),
+        end_time: fromZonedInput(form.end).toISOString(),
         duration_minutes: parseInt(form.duration, 10),
         question_ids: [...selectedQuestions],
         group_ids: [...selectedGroups],
@@ -117,6 +114,11 @@ function ExamFormPage() {
               <Field label={t('Duration (minutes)')} htmlFor="duration">
                 <Input id="duration" type="number" min="1" value={form.duration} onChange={update('duration')} />
               </Field>
+              {timeZoneLabel() && (
+                <p className="text-sm text-muted sm:col-span-2">
+                  {t("Times are in your organization's timezone ({{zone}}), not your device's.", { zone: timeZoneLabel() })}
+                </p>
+              )}
               {scheduleProblem && <Alert tone="warn" className="sm:col-span-2">{scheduleProblem}</Alert>}
             </div>
           </Card>

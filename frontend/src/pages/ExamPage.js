@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import useExamIntegrity, { clearClipboard, enterFullscreen, exitFullscreen, fullscreenSupported } from '../hooks/useExamIntegrity';
 import { Alert, Badge, Button, Card, Logo, LogoMark, Modal, PageLoader, Textarea, cx } from '../components/ui';
-import { errorMessage, formatClock, formatDateTime } from '../utils';
+import { errorMessage, formatClock, formatExamTime } from '../utils';
 import { useI18n } from '../i18n';
 
 const TEXT_SAVE_DELAY = 700; // save written answers once the student pauses typing
@@ -43,7 +43,7 @@ function RulesScreen({ exam, resuming, onStart, starting, error }) {
         <dl className="mt-4 grid grid-cols-3 gap-4 border-b border-line pb-4 font-mono text-sm">
           <div><dt className="eyebrow">{t('Time')}</dt><dd className="tabular mt-1">{t('{{n}} min', { n: exam.duration_minutes })}</dd></div>
           <div><dt className="eyebrow">{t('Questions')}</dt><dd className="tabular mt-1">{exam.question_count}</dd></div>
-          <div><dt className="eyebrow">{t('Closes')}</dt><dd className="tabular mt-1">{formatDateTime(exam.end_time)}</dd></div>
+          <div><dt className="eyebrow">{t('Closes')}</dt><dd className="tabular mt-1">{formatExamTime(exam.end_time)}</dd></div>
         </dl>
 
         {resuming && (
@@ -322,7 +322,7 @@ function ResultsScreen({ results, submitReason }) {
 
         <h2 className="mb-3 mt-10 text-[15px] font-semibold">{t('Your answers')}</h2>
         {exam.answers_revealed === false && (
-          <Alert tone="info" className="mb-4">{t('Correct answers are shown after the exam closes for everyone ({{date}}).', { date: formatDateTime(exam.end_time) })}</Alert>
+          <Alert tone="info" className="mb-4">{t('Correct answers are shown after the exam closes for everyone ({{date}}).', { date: formatExamTime(exam.end_time) })}</Alert>
         )}
         <div className="space-y-2.5">
           {(exam.questions || []).map((q, i) => {

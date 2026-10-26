@@ -4,7 +4,7 @@ import { LuPlus, LuClipboardList, LuEllipsis, LuTrash2, LuEyeOff, LuSend } from 
 import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Button, Card, EmptyState, PageHeader, PageLoader, useConfirm } from '../components/ui';
-import { errorMessage, formatDateTime, formatShortDate } from '../utils';
+import { errorMessage, formatExamTime, formatShortDate, getTimeZone, isSameDay, timeZoneLabel } from '../utils';
 import { useI18n } from '../i18n';
 
 // Draft until published; then scheduled, live or closed depending on the exam window
@@ -95,13 +95,13 @@ function ExamWindow({ exam }) {
   const { t, locale } = useI18n();
   const start = new Date(exam.start_time);
   const end = new Date(exam.end_time);
-  const time = (d) => d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-  const day = (d) => (d.toDateString() === new Date().toDateString() ? t('Today') : formatShortDate(d));
-  const sameDay = start.toDateString() === end.toDateString();
+  const time = (d) => d.toLocaleTimeString(locale, { timeZone: getTimeZone(), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const day = (d) => (isSameDay(d, new Date()) ? t('Today') : formatShortDate(d));
+  const zone = timeZoneLabel(start);
   return (
     <>
-      <span className="block">{sameDay ? day(start) : `${day(start)} – ${day(end)}`}</span>
-      <span className="block text-faint">{time(start)} – {time(end)}</span>
+      <span className="block">{isSameDay(start, end) ? day(start) : `${day(start)} – ${day(end)}`}</span>
+      <span className="block text-faint">{time(start)} – {time(end)}{zone && ` ${zone}`}</span>
     </>
   );
 }
@@ -133,8 +133,8 @@ function AdminExamsPage() {
       const ok = await confirm({
         title: t('Publish “{{title}}”?', { title: exam.title }),
         description: exam.groups?.length
-          ? t('Students in {{groups}} will see it and can start it from {{date}}.', { groups: exam.groups.map((g) => g.name).join(', '), date: formatDateTime(exam.start_time) })
-          : t('Students in your organization will see it and can start it from {{date}}.', { date: formatDateTime(exam.start_time) }),
+          ? t('Students in {{groups}} will see it and can start it from {{date}}.', { groups: exam.groups.map((g) => g.name).join(', '), date: formatExamTime(exam.start_time) })
+          : t('Students in your organization will see it and can start it from {{date}}.', { date: formatExamTime(exam.start_time) }),
         confirmLabel: t('Publish'),
       });
       if (!ok) return;

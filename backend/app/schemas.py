@@ -1,9 +1,65 @@
+import re
+from zoneinfo import available_timezones
+
 from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 
 from . import models
 from uuid import UUID
 from typing import Any, Optional
 from datetime import datetime, date
+
+
+_TIMEZONES = available_timezones()
+
+
+def _check_language(value: Optional[str]) -> Optional[str]:
+    if value is not None and value not in models.LANGUAGES:
+        raise ValueError(f"Language must be one of: {', '.join(models.LANGUAGES)}")
+    return value
+
+
+def _check_timezone(value: Optional[str]) -> Optional[str]:
+    if value is not None and value not in _TIMEZONES:
+        raise ValueError("Unknown timezone. Use an IANA name such as Asia/Dhaka")
+    return value
+
+
+def _check_code(value: Optional[str], length: int, what: str) -> Optional[str]:
+    """Country (2 letters) and currency (3 letters) codes, stored upper case; empty clears."""
+    if value is None or value.strip() == "":
+        return None
+    value = value.strip().upper()
+    if not re.fullmatch(f"[A-Z]{{{length}}}", value):
+        raise ValueError(f"{what} must be a {length}-letter code")
+    return value
+
+
+class LocaleFields(BaseModel):
+    """An organization's locale. Every field is optional so a client can change one at a time."""
+    country: Optional[str] = None
+    default_language: Optional[str] = None
+    timezone: Optional[str] = None
+    currency: Optional[str] = None
+
+    @field_validator("country")
+    @classmethod
+    def _country(cls, v):
+        return _check_code(v, 2, "Country")
+
+    @field_validator("currency")
+    @classmethod
+    def _currency(cls, v):
+        return _check_code(v, 3, "Currency")
+
+    @field_validator("default_language")
+    @classmethod
+    def _language(cls, v):
+        return _check_language(v)
+
+    @field_validator("timezone")
+    @classmethod
+    def _timezone(cls, v):
+        return _check_timezone(v)
 
 
 class UserBase(BaseModel):
@@ -23,15 +79,27 @@ class CandidateSignup(UserCreate):
     join_code: Optional[str] = None
 
 
-class OrganizationSignup(UserCreate):
-    """Sign up a new organization together with its owner's account."""
+class OrganizationSignup(UserCreate, LocaleFields):
+    """Sign up a new organization together with its owner's account.
+
+    The signup page sends the browser's timezone, so exam windows are right from the start.
+    """
     organization_name: str = Field(min_length=2, max_length=120)
+
+    @field_validator("timezone", mode="before")
+    @classmethod
+    def _browser_timezone(cls, v):
+        # A browser can report a zone this server doesn't know: start on UTC instead of failing
+        return v if v in _TIMEZONES else None
 
 
 class MembershipOut(BaseModel):
     organization_id: UUID
     organization_name: str
     role: str
+    # Needed on every screen: exam windows use the timezone, the language is the fallback
+    timezone: str = models.DEFAULT_TIMEZONE
+    default_language: str = models.DEFAULT_LANGUAGE
 
 
 class User(UserBase):
@@ -39,6 +107,7 @@ class User(UserBase):
     full_name: Optional[str] = None
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
+    language: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -53,6 +122,7 @@ class UserProfile(BaseModel):
     full_name: Optional[str] = None
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
+    language: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -64,6 +134,11 @@ class GroupSummary(BaseModel):
 
 class OrganizationCreate(BaseModel):
     name: str = Field(min_length=2, max_length=120)
+
+
+class OrganizationUpdate(LocaleFields):
+    """Change the name and/or locale; fields left out stay as they are."""
+    name: Optional[str] = Field(default=None, min_length=2, max_length=120)
 
 
 class GroupCreate(BaseModel):

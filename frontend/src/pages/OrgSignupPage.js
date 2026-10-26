@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import AuthLayout from '../components/AuthLayout';
 import { Alert, Button, Field, Input } from '../components/ui';
-import { errorMessage } from '../utils';
+import { errorMessage, viewerTimeZone } from '../utils';
 import { useI18n } from '../i18n';
 
 // Register a new organization (school, coaching center, company) together with its owner's account
@@ -37,6 +37,7 @@ function OrgSignupPage() {
         full_name: form.fullName.trim(),
         email: form.email,
         password: form.password,
+        timezone: viewerTimeZone(),
       });
 
       // Sign the new owner straight in

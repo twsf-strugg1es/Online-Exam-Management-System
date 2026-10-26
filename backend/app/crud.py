@@ -32,15 +32,32 @@ def create_user(db: Session, user: schemas.UserCreate, commit: bool = True) -> m
     return db_user
 
 
-def create_organization(db: Session, name: str, owner: models.User) -> models.Organization:
+def create_organization(
+    db: Session, name: str, owner: models.User, locale: schemas.LocaleFields | None = None
+) -> models.Organization:
     """Create an organization with `owner` as its first member."""
     org = models.Organization(name=name)
+    if locale:
+        for field in schemas.LocaleFields.model_fields:
+            if getattr(locale, field) is not None:
+                setattr(org, field, getattr(locale, field))
     db.add(org)
     db.flush()
     db.add(models.Membership(user_id=owner.id, organization_id=org.id, role=models.ROLE_OWNER))
     db.commit()
     db.refresh(org)
     return org
+
+
+def membership_out(membership: models.Membership) -> schemas.MembershipOut:
+    org = membership.organization
+    return schemas.MembershipOut(
+        organization_id=membership.organization_id,
+        organization_name=org.name,
+        role=membership.role,
+        timezone=org.timezone or models.DEFAULT_TIMEZONE,
+        default_language=org.default_language or models.DEFAULT_LANGUAGE,
+    )
 
 
 def get_membership(db: Session, user_id: uuid.UUID, organization_id: uuid.UUID) -> models.Membership | None:

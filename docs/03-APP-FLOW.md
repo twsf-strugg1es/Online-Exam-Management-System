@@ -25,7 +25,7 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | Student signup | `/signup` | Create a candidate account, optionally with a join code | — | Signed out |
 | Organization signup | `/signup/organization` | Create an organization + owner account | — | Anyone |
 | Organizations | `/organizations` | Pick the current organization, join with a code, create an organization | `/me` memberships | Signed in |
-| Account | `/profile` | Name, gender, password, list of organizations | `/profile/student` | Any member |
+| Account | `/profile` | Name, gender, language (or the organization's default), password, list of organizations | `/profile/student` | Any member |
 | **Staff** | | | | |
 | Exams | `/admin-exams` | List exams with status (Draft/Scheduled/Live/Closed) and protections; publish/unpublish/delete | `/admin/exams/` | Staff |
 | New exam | `/admin-exams/new` | Details, schedule, questions, groups, integrity settings | `/admin/questions/`, `/org/groups` | Staff |
@@ -34,7 +34,7 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | Grade answers | `/admin-evaluate-answers/:attemptId` | Mark written/image answers correct or incorrect, with a comment | `/admin/evaluations/attempts/:id` | Staff |
 | Question bank | `/admin-questions` | Search/filter, view, import from Excel, download template, bulk delete | `/admin/questions/` | Staff |
 | Students | `/admin-students` | List and search candidates with performance; remove | `/admin/students/` | Staff |
-| Organization | `/admin-organization` | Tabs: Invite & groups · Students · Staff · Settings | `/org`, `/org/groups`, `/org/members` | Managers |
+| Organization | `/admin-organization` | Tabs: Invite & groups · Students · Staff · Settings (name; region and language: timezone, default language, country, currency) | `/org`, `/org/groups`, `/org/members` | Managers |
 | **Candidate** | | | | |
 | Exams (dashboard) | `/student-account` | Sections: Continue where you left off · Open now · Upcoming · Done | `/student/exams/`, `/student/unfinished-attempts/` | Candidate |
 | Exam | `/exam/:id`, `/exam/resume/:attemptId` | Rules → take exam → finished | start/resume, answers, events | Candidate |

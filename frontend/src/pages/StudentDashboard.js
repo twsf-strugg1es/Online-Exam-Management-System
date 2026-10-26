@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Button, Card, EmptyState, PageLoader, cx } from '../components/ui';
-import { errorMessage, formatDateTime, formatShortDate } from '../utils';
+import { errorMessage, formatExamTime, formatShortDate } from '../utils';
 import { useI18n } from '../i18n';
 
 const greeting = (t) => {
@@ -17,7 +17,7 @@ const opensIn = (start, t) => {
   const minutes = Math.round((new Date(start) - Date.now()) / 60000);
   if (minutes < 60) return t('Opens in {{n}} min', { n: Math.max(1, minutes) });
   if (minutes < 24 * 60) return t('Opens in {{n}} h', { n: Math.round(minutes / 60) });
-  return t('Opens {{date}}', { date: formatDateTime(start) });
+  return t('Opens {{date}}', { date: formatExamTime(start) });
 };
 
 function ExamCard({ exam, attempt, onOpen }) {

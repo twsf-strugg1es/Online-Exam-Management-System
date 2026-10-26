@@ -44,13 +44,16 @@ def update_student_profile(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """Update the current user's profile (full_name, date_of_birth, gender)."""
+    """Update the current user's profile (full_name, date_of_birth, gender, language)."""
     user = db.query(models.User).filter(models.User.id == current_user.id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Update allowed fields
-    allowed_fields = ["full_name", "date_of_birth", "gender"]
+    if profile_update.get("language") not in (None, *models.LANGUAGES):
+        raise HTTPException(status_code=400, detail="Unsupported language")
+
+    # Update allowed fields; language null means "use the organization's"
+    allowed_fields = ["full_name", "date_of_birth", "gender", "language"]
     for field in allowed_fields:
         if field in profile_update:
             setattr(user, field, profile_update[field])

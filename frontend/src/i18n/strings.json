@@ -156,6 +156,7 @@
   "Could not validate credentials": {
     "source": "server"
   },
+  "Country": {},
   "Create": {},
   "Create a new join code?": {},
   "Create a new organization": {},
@@ -166,8 +167,10 @@
   "Create organization": {},
   "Create your first exam": {},
   "Create your student account": {},
+  "Currency": {},
   "Current password": {},
   "Dark": {},
+  "Default language": {},
   "Delete": {},
   "Delete “{{title}}”?": {},
   "Delete {{n}} questions?": {},
@@ -216,6 +219,7 @@
   "Exam not submitted": {
     "source": "server"
   },
+  "Exam opening and closing times are shown in this timezone to everyone in the organization.": {},
   "Exam published.": {},
   "Exam time has expired. You can no longer take this exam": {
     "source": "server"
@@ -321,6 +325,7 @@
   "JPG or PNG, up to 2 MB": {},
   "Keep me signed in on this device": {},
   "Keep working": {},
+  "Language": {},
   "Left": {},
   "LEFT EXAM": {},
   "Light": {},
@@ -339,6 +344,7 @@
     "source": "server"
   },
   "Member removed": {},
+  "Members who haven't picked a language see this one.": {},
   "More actions": {},
   "More than one screen connected": {},
   "move": {},
@@ -385,6 +391,7 @@
   "Not answered": {},
   "Not graded yet": {},
   "Not saved": {},
+  "Not set": {},
   "Nothing changed": {},
   "Nothing here": {},
   "Nothing to grade": {},
@@ -408,6 +415,8 @@
   "optional": {},
   "Options:": {},
   "Organization": {},
+  "Organization default": {},
+  "Organization default ({{language}})": {},
   "Organization join code": {},
   "Organization name": {},
   "Organization renamed": {},
@@ -448,6 +457,7 @@
   "Questions used in an exam are archived instead: they leave the bank, but past results keep them. Unused questions are deleted.": {},
   "Questions you can reuse across exams. Multiple-choice questions are graded automatically; written and image answers are graded by an examiner.": {},
   "Recorded": {},
+  "Region and language": {},
   "Register your organization": {},
   "Remove": {},
   "Remove {{name}}?": {},
@@ -480,6 +490,7 @@
   "Select shown": {},
   "Set a duration in minutes.": {},
   "Settings": {},
+  "Settings saved": {},
   "Share the join code from the Invite tab.": {},
   "Shown to your staff and students.": {},
   "Shuffle": {},
@@ -563,8 +574,10 @@
   "Time ran out": {},
   "Timed exam": {},
   "Timeline": {},
+  "Times are in your organization's timezone ({{zone}}), not your device's.": {},
   "Times are minutes:seconds after the attempt started, by the server's clock.": {},
   "Times you left the exam": {},
+  "Timezone": {},
   "Title": {},
   "Today": {},
   "Tried a middle-click paste (blocked)": {},
@@ -574,12 +587,16 @@
   "Tried to paste (blocked)": {},
   "Tried to paste from the menu (blocked)": {},
   "Try a different search or filter.": {},
+  "Two-letter code, such as BD or GB.": {},
   "Type": {},
   "Type your answer here": {},
   "Unfinished attempt not found or does not belong to you": {
     "source": "server"
   },
   "Unpublish": {},
+  "Unsupported language": {
+    "source": "server"
+  },
   "Upcoming": {},
   "Update grade": {},
   "Upload an image of your answer": {},

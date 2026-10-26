@@ -63,6 +63,11 @@ ROLES = (ROLE_OWNER, ROLE_ADMIN, ROLE_EXAMINER, ROLE_CANDIDATE)
 STAFF_ROLES = (ROLE_OWNER, ROLE_ADMIN, ROLE_EXAMINER)  # can manage questions, exams and grading
 MANAGER_ROLES = (ROLE_OWNER, ROLE_ADMIN)  # can also manage members and groups
 
+# Interface languages with a catalog in the frontend (src/i18n); BCP 47 codes
+LANGUAGES = ("en", "bn")
+DEFAULT_LANGUAGE = "en"
+DEFAULT_TIMEZONE = "UTC"
+
 
 # Easy to read aloud and type: no lowercase, and no look-alikes such as O/0 or I/1
 JOIN_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
@@ -79,6 +84,11 @@ class Organization(Base):
     name = Column(String, nullable=False)
     join_code = Column(String, unique=True, nullable=False, default=generate_join_code)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    # Locale: exam windows are shown in this timezone; members without a language get this one
+    country = Column(String(2), nullable=True)  # ISO 3166-1 alpha-2
+    default_language = Column(String, nullable=False, default=DEFAULT_LANGUAGE, server_default=DEFAULT_LANGUAGE)
+    timezone = Column(String, nullable=False, default=DEFAULT_TIMEZONE, server_default=DEFAULT_TIMEZONE)  # IANA
+    currency = Column(String(3), nullable=True)  # ISO 4217
 
     memberships = relationship("Membership", back_populates="organization", cascade="all, delete-orphan")
     groups = relationship("Group", back_populates="organization", cascade="all, delete-orphan")
@@ -93,6 +103,7 @@ class User(Base):
     full_name = Column(String, nullable=True)
     date_of_birth = Column(Date, nullable=True)
     gender = Column(String, nullable=True)  # 'male', 'female', 'other'
+    language = Column(String, nullable=True)  # BCP 47; null = the organization's default
 
     memberships = relationship("Membership", back_populates="user", cascade="all, delete-orphan")
 

@@ -32,8 +32,12 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | name | text | ✓ | | 2–120 chars (API) |
 | join_code | text | ✓ | 8 random chars from `ABCDEFGHJKMNPQRSTUVWXYZ23456789` | **unique** |
 | created_at | timestamptz | ✓ | now | |
+| country | varchar(2) | | null | ISO 3166-1 alpha-2, stored upper case |
+| default_language | text | ✓ | `en` | One of `models.LANGUAGES` (`en`, `bn`); members without their own language get it |
+| timezone | text | ✓ | `UTC` | IANA name, e.g. `Asia/Dhaka`; checked against `zoneinfo`. Exam windows are shown in it. Org signup sends the browser's zone (unknown zones fall back to `UTC`) |
+| currency | varchar(3) | | null | ISO 4217, stored upper case; for plans and invoices later |
 
-*(planned, global readiness)* `country` (ISO 3166-1 alpha-2), `default_language` (BCP 47, default `en`), `timezone` (IANA name, e.g. `Asia/Dhaka`), `currency` (ISO 4217), `data_region` (e.g. `ap`, `eu`).
+*(planned)* `data_region` (e.g. `ap`, `eu`), task 8.10.
 
 ### users
 | Field | Type | Required | Default | Notes |
@@ -44,7 +48,7 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | full_name | text | | | Shown to examiners |
 | date_of_birth | date | | | |
 | gender | text | | | `male` / `female` / `other` |
-| *(planned)* language | text | | null (use the organization's) | BCP 47 |
+| language | text | | null (use the organization's) | One of `models.LANGUAGES`; set from Account |
 | *(planned)* phone | text | | | E.164, e.g. `+8801XXXXXXXXX` |
 
 ### memberships
