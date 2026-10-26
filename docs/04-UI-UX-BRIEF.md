@@ -200,8 +200,8 @@ Rules that follow from the budget:
 
 | Asset | Status |
 |---|---|
-| **TestKori logo mark + wordmark** | **Needed (owner decision).** The current `Logo` in `ui.js` is the old PorikkhaKori mark (Bengali "প"). Direction: simple geometric mark on the brand green (a "T" or an answer-bubble/check motif), legible at 16 px, one color; wordmark "TestKori" in IBM Plex Sans semibold. SVG only |
-| Favicon, PWA icons, `index.html` title, `manifest.json` | Update to TestKori (from the SVG mark) |
+| **TestKori logo mark + wordmark** | **Done (1.1):** a filled answer bubble with a check on the brand green. `LogoMark` / `Logo` in `ui.js` (inline SVG, theme tokens, works in both themes); wordmark "TestKori" in IBM Plex Sans semibold |
+| Favicon, PWA icons, `index.html` title, `manifest.json` | **Done (1.1):** `public/favicon.svg`, `favicon.ico` (16–64), `logo192.png`, `logo512.png`, all from the same 32-unit geometry |
 | Icons | Lucide via `react-icons/lu`, 16–18 px, stroke 1.75–2; only icons that add meaning |
 | Illustrations | None by design |
 | Email templates | Plain HTML: logo, one heading, one paragraph, one button; works without images |

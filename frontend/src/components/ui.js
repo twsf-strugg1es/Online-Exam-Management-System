@@ -6,14 +6,30 @@ export { cx };
 
 // --- Brand ---
 
-// The mark is the Bengali letter "প" (from PorikkhaKori, "let's take the exam")
-export function Logo({ compact = false, className }) {
+// The mark is a filled answer bubble with a check, as on an exam answer sheet.
+// Same geometry as public/favicon.svg and the PNG icons (32-unit grid).
+export function LogoMark({ size = 32, className }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className={cx('shrink-0', className)}>
+      <rect width="32" height="32" rx="8" className="fill-brand" />
+      <circle cx="16" cy="16" r="9.5" className="fill-on-brand" />
+      <path
+        d="M11.6 16.3l3.1 3.1 5.9-6.3"
+        fill="none"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="stroke-brand"
+      />
+    </svg>
+  );
+}
+
+export function Logo({ compact = false, size = 28, className }) {
   return (
     <span className={cx('inline-flex items-center gap-2.5', className)}>
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand text-[19px] font-semibold leading-none text-on-brand">
-        <span className="-mt-0.5" style={{ fontFamily: '"Hind Siliguri", sans-serif' }}>প</span>
-      </span>
-      {!compact && <span className="text-[15px] font-semibold tracking-tight text-ink">PorikkhaKori</span>}
+      <LogoMark size={size} />
+      {!compact && <span className="text-[17px] font-semibold tracking-[-0.015em] text-ink">TestKori</span>}
     </span>
   );
 }
