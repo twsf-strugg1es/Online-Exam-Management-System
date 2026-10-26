@@ -7,7 +7,7 @@ import { Button, Logo } from './ui';
 const QUERY = '(min-width: 1024px)';
 
 // Pages that work on phones too; everything else needs a computer in version one
-const PHONE_FRIENDLY = ['/login', '/signup', '/signup/organization', '/waitlist'];
+const PHONE_FRIENDLY = ['/login', '/signup', '/signup/organization', '/waitlist', '/forgot-password', '/reset-password'];
 
 function useWideEnough() {
   const [wide, setWide] = useState(() => (typeof window.matchMedia === 'function' ? window.matchMedia(QUERY).matches : true));
@@ -29,7 +29,7 @@ export default function DesktopOnly({ children }) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const inExam = pathname.startsWith('/exam/');
-  const covered = !wide && !PHONE_FRIENDLY.includes(pathname);
+  const covered = !wide && !PHONE_FRIENDLY.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 
   return (
     <>

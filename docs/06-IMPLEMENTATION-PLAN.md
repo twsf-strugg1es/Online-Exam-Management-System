@@ -43,7 +43,7 @@ The product already exists (see "Completed"). Milestones 1–6 take it to a **pa
 | [x] | 2.1 | Missing indexes + unique `answers(attempt_id, question_id)` | agent | 05 Schema "Indexes" | Migration `0007_indexes_unique_answers` (deduplicates answers first, keeping the evaluated one) | Upgrade works on a copy of real data; save-answer still upserts | 1.5 |
 | [x] | 2.2 | Server-side exam validation | agent | 05 Schema "Data validation" | `ExamCreate` validators | start < end, duration ≥ 1, ≥ 1 question → 422; tests | — |
 | [x] | 2.3 | Email sending abstraction | agent; **owner** picks the provider | provider SMTP credentials | `app/notify.py` (`send_email`): `console` (`.eml` files, dev), `memory` (tests), `smtp` (any provider). Owner still picks the provider and sender address (Open issues) | Tests use the memory backend; provider set by env var | — |
-| [ ] | 2.4 | Password reset | agent | 2.3 | `password_reset_tokens` table (hashed, 30 min, single use); 2 endpoints; `/forgot-password`, `/reset-password/:token` pages | PRD **AC14** passes; tests for reuse, expiry, unknown email | 2.3 |
+| [x] | 2.4 | Password reset | agent | 2.3 | `password_reset_tokens` table (hashed, 30 min, single use); 2 endpoints; `/forgot-password`, `/reset-password/:token` pages | PRD **AC14** passes; tests for reuse, expiry, unknown email | 2.3 |
 | [ ] | 2.5 | Email verification (soft) | agent | 2.3 | `users.email_verified_at`; verify link; banner until verified | Unverified users can still take exams (pilot) | 2.3 |
 | [x] | 2.6 | Rate limiting on `/token`, signup, reset | agent | — | `app/rate_limit.py` (own limiter, see TRD decision): sign-in per IP + failures per account, signup and org signup per IP, join codes per user. Reset gets its limit with 2.4 | Exceeding the limit → 429 with `Retry-After`; `test_rate_limit.py` | — |
 | [x] | 2.7 | Archive instead of destroy | agent | 05 Schema "Retention" | `questions.archived_at`, `exams.archived_at`; delete = archive once used | Deleting a used question never removes answers; past results still render; tests | 2.1 |
@@ -149,6 +149,5 @@ Record anything unresolved at a milestone checkpoint here: date, issue, decision
 
 - 2026-10-12: Owner decisions pending: email provider (2.3), SMS gateway (3.9), hosting region (6.1), TestKori logo mark (1.1), negative-total policy (4.1), retakes (PRD open question 7), first global market and global pricing (PRD open questions 8–9), waitlist sender address (3.13), YouTube link for the product video (3.14).
 - 2026-10-26: 2.3 built provider-neutral (SMTP). Owner still decides: which email provider, and the sender address/domain (needs SPF/DKIM on the domain). Until then the API writes emails to a local outbox.
-- 2026-10-26: When 2.4 (password reset) ships: rate-limit the reset endpoints and add "or reset your password" to the account-lockout message in `routers/auth.py`.
 - 2026-10-26: Remove the email-subject fallback for old tokens in `security.get_current_user` in the release after 2.8 ships (agent; no owner decision).
 - 2026-10-26: The logo mark from 1.1 (option B, bubble + check) is in use; the owner picked it, so it's no longer pending.

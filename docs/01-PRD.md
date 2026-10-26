@@ -59,7 +59,7 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 | F9 | Auto-grading (choice questions); manual grading of written and image answers | Marking takes minutes | P0 | Built |
 | F10 | Results for examiners (per exam) and for candidates | Everyone sees outcomes | P0 | Built |
 | F11 | Single-question create/edit form; edit exam before it opens | Fix a typo without re-importing | P0 | Planned |
-| F12 | Password reset, email verification | Users can recover their own accounts | P0 | Planned |
+| F12 | Password reset, email verification | Users can recover their own accounts | P0 | Reset built (2.4); verification planned |
 | F13 | Bulk candidate import (CSV/XLSX) with invites | Enroll a 200-student batch at once | P0 | Planned |
 | F14 | Email + SMS notifications (exam published, reminder, results) | Students show up on time | P0 | Planned |
 | F15 | Negative marking; per-exam marks | Matches admission/BCS-style exams | P1 | Planned |

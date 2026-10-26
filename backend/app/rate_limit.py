@@ -20,6 +20,9 @@ LOGIN_FAILURES_PER_ACCOUNT = (10, 15 * 60)
 SIGNUP_PER_IP = (60, 10 * 60)
 ORG_SIGNUP_PER_IP = (10, 60 * 60)
 JOIN_PER_USER = (20, 10 * 60)
+RESET_REQUEST_PER_IP = (20, 10 * 60)
+RESET_EMAILS_PER_ACCOUNT = (3, 60 * 60)  # beyond this, requests succeed but send nothing
+RESET_CONFIRM_PER_IP = (30, 10 * 60)
 
 _MAX_KEYS = 50_000  # prune expired entries beyond this, so memory stays bounded
 
@@ -38,20 +41,24 @@ class RateLimiter:
             self._hits.pop(key, None)
         return recent
 
-    def check(self, key: str, rule: tuple[int, int], message: str) -> None:
-        """Raise 429 when `key` has used up its limit; doesn't count this request."""
+    def retry_after(self, key: str, rule: tuple[int, int]) -> int:
+        """Seconds until `key` may act again; 0 while it's under its limit."""
         if not self.enabled:
-            return
+            return 0
         limit, window = rule
         now = time.monotonic()
         with self._lock:
             recent = self._recent(key, window, now)
-        if len(recent) >= limit:
-            retry_after = max(1, math.ceil(window - (now - recent[0])))
+        return max(1, math.ceil(window - (now - recent[0]))) if len(recent) >= limit else 0
+
+    def check(self, key: str, rule: tuple[int, int], message: str) -> None:
+        """Raise 429 when `key` has used up its limit; doesn't count this request."""
+        wait = self.retry_after(key, rule)
+        if wait:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail=message,
-                headers={"Retry-After": str(retry_after)},
+                headers={"Retry-After": str(wait)},
             )
 
     def add(self, key: str) -> None:

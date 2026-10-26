@@ -55,6 +55,7 @@ Backend environment (`backend/.env`):
 | `CORS_ORIGINS` | no | Comma-separated allowed frontend origins (default: localhost:3000, localhost:5173) |
 | `LOG_LEVEL` | no | `DEBUG` / `INFO` (default) / `WARNING` / `ERROR`. Logs are JSON lines on stdout |
 | `RATE_LIMITS` | no | `on` (default) / `off`. Off only for load tests |
+| `APP_URL` | prod: yes | The frontend's public URL, used in emailed links (default `http://localhost:3000`) |
 | `EMAIL_BACKEND` | prod: yes | `console` (default: writes `.eml` files to `EMAIL_OUTBOX_DIR`, sends nothing), `smtp`, `memory` (tests) |
 | `EMAIL_FROM` | with smtp | Sender, e.g. `TestKori <no-reply@testkori.com>` (owner decision) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` | with smtp | Any provider's SMTP relay. Port 587 uses STARTTLS, 465 uses TLS |
@@ -70,7 +71,8 @@ Backend environment (`backend/.env`):
   - Only owners can grant, change or remove the owner role; an organization always keeps at least one owner.
 - **Organization context:** every organization-scoped request sends `X-Organization-Id`. `permissions.get_current_membership` resolves it to the caller's membership or returns 403. Route guards: `require_staff`, `require_manager`, `require_candidate`.
 - **Rate limits (2.6):** `app/rate_limit.py`, in-process counters (one API instance; several instances need Redis or Postgres). `POST /token`: 100/min per IP, and 10 failed sign-ins per account per 15 min (counted for unknown emails too; a success clears it). `/signup`: 60 per 10 min per IP; `/signup/organization`: 10/hour per IP; `/organizations/join`: 20 per 10 min per user. Over the limit → 429 with `Retry-After`. Per-IP limits are generous because a class signs in together from one school network. The client IP is `request.client.host`; uvicorn `--proxy-headers` trusts `X-Forwarded-For` only from `FORWARDED_ALLOW_IPS` (default 127.0.0.1), so set that to the load balancer's address in production.
-- *(planned)* Password reset, email verification, Google sign-in.
+- **Password reset (2.4):** `routers/password_reset.py`. Tokens are 32 random bytes (URL-safe), stored only as SHA-256, valid 30 minutes, single use; a new request or a successful reset invalidates every open link. Known gap: tokens already issued (60 min JWTs) stay valid after a reset until they expire.
+- *(planned)* Email verification, Google sign-in.
 
 ## External services and APIs
 

@@ -8,6 +8,8 @@ import { setTimeZone } from './utils';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import OrgSignupPage from './pages/OrgSignupPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import OrganizationsPage from './pages/OrganizationsPage';
 import AdminQuestionsPage from './pages/AdminQuestionsPage';
 import AdminExamsPage from './pages/AdminExamsPage';
@@ -60,6 +62,8 @@ function App() {
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignupPage />} />
       <Route path="/signup/organization" element={<OrgSignupPage />} />
+      <Route path="/forgot-password" element={user ? <Navigate to="/" replace /> : <ForgotPasswordPage />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       <Route path="/organizations" element={user ? <OrganizationsPage /> : <Navigate to="/login" replace />} />
       <Route path="/profile" element={only(currentMembership, <StudentProfilePage />)} />
 

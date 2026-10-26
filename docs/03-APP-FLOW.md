@@ -13,6 +13,7 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | Login | `/login` | Returning users |
 | Student signup link with code | `/signup?code=K7M2QX9P` (code prefilled, upper-cased) | Candidates invited by an institution |
 | Organization signup | `/signup/organization` | New institutions |
+| Password reset email | `/reset-password/:token` → set a new password → `/login` with a notice | Anyone who asked for a reset |
 | *(planned)* Invite email link | `/invite/:token` → set password → organization | Bulk-imported candidates |
 | *(planned)* Password reset link | `/reset-password/:token` | Anyone who forgot their password |
 | *(planned)* Notification links | `/exam/:id` from email/SMS | Candidates |
@@ -24,6 +25,8 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | Login | `/login` | Sign in | — | Signed out |
 | Student signup | `/signup` | Create a candidate account, optionally with a join code | — | Signed out |
 | Organization signup | `/signup/organization` | Create an organization + owner account | — | Anyone |
+| Forgot password | `/forgot-password` | Ask for a reset link (same answer for every email) | `/password-reset/request` | Signed out |
+| Reset password | `/reset-password/:token` | Set a new password from the emailed link | `/password-reset/confirm` | Anyone with a link |
 | Organizations | `/organizations` | Pick the current organization, join with a code, create an organization | `/me` memberships | Signed in |
 | Account | `/profile` | Name, gender, language (or the organization's default), password, list of organizations | `/profile/student` | Any member |
 | **Staff** | | | | |
@@ -55,7 +58,7 @@ Policy: see PRD "Platform: desktop web app".
 | Route | Narrower than 1024 px |
 |---|---|
 | `/` landing page *(planned)* | Fully responsive |
-| `/login`, `/signup`, `/signup/organization`, `/waitlist` | Work (phone-friendly forms) |
+| `/login`, `/signup`, `/signup/organization`, `/waitlist`, `/forgot-password`, `/reset-password/:token` | Work (phone-friendly forms; reset links are often opened on a phone) |
 | Every other route | `DesktopOnly` screen: logo, "TestKori works on a computer", one line on why (exams need a full browser), what to open, and **Sign out** |
 
 - A `matchMedia("(min-width: 1024px)")` check, re-evaluated on resize, so widening a window or rotating a tablet lets the user straight in.

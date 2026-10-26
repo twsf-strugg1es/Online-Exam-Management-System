@@ -32,7 +32,7 @@ test('on a computer nothing is covered', () => {
 
 test('on a phone, login and signup still work', () => {
   setWidth(false);
-  for (const path of ['/login', '/signup', '/signup/organization']) {
+  for (const path of ['/login', '/signup', '/signup/organization', '/forgot-password', '/reset-password/abc123']) {
     const { unmount } = renderAt(path);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     unmount();

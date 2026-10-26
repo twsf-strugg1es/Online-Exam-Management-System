@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import AuthLayout from '../components/AuthLayout';
@@ -16,6 +16,7 @@ function LoginPage() {
   const { login } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
+  const notice = useLocation().state?.notice;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,10 +65,11 @@ function LoginPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5">
+        {notice && !error && <Alert tone="success">{notice}</Alert>}
         <Field label={t('Email')} htmlFor="email">
           <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
         </Field>
-        <Field label={t('Password')} htmlFor="password">
+        <Field label={t('Password')} htmlFor="password" hint={<Link to="/forgot-password" className="link">{t('Forgot password?')}</Link>}>
           <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </Field>
         <Checkbox checked={saveLogin} onChange={setSaveLogin}>{t('Keep me signed in on this device')}</Checkbox>

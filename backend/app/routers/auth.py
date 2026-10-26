@@ -15,7 +15,7 @@ router = APIRouter(tags=["Auth"])
 ACCESS_TOKEN_EXPIRES = timedelta(minutes=60)
 
 
-ACCOUNT_LOCKED = "Too many failed sign-ins for this account. Wait 15 minutes and try again."
+ACCOUNT_LOCKED = "Too many failed sign-ins for this account. Wait 15 minutes or reset your password."
 
 
 @router.post("/token", dependencies=[Depends(per_ip("login", rate_limit.LOGIN_PER_IP))])

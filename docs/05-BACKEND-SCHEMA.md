@@ -147,6 +147,16 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | recorded_at | timestamptz | ✓ | server now | Authoritative ordering |
 | details | json | | | ≤ 1000 chars serialized |
 
+### password_reset_tokens
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | uuid4 | PK |
+| user_id | uuid | ✓ | | FK users, **cascade**, indexed |
+| token_hash | varchar(64) | ✓ | | SHA-256 of the emailed token, **unique**. The token itself is never stored |
+| created_at | timestamptz | ✓ | now | |
+| expires_at | timestamptz | ✓ | created + 30 min | |
+| used_at | timestamptz | | | Set when used, and on every older link when a new one is requested or a reset succeeds |
+
 ### waitlist_signups *(planned, task 3.13)*
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
@@ -214,7 +224,7 @@ Added in `0007_indexes_unique_answers`: unique `answers (attempt_id, question_id
 | Session | `Authorization: Bearer`; `GET /me` returns the user + memberships; `POST /token/refresh` renews | httpOnly refresh cookie |
 | Select organization | Client stores `organizationId` and sends `X-Organization-Id` | — |
 | Change password | `POST /profile/change-password` (old + new) | — |
-| Reset password | none | `password_reset_tokens` (hashed, 30 min, single use) |
+| Reset password | `POST /password-reset/request` {email} → always the same 200 message; emails a link to `APP_URL/reset-password/<token>` (30 min, single use; max 3 emails per account per hour; 20 requests per 10 min per IP). `POST /password-reset/confirm` {token, new_password ≥ 6} → sets the password, invalidates every open link, clears the sign-in lockout; bad/used/expired → 400 | Sign out other sessions on reset |
 | Sign out | Client discards the token | Server-side refresh-token revocation |
 
 ## Authorization rules

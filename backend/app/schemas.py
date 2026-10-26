@@ -357,3 +357,12 @@ class IntegrityEventIn(BaseModel):
 
 class IntegrityEventsIn(BaseModel):
     events: list[IntegrityEventIn] = Field(min_length=1, max_length=50)
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+    new_password: str = Field(min_length=6, max_length=200)

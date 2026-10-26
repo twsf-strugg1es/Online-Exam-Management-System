@@ -99,6 +99,7 @@
   "Answers": {},
   "Answers save automatically as you go.": {},
   "Anyone with this code can join as a student. Share the code, or the signup link that already contains it.": {},
+  "Ask for a new link": {},
   "At least 6 characters.": {},
   "Attempt not found": {
     "source": "server"
@@ -119,15 +120,18 @@
   "away {{time}}": {},
   "Back": {},
   "Back to exams": {},
+  "Back to log in": {},
   "Batches, classes or hiring rounds. Each group has its own code that also puts students into the group. Exams can be limited to groups.": {},
   "Best": {},
   "Block copy and paste": {},
   "Came back after {{time}}": {},
   "Cancel": {},
   "Change password": {},
+  "Check {{email}}, including the spam folder. The link works once, for 30 minutes.": {},
   "choose": {},
   "Choose a different image": {},
   "Choose a group…": {},
+  "Choose a password you haven’t used here before.": {},
   "Choose an .xlsx file": {},
   "Choose an organization": {},
   "Clear": {},
@@ -197,6 +201,7 @@
   },
   "Email of someone with an account": {},
   "Ended": {},
+  "Enter the email you sign in with. We'll send a link to set a new password.": {},
   "Every student in your organization. To limit it,": {},
   "Everyone": {},
   "Everyone who joined your organization as a student, with their average score across your exams.": {},
@@ -256,6 +261,7 @@
   "Flagged for review": {},
   "Flags": {},
   "For schools, coaching centers and companies that run their own exams. You'll be its owner.": {},
+  "Forgot password?": {},
   "Full name": {},
   "Fullscreen": {},
   "Fullscreen is required": {},
@@ -279,6 +285,7 @@
   "Groups": {},
   "Hard": {},
   "Hello, {{name}}": {},
+  "If an account exists for that email, we've sent a link to reset the password.": {},
   "If students have started it, it is archived instead: hidden from lists and closed, with their results and integrity records kept.": {},
   "Image answer": {},
   "Image upload": {},
@@ -431,6 +438,7 @@
   "Owner": {},
   "Password": {},
   "Password changed": {},
+  "Password changed. Sign in with your new password.": {},
   "Password must be at least 6 characters long": {},
   "Passwords do not match": {},
   "Personal details": {},
@@ -474,6 +482,7 @@
   "Remove from organization": {},
   "Report": {},
   "Require fullscreen": {},
+  "Reset password": {},
   "Results": {},
   "Return to the exam": {},
   "Right-clicked (blocked)": {},
@@ -497,7 +506,9 @@
   "Select all": {},
   "Select all that apply": {},
   "Select shown": {},
+  "Send reset link": {},
   "Set a duration in minutes.": {},
+  "Set a new password": {},
   "Settings": {},
   "Settings saved": {},
   "Share the join code from the Invite tab.": {},
@@ -580,6 +591,9 @@
   "They lose access to your exams. Their account and past results are kept, and they can rejoin with a join code.": {},
   "This attempt has no written or image answers. Multiple-choice questions were graded automatically.": {},
   "This exam is not available to you.": {},
+  "This reset link is invalid or has expired. Ask for a new one.": {
+    "source": "server"
+  },
   "Time": {},
   "Time away": {},
   "Time left": {},
@@ -595,7 +609,7 @@
   "Too many attempts. Wait a minute and try again.": {
     "source": "server"
   },
-  "Too many failed sign-ins for this account. Wait 15 minutes and try again.": {
+  "Too many failed sign-ins for this account. Wait 15 minutes or reset your password.": {
     "source": "server"
   },
   "Tried a middle-click paste (blocked)": {},
@@ -623,6 +637,7 @@
   "Upload an image of your answer": {},
   "Uploaded answer": {},
   "Use a computer": {},
+  "Use a different email": {},
   "Use the join code your school, coaching center or employer gave you.": {},
   "User not found": {
     "source": "server"
