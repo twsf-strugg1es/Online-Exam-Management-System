@@ -7,7 +7,8 @@ import api from '../api';
  * switching apps; it can notice, hide the questions, and keep a record.
  *
  * Violations: leaving the exam (another tab, window or app) and exiting fullscreen.
- * Flags: copy/paste attempts, right-clicks, blocked shortcuts, a second screen.
+ * Flags: copy/paste attempts (keys, menu, drag-and-drop, middle-click), right-clicks, blocked shortcuts,
+ * a second screen. With copy/paste blocked, the clipboard is also emptied at the start and on every return.
  */
 
 const FLAG_FLUSH_DELAY = 1000; // flags are batched; violations are sent at once
@@ -21,7 +22,21 @@ const isAlwaysBlocked = (e) => {
     || (mod && ['p', 's', 'u'].includes(key))
     || (mod && e.shiftKey && ['i', 'j', 'c'].includes(key));
 };
-const isCopyShortcut = (e) => (e.ctrlKey || e.metaKey) && ['c', 'v', 'x'].includes(e.key.toLowerCase());
+const isCopyShortcut = (e) => ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x'].includes(e.key.toLowerCase()))
+  || (e.key === 'Insert' && (e.shiftKey || e.ctrlKey)); // Shift+Insert pastes, Ctrl+Insert copies
+
+// Every way text can arrive in an answer box without being typed
+const PASTE_INPUT_TYPES = new Set(['insertFromPaste', 'insertFromPasteAsQuotation', 'insertFromDrop', 'insertFromYank']);
+
+// Empty the clipboard so text copied before the exam (or outside it) can't be pasted in.
+// Best effort: browsers only allow this on a focused page, some only right after a click.
+export function clearClipboard() {
+  try {
+    return navigator.clipboard?.writeText('').catch(() => {}) ?? Promise.resolve();
+  } catch {
+    return Promise.resolve();
+  }
+}
 
 const describeKey = (e) => [e.ctrlKey && 'Ctrl', e.metaKey && 'Cmd', e.shiftKey && 'Shift', e.key.length === 1 ? e.key.toUpperCase() : e.key]
   .filter(Boolean)
@@ -116,6 +131,8 @@ export default function useExamIntegrity({ attemptId, settings, active, initialV
       record('focus_returned', { away_ms: Date.now() - awaySince.current });
       awaySince.current = null;
       setIsAway(false);
+      // Whatever they copied while away doesn't come back with them
+      if (settings?.block_copy_paste) clearClipboard();
     };
 
     const onVisibility = () => {
@@ -158,6 +175,29 @@ export default function useExamIntegrity({ attemptId, settings, active, initialV
       record('copy_paste', { action: e.type });
     };
 
+    // Paste from the browser menu, drag-and-drop and middle-click all end up here, whatever started them
+    const onBeforeInput = (e) => {
+      if (!settings?.block_copy_paste || !PASTE_INPUT_TYPES.has(e.inputType)) return;
+      e.preventDefault();
+      record('copy_paste', { action: e.inputType });
+    };
+
+    const onDrop = (e) => {
+      if (!settings?.block_copy_paste) return;
+      e.preventDefault();
+      record('copy_paste', { action: 'drop' });
+    };
+
+    const onDragStart = (e) => {
+      if (settings?.block_copy_paste) e.preventDefault(); // dragging question text out is copying
+    };
+
+    const onMiddleClick = (e) => {
+      if (e.button !== 1 || !settings?.block_copy_paste) return;
+      e.preventDefault(); // middle-click pastes the selection on Linux
+      record('copy_paste', { action: 'middle_click' });
+    };
+
     const onContextMenu = (e) => {
       e.preventDefault();
       record('context_menu');
@@ -182,6 +222,7 @@ export default function useExamIntegrity({ attemptId, settings, active, initialV
 
     // Screens beyond the first, where supported (Chromium)
     if (window.screen?.isExtended) record('multiple_screens');
+    if (settings?.block_copy_paste) clearClipboard();
     if (requireFullscreen && !inFullscreen()) setFullscreenLost(true);
 
     document.addEventListener('visibilitychange', onVisibility);
@@ -191,6 +232,11 @@ export default function useExamIntegrity({ attemptId, settings, active, initialV
     document.addEventListener('copy', onClipboard);
     document.addEventListener('cut', onClipboard);
     document.addEventListener('paste', onClipboard);
+    document.addEventListener('beforeinput', onBeforeInput, true);
+    document.addEventListener('drop', onDrop, true);
+    document.addEventListener('dragstart', onDragStart, true);
+    document.addEventListener('auxclick', onMiddleClick, true);
+    document.addEventListener('mousedown', onMiddleClick, true);
     document.addEventListener('contextmenu', onContextMenu);
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
@@ -204,6 +250,11 @@ export default function useExamIntegrity({ attemptId, settings, active, initialV
       document.removeEventListener('copy', onClipboard);
       document.removeEventListener('cut', onClipboard);
       document.removeEventListener('paste', onClipboard);
+      document.removeEventListener('beforeinput', onBeforeInput, true);
+      document.removeEventListener('drop', onDrop, true);
+      document.removeEventListener('dragstart', onDragStart, true);
+      document.removeEventListener('auxclick', onMiddleClick, true);
+      document.removeEventListener('mousedown', onMiddleClick, true);
       document.removeEventListener('contextmenu', onContextMenu);
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);

@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { LuArrowLeft, LuImage, LuCircleAlert } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
-import useExamIntegrity, { enterFullscreen, exitFullscreen, fullscreenSupported } from '../hooks/useExamIntegrity';
+import useExamIntegrity, { clearClipboard, enterFullscreen, exitFullscreen, fullscreenSupported } from '../hooks/useExamIntegrity';
 import { Alert, Badge, Button, Card, Logo, LogoMark, Modal, PageLoader, Textarea, cx } from '../components/ui';
 import { errorMessage, formatClock, formatDateTime } from '../utils';
 
@@ -23,7 +23,7 @@ function RulesScreen({ exam, resuming, onStart, starting, error }) {
     s.max_violations
       ? { text: `After ${s.max_violations} violation${s.max_violations === 1 ? '' : 's'} your exam is submitted automatically.`, strong: true }
       : { text: 'Violations are recorded and shown to your examiner.' },
-    s.block_copy_paste && { text: 'Copy, paste and right-click are disabled during the exam.' },
+    s.block_copy_paste && { text: 'Copy, paste and right-click are disabled. Your clipboard is emptied when you start and each time you come back.' },
     (s.shuffle_questions || s.shuffle_options) && { text: 'Questions and options are in a different order for every student.' },
   ].filter(Boolean);
 
@@ -420,8 +420,9 @@ function ExamPage() {
   const start = async () => {
     setError('');
     setStarting(true);
-    // Fullscreen must be requested directly in the click, before any network call
+    // Fullscreen and clipboard access must happen directly in the click, before any network call
     if (meta.integrity?.require_fullscreen) enterFullscreen();
+    if (meta.integrity?.block_copy_paste) clearClipboard();
     try {
       const res = meta.resumeAttemptId
         ? await api.post(`/student/attempts/${meta.resumeAttemptId}/resume`)
