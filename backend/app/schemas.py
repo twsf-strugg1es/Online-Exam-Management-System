@@ -1,12 +1,12 @@
 import re
 from zoneinfo import available_timezones
 
-from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator, model_validator
 
 from . import models
 from uuid import UUID
 from typing import Any, Optional
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 
 _TIMEZONES = available_timezones()
@@ -200,17 +200,42 @@ class QuestionForStudent(BaseModel):
 
 
 class ExamCreate(BaseModel):
-    title: str
+    """A new exam. The form checks the same rules, but the server is the one that enforces them."""
+    title: str = Field(min_length=1, max_length=200)
     start_time: datetime
     end_time: datetime
-    duration_minutes: int
-    question_ids: list[UUID]
+    duration_minutes: int = Field(ge=1, le=24 * 60)
+    question_ids: list[UUID] = Field(min_length=1)
     group_ids: list[UUID] = []  # empty: open to every candidate in the organization
     shuffle_questions: bool = True
     shuffle_options: bool = True
     require_fullscreen: bool = True
     block_copy_paste: bool = True
     max_violations: Optional[int] = Field(default=None, ge=1, le=100)  # None: never auto-submit
+
+    @field_validator("title")
+    @classmethod
+    def _title(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Give the exam a title.")
+        return v.strip()
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def _utc(cls, v: datetime) -> datetime:
+        # Times without an offset are read as UTC (rule: clients send UTC with an offset)
+        return v.replace(tzinfo=timezone.utc) if v.tzinfo is None else v.astimezone(timezone.utc)
+
+    @field_validator("question_ids", "group_ids")
+    @classmethod
+    def _unique(cls, v: list[UUID]) -> list[UUID]:
+        return list(dict.fromkeys(v))  # drop repeats, keep the order
+
+    @model_validator(mode="after")
+    def _window(self):
+        if self.end_time <= self.start_time:
+            raise ValueError("The exam must close after it opens.")
+        return self
 
 
 class Exam(BaseModel):

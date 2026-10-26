@@ -103,6 +103,9 @@
   "Attempt not found": {
     "source": "server"
   },
+  "Attempt not found or does not belong to student": {
+    "source": "server"
+  },
   "Attempt not found or does not belong to you": {
     "source": "server"
   },
@@ -222,6 +225,9 @@
   "Exam opening and closing times are shown in this timezone to everyone in the organization.": {},
   "Exam published.": {},
   "Exam time has expired. You can no longer take this exam": {
+    "source": "server"
+  },
+  "Exam time is over. Answers can no longer be changed": {
     "source": "server"
   },
   "Exam unpublished. Students can no longer see it.": {},
@@ -448,6 +454,9 @@
   "Question deleted": {
     "source": "server"
   },
+  "Question does not belong to this exam": {
+    "source": "server"
+  },
   "Question not found": {
     "source": "server"
   },
@@ -504,6 +513,9 @@
   "Single choice": {},
   "Some activity was recorded. Look at the timeline to judge whether it matters.": {},
   "Staff": {},
+  "Staff members can't join a candidate group": {
+    "source": "server"
+  },
   "Start": {},
   "Start exam": {},
   "Start exam in fullscreen": {},
@@ -591,6 +603,9 @@
   "Type": {},
   "Type your answer here": {},
   "Unfinished attempt not found or does not belong to you": {
+    "source": "server"
+  },
+  "Unknown timezone. Use an IANA name such as Asia/Dhaka": {
     "source": "server"
   },
   "Unpublish": {},

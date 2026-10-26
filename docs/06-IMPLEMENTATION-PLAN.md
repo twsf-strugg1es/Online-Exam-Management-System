@@ -41,7 +41,7 @@ The product already exists (see "Completed"). Milestones 1–6 take it to a **pa
 | ✓ | ID | Task | Owner | Inputs | Output | Definition of done | Depends on |
 |---|---|---|---|---|---|---|---|
 | [ ] | 2.1 | Missing indexes + unique `answers(attempt_id, question_id)` | agent | 05 Schema "Indexes" | Migration `0005` (deduplicate answers first) | Upgrade works on a copy of real data; save-answer still upserts | 1.5 |
-| [ ] | 2.2 | Server-side exam validation | agent | 05 Schema "Data validation" | `ExamCreate` validators | start < end, duration ≥ 1, ≥ 1 question → 422; tests | — |
+| [x] | 2.2 | Server-side exam validation | agent | 05 Schema "Data validation" | `ExamCreate` validators | start < end, duration ≥ 1, ≥ 1 question → 422; tests | — |
 | [ ] | 2.3 | Email sending abstraction | agent; **owner** picks the provider | provider API key | `app/notify.py` (`send_email`), console backend for dev/tests | Tests use the console backend; provider set by env var | — |
 | [ ] | 2.4 | Password reset | agent | 2.3 | `password_reset_tokens` table (hashed, 30 min, single use); 2 endpoints; `/forgot-password`, `/reset-password/:token` pages | PRD **AC14** passes; tests for reuse, expiry, unknown email | 2.3 |
 | [ ] | 2.5 | Email verification (soft) | agent | 2.3 | `users.email_verified_at`; verify link; banner until verified | Unverified users can still take exams (pilot) | 2.3 |

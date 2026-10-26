@@ -46,7 +46,8 @@ walk(SRC);
 
 // Server messages reach the screen through errorMessage()/t() too, so translators need them
 const BACKEND = path.join(__dirname, '..', '..', 'backend', 'app');
-const PY_MESSAGE = /(?:detail|message)\s*[=:]\s*(?:f?"([^"{}]+)"|f?'([^'{}]+)')/g;
+// detail=/message= strings, and validation errors (shown through errorMessage too)
+const PY_MESSAGE = /(?:(?:detail|message)\s*[=:]\s*|ValueError\()(?:f?"([^"{}]+)"|f?'([^'{}]+)')/g;
 function walkPy(dir) {
   if (!fs.existsSync(dir)) return;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

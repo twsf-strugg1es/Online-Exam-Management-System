@@ -244,7 +244,7 @@ O = owner, A = admin, E = examiner, C = candidate (in the same organization). Ot
 | Role ∈ ROLES; owner rules (above) | `organizations.py` |
 | Question type ∈ 4 types; complexity ∈ easy/medium/hard; choice types need options, and correct answers ⊆ options | Excel import/preview validation |
 | Exam: questions and groups must belong to the same organization; `max_violations` 1–100 or null | router + Pydantic |
-| Exam: start < end, duration ≥ 1, ≥ 1 question | **client only today** (`ExamFormPage`); server-side check planned |
+| Exam: title 1–200 chars, start < end, duration 1–1440 min, ≥ 1 question (repeats dropped); times without an offset read as UTC | `ExamFormPage` and **the server** (`schemas.ExamCreate`, 422) |
 | Start: published, now within the window, visible to the candidate, not already submitted | `student.py` |
 | Save answer: own attempt, not submitted, question belongs to the exam, now ≤ deadline + 30 s | `crud.save_answer` |
 | Integrity events: known type, 1–50 per request, details ≤ 1000 chars | `schemas.IntegrityEventIn` |
