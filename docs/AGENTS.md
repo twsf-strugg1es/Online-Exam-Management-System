@@ -36,7 +36,7 @@ TestKori: a multi-tenant online exam platform for coaching centers, schools and 
 cd backend
 pip install -r requirements.txt
 alembic upgrade head
-python create_admin.py                       # demo org + owner admin@example.com / admin123
+python create_admin.py                       # demo org + owner admin@example.com; prints a random password once
 python -m uvicorn app.main:app --reload --port 8000
 DATABASE_URL=sqlite:///:memory: SECRET_KEY=test python -m pytest tests/ -q   # must pass before every commit; tests use SQLite but app import needs both vars
 
@@ -67,6 +67,7 @@ npm run build                                # must finish with no warnings
 - **Commits:** small and focused. The message explains why. Run both test suites first.
 
 ## Gotchas
+- CI (`.github/workflows/ci.yml`) is the gate: SQLite + PostgreSQL tests, migrations (`alembic check` fails if models and migrations differ), frontend build, Semgrep with `--error`, Docker stack health. Run `TEST_DATABASE_URL=postgresql+psycopg://... pytest` to reproduce the Postgres job locally.
 - Backend tests use in-memory SQLite, not Postgres. Test anything Postgres-specific (JSON queries, constraints, migrations) against a real database too.
 - `frontend/package.json` `jest.moduleNameMapper` and the `TextEncoder` polyfill in `setupTests.js` are required for React Router 7 under CRA's Jest. Don't remove them.
 - Image answers are currently `data:` URLs inside `answers.answer_data` (2 MB client limit). Moving them to object storage is on the roadmap. Don't build new features on top of inline storage.

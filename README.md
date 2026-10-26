@@ -1,5 +1,7 @@
 # Online Exam Management System
 
+[![CI](https://github.com/twsf-strugg1es/Online-Exam-Management-System/actions/workflows/ci.yml/badge.svg)](https://github.com/twsf-strugg1es/Online-Exam-Management-System/actions/workflows/ci.yml)
+
 A web-based exam management system built with **FastAPI** (Python) and **React** (JavaScript). Organizations (schools, coaching centers, companies) manage their own questions and exams, while students take exams with auto-save functionality and auto-grading for objective questions.
 
 **Docs:** [PRD](docs/01-PRD.md) · [TRD](docs/02-TRD.md) · [App flow](docs/03-APP-FLOW.md) · [UI/UX brief](docs/04-UI-UX-BRIEF.md) · [Backend schema](docs/05-BACKEND-SCHEMA.md) · [Implementation plan](docs/06-IMPLEMENTATION-PLAN.md) · [Guide for coding agents](docs/AGENTS.md)
@@ -172,7 +174,7 @@ Organization created successfully!
 Organization: Demo Organization
 Join code for students: K7M2QX9P
 Owner: admin@example.com
-Password: admin123
+Password: Xq7v2mPz9LkA4s  (random; printed once, so note it down)
 ```
 
 Optionally pass your own details: `python create_admin.py you@example.com yourpassword "Your School"`. New organizations can also sign up from the app.
@@ -250,7 +252,7 @@ docker compose exec api python create_admin.py   # demo organization + owner
 After setup completes, use these default credentials to log in:
 
 - **Email**: `admin@example.com`
-- **Password**: `admin123`
+- **Password**: the random one `create_admin.py` printed (or pass your own: `python create_admin.py you@example.com yourpassword`)
 - **Role**: Owner of "Demo Organization"
 
 Students sign up on their own and enter the join code printed by `create_admin.py` (or the code of one of your groups).

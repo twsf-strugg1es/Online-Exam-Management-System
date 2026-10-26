@@ -9,27 +9,36 @@ from app import models, schemas, crud
 from fastapi.testclient import TestClient
 
 
-# Use SQLite in-memory database for testing
-TEST_DATABASE_URL = "sqlite:///:memory:"
+# In-memory SQLite by default; CI also runs the suite on PostgreSQL by setting TEST_DATABASE_URL
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "sqlite:///:memory:")
+
+
+def _make_engine():
+    if TEST_DATABASE_URL.startswith("sqlite"):
+        return create_engine(
+            TEST_DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            # Every in-memory SQLite connection is a separate empty database, so share one
+            poolclass=StaticPool,
+        )
+    return create_engine(TEST_DATABASE_URL)
+
 
 @pytest.fixture(scope="function")
 def test_db():
     """Create a test database and tables."""
-    engine = create_engine(
-        TEST_DATABASE_URL, 
-        connect_args={"check_same_thread": False},
-        # Every in-memory SQLite connection is a separate empty database, so share one
-        poolclass=StaticPool,
-    )
+    engine = _make_engine()
+    Base.metadata.drop_all(bind=engine)  # a previous run may have been interrupted
     Base.metadata.create_all(bind=engine)
-    
+
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
-    
+
     yield db
-    
+
     db.close()
     Base.metadata.drop_all(bind=engine)
+    engine.dispose()
 
 
 @pytest.fixture
