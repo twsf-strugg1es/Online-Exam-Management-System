@@ -7,7 +7,7 @@ import { Button, Logo } from './ui';
 const QUERY = '(min-width: 1024px)';
 
 // Pages that work on phones too; everything else needs a computer in version one
-const PHONE_FRIENDLY = ['/login', '/signup', '/signup/organization', '/waitlist', '/forgot-password', '/reset-password', '/verify-email'];
+const PHONE_FRIENDLY = ['/login', '/signup', '/signup/organization', '/waitlist', '/forgot-password', '/reset-password', '/verify-email', '/invite'];
 
 function useWideEnough() {
   const [wide, setWide] = useState(() => (typeof window.matchMedia === 'function' ? window.matchMedia(QUERY).matches : true));

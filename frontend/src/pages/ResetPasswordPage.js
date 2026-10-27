@@ -6,8 +6,9 @@ import { Alert, Button, Field, Input } from '../components/ui';
 import { errorMessage } from '../utils';
 import { useI18n } from '../i18n';
 
-// Set a new password from the emailed link (/reset-password/:token)
-function ResetPasswordPage() {
+// Set a new password from the emailed link (/reset-password/:token), or the first password
+// from an invite sent by a bulk import (/invite/:token, invite)
+function ResetPasswordPage({ invite = false }) {
   const { token } = useParams();
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ function ResetPasswordPage() {
     setLoading(true);
     try {
       await api.post('/password-reset/confirm', { token, new_password: password });
-      navigate('/login', { replace: true, state: { notice: t('Password changed. Sign in with your new password.') } });
+      navigate('/login', { replace: true, state: { notice: invite ? t('Your account is ready. Sign in with your email and new password.') : t('Password changed. Sign in with your new password.') } });
     } catch (err) {
       setError(errorMessage(err));
       setLoading(false);
@@ -39,9 +40,9 @@ function ResetPasswordPage() {
 
   return (
     <AuthLayout
-      title={t('Set a new password')}
-      subtitle={t('Choose a password you haven’t used here before.')}
-      footer={<p><Link to="/forgot-password" className="link">{t('Ask for a new link')}</Link></p>}
+      title={invite ? t('Welcome to TestKori') : t('Set a new password')}
+      subtitle={invite ? t('Choose a password to finish setting up your account.') : t('Choose a password you haven’t used here before.')}
+      footer={<p>{invite && `${t('Link expired?')} `}<Link to="/forgot-password" className="link">{t('Ask for a new link')}</Link></p>}
     >
       <form onSubmit={submit} className="space-y-5">
         <Field label={t('New password')} htmlFor="password" hint={t('At least 6 characters.')}>
@@ -51,7 +52,7 @@ function ResetPasswordPage() {
           <Input id="confirmPassword" type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
         </Field>
         {error && <Alert tone="danger">{error}</Alert>}
-        <Button type="submit" size="lg" loading={loading} className="w-full">{t('Change password')}</Button>
+        <Button type="submit" size="lg" loading={loading} className="w-full">{invite ? t('Set password') : t('Change password')}</Button>
       </form>
     </AuthLayout>
   );

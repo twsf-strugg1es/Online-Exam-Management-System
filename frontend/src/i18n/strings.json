@@ -1,9 +1,28 @@
 {
+  "(first on row {{row}})": {},
+  "{{count}} already here": {
+    "plural": true
+  },
   "{{count}} mark": {
     "plural_of": "{{count}} marks"
   },
   "{{count}} marks": {
     "plural": true
+  },
+  "{{count}} new": {
+    "plural": true
+  },
+  "{{count}} new account was invited to set a password (the link works for 7 days).": {
+    "plural_of": "{{count}} new accounts were invited to set a password (the link works for 7 days)."
+  },
+  "{{count}} new accounts were invited to set a password (the link works for 7 days).": {
+    "plural": true
+  },
+  "{{count}} people already had an account and were told by email.": {
+    "plural": true
+  },
+  "{{count}} person already had an account and was told by email.": {
+    "plural_of": "{{count}} people already had an account and were told by email."
   },
   "{{count}} point": {
     "plural_of": "{{count}} points"
@@ -29,6 +48,30 @@
   "{{count}} questions are unanswered.": {
     "plural": true
   },
+  "{{count}} row has a problem and will be skipped": {
+    "plural_of": "{{count}} rows have problems and will be skipped"
+  },
+  "{{count}} row was skipped.": {
+    "plural_of": "{{count}} rows were skipped."
+  },
+  "{{count}} rows have problems and will be skipped": {
+    "plural": true
+  },
+  "{{count}} rows were skipped.": {
+    "plural": true
+  },
+  "{{count}} student added": {
+    "plural_of": "{{count}} students added"
+  },
+  "{{count}} student ready to add": {
+    "plural_of": "{{count}} students ready to add"
+  },
+  "{{count}} students added": {
+    "plural": true
+  },
+  "{{count}} students ready to add": {
+    "plural": true
+  },
   "{{count}} violation": {
     "plural_of": "{{count}} violations"
   },
@@ -39,6 +82,15 @@
     "plural": true
   },
   "{{count}} violations have been recorded.": {
+    "plural": true
+  },
+  "{{count}} was already a student here.": {
+    "plural_of": "{{count}} were already students here."
+  },
+  "{{count}} were already students here.": {
+    "plural": true
+  },
+  "{{count}} with an account": {
     "plural": true
   },
   "{{email}} is confirmed.": {},
@@ -60,6 +112,7 @@
   "{{n}} Q": {},
   "{{n}} selected": {},
   "{{time}} left": {},
+  "A CSV or Excel file with an \"email\" column, and optionally a \"name\" column. Up to 1000 students at a time.": {},
   "A group with that name already exists": {
     "source": "server"
   },
@@ -71,9 +124,16 @@
   "Account": {},
   "Actions": {},
   "Add": {},
+  "Add {{count}} student": {
+    "plural_of": "Add {{count}} students"
+  },
+  "Add {{count}} students": {
+    "plural": true
+  },
   "Add at least two options.": {},
   "Add option": {},
   "Add question": {},
+  "Add them to groups": {},
   "Add to group": {},
   "Admin": {},
   "After {{count}} violation your exam is submitted automatically.": {
@@ -92,6 +152,9 @@
     "source": "server"
   },
   "Already have an account?": {},
+  "Already staff in this organization.": {
+    "source": "server"
+  },
   "An exam picks questions from your question bank and runs in a time window you choose.": {},
   "and create an organization from there.": {},
   "Answer": {},
@@ -137,9 +200,12 @@
   "Cancel": {},
   "Change password": {},
   "Check {{email}}, including the spam folder. The link works once, for 30 minutes.": {},
+  "Check the list": {},
   "choose": {},
+  "Choose a .csv or .xlsx file": {},
   "Choose a different image": {},
   "Choose a group…": {},
+  "Choose a password to finish setting up your account.": {},
   "Choose a password you haven’t used here before.": {},
   "Choose an .xlsx file": {},
   "Choose an organization": {},
@@ -175,6 +241,9 @@
   "Could not validate credentials": {
     "source": "server"
   },
+  "Couldn't read the file. Upload a .csv or .xlsx file.": {
+    "source": "server"
+  },
   "Country": {},
   "Create": {},
   "Create a new join code?": {},
@@ -202,6 +271,7 @@
   "Difficulty": {},
   "Dismiss": {},
   "Done": {},
+  "Download a template": {},
   "Download template": {},
   "Duplicate and edit the copy": {},
   "Duration (minutes)": {},
@@ -223,6 +293,7 @@
   "Enter the email you sign in with. We'll send a link to set a new password.": {},
   "Every student in your organization. To limit it,": {},
   "Everyone": {},
+  "Everyone added joins {{groups}}.": {},
   "Everyone who joined your organization as a student, with their average score across your exams.": {},
   "Exam": {},
   "Exam already submitted": {
@@ -316,9 +387,14 @@
   "Import {{count}} questions": {
     "plural": true
   },
+  "Import a list of students, or share the join code from the Invite tab.": {},
+  "Import at most 1000 students at a time.": {
+    "source": "server"
+  },
   "Import from Excel": {},
   "Import questions": {},
   "Import questions from Excel": {},
+  "Import students": {},
   "Imported {{count}} question": {
     "plural_of": "Imported {{count}} questions"
   },
@@ -365,6 +441,7 @@
   "limit {{n}}": {},
   "Limit {{n}}": {},
   "Link": {},
+  "Link expired?": {},
   "Loading…": {},
   "Log in": {},
   "Log out": {},
@@ -407,6 +484,9 @@
   "No attempts match this filter.": {},
   "No attempts yet": {},
   "No auto-submit": {},
+  "No email address.": {
+    "source": "server"
+  },
   "No events recorded": {},
   "No exams are open right now.": {},
   "No exams yet": {},
@@ -423,6 +503,9 @@
   "No students yet": {},
   "No.": {},
   "None ticked: every student in your organization.": {},
+  "Not a valid email address.": {
+    "source": "server"
+  },
   "Not answered": {},
   "Not graded yet": {},
   "Not saved": {},
@@ -477,6 +560,7 @@
   "Pressed a blocked shortcut": {},
   "Preview": {},
   "Previous": {},
+  "Problem": {},
   "Protections": {},
   "Publish": {},
   "Publish “{{title}}”?": {},
@@ -509,6 +593,9 @@
   "Remove from {{name}}": {},
   "Remove from organization": {},
   "Remove option {{letter}}": {},
+  "Repeated in this file.": {
+    "source": "server"
+  },
   "Report": {},
   "Require fullscreen": {},
   "Reset password": {},
@@ -517,6 +604,7 @@
   "Right-clicked (blocked)": {},
   "Role": {},
   "Role updated": {},
+  "Row": {},
   "Running exams for a school or company?": {},
   "Runs in fullscreen": {},
   "Save": {},
@@ -524,6 +612,7 @@
   "Save changes": {},
   "Save grade": {},
   "Saved": {},
+  "Saved from Excel, Google Sheets or any spreadsheet": {},
   "Saving": {},
   "Schedule an exam from your question bank, then share it with one or more groups.": {},
   "Score": {},
@@ -542,9 +631,9 @@
   "Sent. Check {{email}}, including the spam folder.": {},
   "Set a duration in minutes.": {},
   "Set a new password": {},
+  "Set password": {},
   "Settings": {},
   "Settings saved": {},
-  "Share the join code from the Invite tab.": {},
   "Shown to your staff and students.": {},
   "Shuffle": {},
   "Shuffle answer options": {},
@@ -621,6 +710,12 @@
   "The current code and links stop working. Students who already joined are not affected.": {},
   "The exam must close after it opens.": {},
   "The exam runs in fullscreen. Questions are hidden whenever you leave fullscreen.": {},
+  "The file has no students in it.": {
+    "source": "server"
+  },
+  "The file is larger than 2 MB.": {
+    "source": "server"
+  },
   "The new password must be at least 6 characters.": {},
   "The new passwords do not match.": {},
   "The organization must keep at least one owner": {
@@ -633,6 +728,8 @@
   "The timer keeps running while you're away": {},
   "The window is only {{w}} minutes, so students who start late get less time than {{d}} minutes.": {},
   "These are signals, not proof. A notification or an accidental key press can take focus away too. Use the report together with the answers before deciding anything.": {},
+  "They are in {{groups}}.": {},
+  "They are in no group, so they see exams open to everyone.": {},
   "They lose access to this organization. Their account is kept.": {},
   "They lose access to your exams. Their account and past results are kept, and they can rejoin with a join code.": {},
   "This attempt has no written or image answers. Multiple-choice questions were graded automatically.": {},
@@ -708,6 +805,7 @@
   "Violations": {},
   "Violations are recorded and shown to your examiner.": {},
   "We sent a link to {{email}}. Confirming it lets you reset your password by email if you forget it.": {},
+  "Welcome to TestKori": {},
   "What the exam page enforces and records.": {},
   "When {{org}} publishes an exam for you, it appears here.": {},
   "Who can take it": {},
@@ -741,6 +839,7 @@
   "You've already submitted this exam.": {},
   "You've been invited to join an organization. Your join code is already filled in.": {},
   "Your account (owner)": {},
+  "Your account is ready. Sign in with your email and new password.": {},
   "Your answer": {},
   "Your answer:": {},
   "Your answers": {},

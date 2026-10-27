@@ -50,7 +50,7 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 |---|---|---|---|---|
 | F1 | Organizations, roles (owner/admin/examiner/candidate), multi-organization accounts | Each institution gets a private space; a student can belong to two centers | P0 | Built |
 | F2 | Join codes for the organization and for each group; groups (batches/classes) | Students self-enroll in the right batch | P0 | Built |
-| F3 | Question bank: single choice, multiple choice, short/written answer (typed in a text box, graded by staff), image upload; tags, difficulty | Reuse questions across exams | P0 | Built (Excel import only, no single-question editor) |
+| F3 | Question bank: single choice, multiple choice, short/written answer (typed in a text box, graded by staff), image upload; tags, difficulty | Reuse questions across exams | P0 | Built |
 | F4 | Excel import with template and preview | Bring existing question sets in minutes | P0 | Built |
 | F5 | Exams: schedule window, duration, question selection, target groups, publish/unpublish | Run timed exams for specific batches | P0 | Built (no editing after creation) |
 | F6 | Exam taking: auto-save, resume after reload, timer, question navigator, flag for review | Weak connections and accidents don't cost answers | P0 | Built |
@@ -58,9 +58,9 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 | F8 | Integrity report: risk level, time away, event timeline | Examiner knows whom to review | P0 | Built |
 | F9 | Auto-grading (choice questions); manual grading of written and image answers | Marking takes minutes | P0 | Built |
 | F10 | Results for examiners (per exam) and for candidates | Everyone sees outcomes | P0 | Built |
-| F11 | Single-question create/edit form; edit exam before it opens | Fix a typo without re-importing | P0 | Planned |
+| F11 | Single-question create/edit form; edit exam before it opens | Fix a typo without re-importing | P0 | Built (3.2, 3.3) |
 | F12 | Password reset, email verification | Users can recover their own accounts | P0 | Built (2.4 reset, 2.5 soft verification) |
-| F13 | Bulk candidate import (CSV/XLSX) with invites | Enroll a 200-student batch at once | P0 | Planned |
+| F13 | Bulk candidate import (CSV/XLSX) with invites | Enroll a 200-student batch at once | P0 | Built (3.6) |
 | F14 | Email + SMS notifications (exam published, reminder, results) | Students show up on time | P0 | Planned |
 | F15 | Negative marking; per-exam marks | Matches admission/BCS-style exams | P1 | Planned |
 | F16 | Random question pools by tag/difficulty | Different paper per student, harder to share answers | P1 | Planned |

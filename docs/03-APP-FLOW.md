@@ -15,7 +15,7 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | Organization signup | `/signup/organization` | New institutions |
 | Password reset email | `/reset-password/:token` → set a new password → `/login` with a notice | Anyone who asked for a reset |
 | Confirmation email | `/verify-email/:token` → "confirmed" → continue (signed in) or log in | New accounts |
-| *(planned)* Invite email link | `/invite/:token` → set password → organization | Bulk-imported candidates |
+| Invite email link | `/invite/:token` → "Welcome to TestKori", set a password → `/login` with a notice → the organization's dashboard | Bulk-imported candidates (phone-friendly) |
 | *(planned)* Password reset link | `/reset-password/:token` | Anyone who forgot their password |
 | *(planned)* Notification links | `/exam/:id` from email/SMS | Candidates |
 
@@ -53,7 +53,7 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | *(planned)* Forgot / reset password | `/forgot-password`, `/reset-password/:token` | Recover account | — | Signed out |
 | *(planned)* Question editor | `/admin-questions/new`, `/admin-questions/:id` | Create or edit one question | question | Staff |
 | *(planned)* Edit exam | `/admin-exams/:examId/edit` | Change an exam before it opens | exam | Staff |
-| *(planned)* Bulk import students | modal on Organization → Students | Upload, preview, confirm, report | — | Managers |
+| Bulk import students | Organization → Students → **Import students** (dialog) | Choose a CSV/XLSX and optional groups → **Check the list** (counts: new / with an account / already here; skipped rows with reasons) → **Add N students** → report | `/org/students/import/preview`, `/org/students/import` | Managers |
 | *(planned)* Merit list / export | tab on Exam results | Ranked list, XLSX/PDF export | attempts | Staff |
 
 ## Desktop only (version one)
@@ -63,7 +63,7 @@ Policy: see PRD "Platform: desktop web app".
 | Route | Narrower than 1024 px |
 |---|---|
 | `/` landing page *(planned)* | Fully responsive |
-| `/login`, `/signup`, `/signup/organization`, `/waitlist`, `/forgot-password`, `/reset-password/:token`, `/verify-email/:token` | Work (phone-friendly; emailed links are often opened on a phone) |
+| `/login`, `/signup`, `/signup/organization`, `/waitlist`, `/forgot-password`, `/reset-password/:token`, `/verify-email/:token`, `/invite/:token` | Work (phone-friendly; emailed links are often opened on a phone) |
 | Every other route | `DesktopOnly` screen: logo, "TestKori works on a computer", one line on why (exams need a full browser), what to open, and **Sign out** |
 
 - A `matchMedia("(min-width: 1024px)")` check, re-evaluated on resize, so widening a window or rotating a tablet lets the user straight in.

@@ -66,6 +66,7 @@ function App() {
       <Route path="/signup/organization" element={<OrgSignupPage />} />
       <Route path="/forgot-password" element={user ? <Navigate to="/" replace /> : <ForgotPasswordPage />} />
       <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+      <Route path="/invite/:token" element={<ResetPasswordPage invite />} />
       <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
       <Route path="/organizations" element={user ? <OrganizationsPage /> : <Navigate to="/login" replace />} />
       <Route path="/profile" element={only(currentMembership, <StudentProfilePage />)} />

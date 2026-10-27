@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { LuCopy, LuRefreshCw, LuTrash2, LuPlus, LuX, LuCheck, LuLink } from 'react-icons/lu';
+import { LuCopy, LuRefreshCw, LuTrash2, LuPlus, LuX, LuCheck, LuLink, LuUpload } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import AppShell from '../components/AppShell';
+import ImportStudentsDialog from '../components/ImportStudentsDialog';
 import { Alert, Badge, Button, Card, CardHeader, EmptyState, Field, Input, PageHeader, PageLoader, Select, Tabs, useConfirm } from '../components/ui';
 import { ROLE_LABELS, errorMessage } from '../utils';
 import { LANGUAGES, useI18n } from '../i18n';
@@ -118,6 +119,7 @@ function AdminOrganizationPage() {
   const [newGroup, setNewGroup] = useState('');
   const [newMember, setNewMember] = useState({ email: '', role: 'examiner' });
   const [confirmDialog, confirm] = useConfirm();
+  const [importOpen, setImportOpen] = useState(false);
 
   const isOwner = currentMembership?.role === 'owner';
   const assignableRoles = isOwner ? ['owner', 'admin', 'examiner', 'candidate'] : ['admin', 'examiner', 'candidate'];
@@ -276,9 +278,13 @@ function AdminOrganizationPage() {
 
       {tab === 'students' && (
         <Card className="overflow-hidden">
-          <CardHeader title={t('Students and their groups')} description={t('Put students into groups so they see the right exams.')} />
+          <CardHeader
+            title={t('Students and their groups')}
+            description={t('Put students into groups so they see the right exams.')}
+            action={<Button size="sm" variant="secondary" icon={LuUpload} onClick={() => setImportOpen(true)}>{t('Import students')}</Button>}
+          />
           {candidates.length === 0 ? (
-            <EmptyState icon={LuLink} title={t('No students yet')}>{t('Share the join code from the Invite tab.')}</EmptyState>
+            <EmptyState icon={LuLink} title={t('No students yet')}>{t('Import a list of students, or share the join code from the Invite tab.')}</EmptyState>
           ) : (
             <div className="overflow-x-auto">
               <table className="table">
@@ -434,6 +440,7 @@ function AdminOrganizationPage() {
         </div>
       )}
       {confirmDialog}
+      <ImportStudentsDialog open={importOpen} onClose={() => setImportOpen(false)} onImported={load} groups={groups} />
     </AppShell>
   );
 }

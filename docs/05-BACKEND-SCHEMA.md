@@ -43,7 +43,7 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
 | id | uuid | ✓ | uuid4 | PK |
-| email | text | ✓ | | **unique, indexed**; validated as an email |
+| email | text | ✓ | | **unique, indexed**; validated as an email. Looked up case-insensitively (`crud.get_user_by_email`), so sign-in and duplicate checks ignore case; imported addresses are stored lower-case |
 | hashed_password | text | ✓ | | pbkdf2_sha256 (bcrypt accepted) |
 | full_name | text | | | Shown to examiners |
 | date_of_birth | date | | | |
@@ -157,6 +157,7 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | created_at | timestamptz | ✓ | now | |
 | expires_at | timestamptz | ✓ | created + 30 min | |
 | used_at | timestamptz | | | Set when used, and on every older link when a new one is requested or a reset succeeds |
+| purpose | text | ✓ | `reset` | `reset` (30 min, "Forgot password?") or `invite` (7 days, accounts created by a bulk import; link `/invite/<token>`). Both are confirmed by `POST /password-reset/confirm` |
 
 ### waitlist_signups *(planned, task 3.13)*
 | Field | Type | Required | Default | Notes |
@@ -228,6 +229,9 @@ Added in `0007_indexes_unique_answers`: unique `answers (attempt_id, question_id
 | Change password | `POST /profile/change-password` (old + new) | — |
 | Reset password | `POST /password-reset/request` {email} → always the same 200 message; emails a link to `APP_URL/reset-password/<token>` (30 min, single use; max 3 emails per account per hour; 20 requests per 10 min per IP). `POST /password-reset/confirm` {token, new_password ≥ 6} → sets the password, invalidates every open link, clears the sign-in lockout; bad/used/expired → 400 | Sign out other sessions on reset |
 | Sign out | Client discards the token | Server-side refresh-token revocation |
+
+### Bulk student import (task 3.6)
+`POST /org/students/import/preview` and `POST /org/students/import` (managers only; multipart `file`, plus `group_ids` comma-separated on confirm). CSV (UTF-8) or XLSX, first non-empty row is the header: an `email` column (required) and a name column (optional), ≤ 1000 rows, ≤ 2 MB. Each row is `new` (account created with an unusable random password + an invite link), `existing` (account elsewhere: candidate membership added + an "added to" email), `member` (already a student: only groups change), or skipped with a reason (no email, invalid, repeated in the file, staff in this organization). Confirm re-reads the file; nothing from the preview is trusted. Emails go out after the commit.
 
 ## Authorization rules
 

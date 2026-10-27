@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 import random
@@ -9,8 +10,8 @@ from .security import get_password_hash
 
 
 def get_user_by_email(db: Session, email: str) -> models.User | None:
-    """Find a user by email address."""
-    return db.query(models.User).filter(models.User.email == email).first()
+    """Find a user by email address, ignoring case (Arif@Mail.com is arif@mail.com)."""
+    return db.query(models.User).filter(func.lower(models.User.email) == email.strip().lower()).first()
 
 
 def create_user(db: Session, user: schemas.UserCreate, commit: bool = True) -> models.User:
