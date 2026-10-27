@@ -148,7 +148,7 @@ The product already exists (see "Completed"). Milestones 1–6 take it to a **pa
 Record anything unresolved at a milestone checkpoint here: date, issue, decision needed, owner.
 
 - 2026-10-12: Owner decisions pending: email provider (2.3), SMS gateway (3.9), hosting region (6.1), TestKori logo mark (1.1), negative-total policy (4.1), retakes (PRD open question 7), first global market and global pricing (PRD open questions 8–9), waitlist sender address (3.13), YouTube link for the product video (3.14).
-- 2026-10-26: Security scan at the end of Milestone 2: Semgrep 0, Nuclei 0, ZAP on the API 0. ZAP on the frontend dev server flagged missing headers; the production nginx sets most of them, but **no Content-Security-Policy** is set anywhere. Next agent task: add a CSP to `frontend/nginx.conf` (connect-src must include the API origin, so template it with an env var).
+- 2026-10-26: Security scan at the end of Milestone 2: Semgrep 0, Nuclei 0, ZAP on the API 0. ZAP on the frontend dev server flagged missing headers (dev server only) and a missing Content-Security-Policy, which was real. Fixed 2026-10-27: CSP + Permissions-Policy in `frontend/nginx.conf`, checked by CI and by walking the production build in a browser with zero violations.
 - 2026-10-26: 2.3 built provider-neutral (SMTP). Owner still decides: which email provider, and the sender address/domain (needs SPF/DKIM on the domain). Until then the API writes emails to a local outbox.
 - 2026-10-26: Remove the email-subject fallback for old tokens in `security.get_current_user` in the release after 2.8 ships (agent; no owner decision).
 - 2026-10-26: The logo mark from 1.1 (option B, bubble + check) is in use; the owner picked it, so it's no longer pending.

@@ -20,7 +20,7 @@ Status: living document · Last updated 2026-10-12 · Describes the system **as 
 | Icons / fonts | `react-icons/lu` (Lucide); self-hosted `@fontsource` IBM Plex Sans/Mono and Hind Siliguri |
 | State | React Context (`AuthContext`, `ThemeContext`) plus local component state; no global store |
 | Build output | Static files (`npm run build`), served by nginx or a CDN *(planned)* |
-| Config | `REACT_APP_API_URL` at build time (default `http://localhost:8000`) |
+| Config | `REACT_APP_API_URL` at build time (default `http://localhost:8000`); the web image's `API_ORIGIN` (defaults to it) goes into the CSP |
 
 ## Backend and database
 
@@ -123,7 +123,8 @@ FastAPI app (backend/app)
 | Transport | HTTPS in production *(planned, at deploy)*; CORS restricted by `CORS_ORIGINS`. |
 | Sensitive data held | Name, email, optional date of birth and gender, answers, integrity events, uploaded images. *(planned)* webcam/ID images need explicit consent, a retention limit (e.g. 90 days after the exam closes) and deletion by the organization. |
 | Privacy law (global) | Before selling outside Bangladesh: GDPR (EU/UK) — lawful basis, data processing agreement for organizations, data export and deletion, subprocessor list, cookie consent, breach process; FERPA/COPPA considerations for US schools and under-13 users; Bangladesh's data protection rules for local customers. Webcam/biometric data (P2) is special-category data under GDPR: explicit consent, minimal retention, EU hosting option |
-| Known gaps | Rate limits are per process (fine for one instance); JWT in `localStorage` (exposed to XSS); no audit log. See Key decisions and the Implementation Plan. |
+| Browser headers | Set by `frontend/nginx.conf` on every response: a Content-Security-Policy (scripts only from the site, `connect-src` = `API_ORIGIN`, YouTube only for the promo video, `frame-ancestors 'none'`), `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` (camera, microphone, location, payment off; revisit for webcam proctoring in Milestone 7). The build sets `INLINE_RUNTIME_CHUNK=false` so no inline script is needed. `API_ORIGIN` defaults to the build's `REACT_APP_API_URL`; CI checks the headers. HSTS belongs on the TLS proxy in front |
+| Known gaps | Rate limits are per process (fine for one instance); JWT in `localStorage` (exposed to XSS; the CSP limits the damage); no audit log. See Key decisions and the Implementation Plan. |
 
 ## Performance and reliability targets
 
