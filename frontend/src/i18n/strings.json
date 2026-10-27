@@ -93,6 +93,7 @@
   "{{count}} with an account": {
     "plural": true
   },
+  "{{email}} added. We emailed them to let them know.": {},
   "{{email}} is confirmed.": {},
   "{{n}} archived (used in exams, kept for results)": {},
   "{{n}} deleted": {},
@@ -285,10 +286,10 @@
   "Edit question": {},
   "Editing is closed": {},
   "Email": {},
+  "Email address": {},
   "Email already registered": {
     "source": "server"
   },
-  "Email of someone with an account": {},
   "Ended": {},
   "Enter the email you sign in with. We'll send a link to set a new password.": {},
   "Every student in your organization. To limit it,": {},
@@ -421,6 +422,8 @@
     "source": "server"
   },
   "Invite & groups": {},
+  "Invite pending": {},
+  "Invite sent to {{email}}. They can sign in once they set a password.": {},
   "Invite students": {},
   "Invite students, organize them into groups, and manage who can run exams.": {},
   "It started when you first opened the exam and doesn't pause. Violations recorded earlier still count.": {},
@@ -450,7 +453,6 @@
   "Mark the correct answer.": {},
   "Medium": {},
   "Member": {},
-  "Member added": {},
   "Member not found": {
     "source": "server"
   },
@@ -462,6 +464,7 @@
   "Multiple answers": {},
   "Multiple choice": {},
   "Multiple-choice questions are graded. Written and image answers are graded by your examiner; check Results later for your final score.": {},
+  "Name (optional)": {},
   "Need review": {},
   "Needs review": {},
   "Never (only record violations)": {},
@@ -470,15 +473,14 @@
   "New group code created": {},
   "New group, e.g. HSC 2027 Batch A": {},
   "New here?": {},
+  "New invite sent to {{email}}. Older links no longer work.": {},
   "New join code created": {},
   "New join code for {{name}}?": {},
   "New organization": {},
   "New password": {},
   "New question": {},
   "Next": {},
-  "No account with that email. Ask them to sign up first": {
-    "source": "server"
-  },
+  "No account yet? We’ll email them an invite to set a password. The link lasts 7 days.": {},
   "no answer": {},
   "No answer given.": {},
   "No attempts match this filter.": {},
@@ -598,6 +600,7 @@
   },
   "Report": {},
   "Require fullscreen": {},
+  "Resend invite": {},
   "Reset password": {},
   "Results": {},
   "Return to the exam": {},
@@ -732,6 +735,9 @@
   "They are in no group, so they see exams open to everyone.": {},
   "They lose access to this organization. Their account is kept.": {},
   "They lose access to your exams. Their account and past results are kept, and they can rejoin with a join code.": {},
+  "They've already set a password. If they forgot it, they can use “Forgot password?” on the sign-in page.": {
+    "source": "server"
+  },
   "This attempt has no written or image answers. Multiple-choice questions were graded automatically.": {},
   "This confirmation link is invalid or has expired. Sign in and send a new one.": {
     "source": "server"
@@ -805,6 +811,9 @@
   "Violations": {},
   "Violations are recorded and shown to your examiner.": {},
   "We sent a link to {{email}}. Confirming it lets you reset your password by email if you forget it.": {},
+  "We've sent this person 3 invites in the last hour. Try again later.": {
+    "source": "server"
+  },
   "Welcome to TestKori": {},
   "What the exam page enforces and records.": {},
   "When {{org}} publishes an exam for you, it appears here.": {},

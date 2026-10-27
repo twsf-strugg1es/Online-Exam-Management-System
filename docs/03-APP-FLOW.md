@@ -15,7 +15,7 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | Organization signup | `/signup/organization` | New institutions |
 | Password reset email | `/reset-password/:token` → set a new password → `/login` with a notice | Anyone who asked for a reset |
 | Confirmation email | `/verify-email/:token` → "confirmed" → continue (signed in) or log in | New accounts |
-| Invite email link | `/invite/:token` → "Welcome to TestKori", set a password → `/login` with a notice → the organization's dashboard | Bulk-imported candidates (phone-friendly) |
+| Invite email link | `/invite/:token` → "Welcome to TestKori", set a password → `/login` with a notice → the organization's dashboard | Bulk-imported candidates and invited staff (phone-friendly) |
 | *(planned)* Password reset link | `/reset-password/:token` | Anyone who forgot their password |
 | *(planned)* Notification links | `/exam/:id` from email/SMS | Candidates |
 
@@ -108,6 +108,7 @@ Sidebar **Results** → `/student-exams` → click an exam → `/exam-results/:a
 | Excel import | Question bank → **Import** → choose file → **Preview** (row errors listed) → **Import** → list refreshes |
 | Switch organization | Sidebar organization button → `/organizations` → pick one → that organization's home |
 | Join another organization | `/organizations` → enter code → it becomes available in the switcher |
+| Add staff | Organization → Staff → email, optional name, role → **Add**. With an account: added, and emailed. Without one: account created, invite emailed, row shows **Invite pending** with **Resend invite** (older links stop working) until they set a password |
 | Change role / remove member | Organization → Staff → role select / remove (only owners can touch owners; the last owner can't be removed) |
 | Regenerate a join code | Organization → Invite → **New code** → confirm → the old code stops working |
 

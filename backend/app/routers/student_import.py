@@ -4,22 +4,18 @@ New addresses get an account and an invite to set their password; people who alr
 TestKori account are added and told by email. The confirm step reads the file again, so
 nothing from the preview is trusted.
 """
-import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from .. import crud, models, notify, roster, schemas
+from .. import crud, invites, models, notify, roster
 from ..database import get_db
 from ..permissions import require_manager
-from .password_reset import _app_url, _hash
 
 router = APIRouter(prefix="/org/students/import", tags=["Organizations"])
-
-INVITE_LIFETIME = timedelta(days=7)
 
 # Row problems and outcomes (shown to staff, translated on the client)
 INVALID_EMAIL = "Not a valid email address."
@@ -106,25 +102,6 @@ def _parse_group_ids(raw: str) -> list[UUID]:
         raise HTTPException(status_code=404, detail="Group not found")
 
 
-def _invite_text(org_name: str, user: models.User, link: str) -> tuple[str, str]:
-    name = user.full_name or user.email
-    return f"{org_name} invited you to TestKori", (
-        f"Hi {name},\n\n"
-        f"{org_name} has added you as a student on TestKori, where they run their exams.\n\n"
-        f"Set a password to finish your account. The link works once, for 7 days:\n{link}\n\n"
-        f"Then sign in with this email address ({user.email}).\n"
-    )
-
-
-def _added_text(org_name: str, user: models.User) -> tuple[str, str]:
-    name = user.full_name or user.email
-    return f"You've been added to {org_name} on TestKori", (
-        f"Hi {name},\n\n"
-        f"{org_name} has added you as a student. Their exams will appear on your dashboard.\n\n"
-        f"Sign in with your usual password: {_app_url()}/login\n"
-    )
-
-
 @router.post("/preview")
 async def preview_import(
     file: UploadFile = File(...),
@@ -154,16 +131,8 @@ async def run_import(
         if entry["error"]:
             continue
         if entry["status"] == STATUS_NEW:
-            # An unusable random password until they set their own from the invite
-            user = crud.create_user(
-                db, schemas.UserCreate(email=entry["email"], password=secrets.token_urlsafe(32), full_name=entry["full_name"]),
-                commit=False,
-            )
-            token = secrets.token_urlsafe(32)
-            db.add(models.PasswordResetToken(
-                user_id=user.id, token_hash=_hash(token), expires_at=now + INVITE_LIFETIME, purpose=models.TOKEN_INVITE,
-            ))
-            emails.append((user.email, *_invite_text(org_name, user, f"{_app_url()}/invite/{token}")))
+            user, link = invites.create_invited_user(db, entry["email"], entry["full_name"], now)
+            emails.append(invites.invite_email(org_name, user, link, models.ROLE_CANDIDATE))
         else:
             user = crud.get_user_by_email(db, entry["email"])
         member = crud.get_membership(db, user.id, membership.organization_id)
@@ -171,7 +140,7 @@ async def run_import(
             member = models.Membership(user_id=user.id, organization_id=membership.organization_id, role=models.ROLE_CANDIDATE)
             db.add(member)
             if entry["status"] == STATUS_EXISTING:
-                emails.append((user.email, *_added_text(org_name, user)))
+                emails.append(invites.added_email(org_name, user, models.ROLE_CANDIDATE))
         db.flush()
         for group in groups:
             if group not in member.groups:

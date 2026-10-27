@@ -158,6 +158,12 @@ class JoinRequest(BaseModel):
 class MemberAdd(BaseModel):
     email: EmailStr
     role: str
+    full_name: Optional[str] = Field(None, max_length=200)  # used only when the invite creates the account
+
+    @field_validator("full_name")
+    @classmethod
+    def blank_name_is_none(cls, v: Optional[str]) -> Optional[str]:
+        return (v or "").strip() or None
 
 
 class MemberUpdate(BaseModel):

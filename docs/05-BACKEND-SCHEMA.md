@@ -157,7 +157,7 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | created_at | timestamptz | ✓ | now | |
 | expires_at | timestamptz | ✓ | created + 30 min | |
 | used_at | timestamptz | | | Set when used, and on every older link when a new one is requested or a reset succeeds |
-| purpose | text | ✓ | `reset` | `reset` (30 min, "Forgot password?") or `invite` (7 days, accounts created by a bulk import; link `/invite/<token>`). Both are confirmed by `POST /password-reset/confirm` |
+| purpose | text | ✓ | `reset` | `reset` (30 min, "Forgot password?") or `invite` (7 days, accounts created by a bulk import or a staff invite; link `/invite/<token>`; an unused one means "invite pending"). Both are confirmed by `POST /password-reset/confirm` |
 
 ### waitlist_signups *(planned, task 3.13)*
 | Field | Type | Required | Default | Notes |
@@ -240,7 +240,7 @@ O = owner, A = admin, E = examiner, C = candidate (in the same organization). Ot
 | Entity | Read | Create | Update | Delete |
 |---|---|---|---|---|
 | Organization | all members (join code: O, A) | any signed-in user (becomes owner) | O, A (name, regenerate code) | *(not exposed)* |
-| Membership | O, A (member list); self (own memberships via `/me`) | O, A by email; anyone via a join code (as C) | O, A change roles; **only O grants/changes/removes owners** | O, A; can't remove the last owner |
+| Membership | O, A (member list, with `invite_pending`); self (own memberships via `/me`) | O, A by email (no account yet: one is created and invited; resend with `POST /org/members/{id}/invite`); anyone via a join code (as C) | O, A change roles; **only O grants/changes/removes owners** | O, A; can't remove the last owner |
 | Group | O, A (E reads them in the exam form) | O, A | O, A (rename, regenerate code, members) | O, A |
 | Question | O, A, E | O, A, E (Excel import) | *(no endpoint yet)* | O, A, E |
 | Exam | O, A, E; C only if published and visible (organization + group) | O, A, E | publish/unpublish: O, A, E; *(no edit endpoint yet)* | O, A, E (deletes attempts too) |

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { LuCopy, LuRefreshCw, LuTrash2, LuPlus, LuX, LuCheck, LuLink, LuUpload } from 'react-icons/lu';
+import { LuCopy, LuRefreshCw, LuTrash2, LuPlus, LuX, LuCheck, LuLink, LuUpload, LuMail, LuClock } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import AppShell from '../components/AppShell';
@@ -117,7 +117,8 @@ function AdminOrganizationPage() {
   const [tab, setTab] = useState('invite');
   const [orgName, setOrgName] = useState('');
   const [newGroup, setNewGroup] = useState('');
-  const [newMember, setNewMember] = useState({ email: '', role: 'examiner' });
+  const emptyMember = { email: '', full_name: '', role: 'examiner' };
+  const [newMember, setNewMember] = useState(emptyMember);
   const [confirmDialog, confirm] = useConfirm();
   const [importOpen, setImportOpen] = useState(false);
 
@@ -146,8 +147,10 @@ function AdminOrganizationPage() {
   const act = async (request, successText) => {
     setMessage(null);
     try {
-      await request();
-      if (successText) setMessage({ tone: 'success', text: successText });
+      const res = await request();
+      // successText may depend on the response, e.g. invited vs. added
+      const text = typeof successText === 'function' ? successText(res?.data) : successText;
+      if (text) setMessage({ tone: 'success', text });
       await load();
       return true;
     } catch (err) {
@@ -354,7 +357,11 @@ function AdminOrganizationPage() {
                   return (
                     <tr key={m.user_id}>
                       <td>
-                        <p className="font-medium">{m.full_name || m.email}{isMe && <span className="ms-2 text-xs font-normal text-muted">{t('you')}</span>}</p>
+                        <p className="font-medium">
+                          {m.full_name || m.email}
+                          {isMe && <span className="ms-2 text-xs font-normal text-muted">{t('you')}</span>}
+                          {m.invite_pending && <Badge tone="warn" icon={LuClock} className="ms-2 align-middle">{t('Invite pending')}</Badge>}
+                        </p>
                         {m.full_name && <p className="text-xs text-muted">{m.email}</p>}
                       </td>
                       <td>
@@ -367,7 +374,17 @@ function AdminOrganizationPage() {
                           {(locked ? ['owner'] : assignableRoles).map((r) => <option key={r} value={r}>{t(ROLE_LABELS[r])}</option>)}
                         </Select>
                       </td>
-                      <td className="text-end">
+                      <td className="whitespace-nowrap text-end">
+                        {!locked && m.invite_pending && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={LuMail}
+                            onClick={() => act(() => api.post(`/org/members/${m.user_id}/invite`), t('New invite sent to {{email}}. Older links no longer work.', { email: m.email }))}
+                          >
+                            {t('Resend invite')}
+                          </Button>
+                        )}
                         {!locked && !isMe && (
                           <Button
                             variant="danger-ghost"
@@ -392,21 +409,36 @@ function AdminOrganizationPage() {
             className="flex flex-wrap gap-2 border-t border-line p-4"
             onSubmit={(e) => {
               e.preventDefault();
-              act(() => api.post('/org/members', newMember), t('Member added')).then((ok) => ok && setNewMember({ email: '', role: 'examiner' }));
+              act(
+                () => api.post('/org/members', newMember),
+                (added) => (added.invited
+                  ? t('Invite sent to {{email}}. They can sign in once they set a password.', { email: added.email })
+                  : t('{{email}} added. We emailed them to let them know.', { email: added.email })),
+              ).then((ok) => ok && setNewMember(emptyMember));
             }}
           >
             <Input
               type="email"
               value={newMember.email}
               onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-              placeholder={t('Email of someone with an account')}
+              placeholder={t('Email address')}
+              aria-label={t('Email address')}
               className="min-w-[220px] flex-1"
               required
             />
-            <Select value={newMember.role} onChange={(e) => setNewMember({ ...newMember, role: e.target.value })} className="w-36">
+            <Input
+              value={newMember.full_name}
+              onChange={(e) => setNewMember({ ...newMember, full_name: e.target.value })}
+              placeholder={t('Name (optional)')}
+              aria-label={t('Name (optional)')}
+              maxLength={200}
+              className="min-w-[180px] flex-1"
+            />
+            <Select value={newMember.role} onChange={(e) => setNewMember({ ...newMember, role: e.target.value })} className="w-36" aria-label={t('Role')}>
               {assignableRoles.map((r) => <option key={r} value={r}>{t(ROLE_LABELS[r])}</option>)}
             </Select>
             <Button type="submit" icon={LuPlus}>{t('Add')}</Button>
+            <p className="w-full text-xs text-muted">{t('No account yet? We’ll email them an invite to set a password. The link lasts 7 days.')}</p>
           </form>
         </Card>
       )}

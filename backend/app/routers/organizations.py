@@ -1,12 +1,13 @@
 """Organizations: joining, the current organization's settings, members and groups."""
+from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
-from .. import crud, models, schemas
+from .. import crud, invites, models, notify, schemas
 from ..permissions import get_current_membership, require_manager, require_staff
 from ..security import get_current_user
 from .. import rate_limit
@@ -96,6 +97,8 @@ def regenerate_org_join_code(
 
 # --- Members ---
 
+INVITE_ACCEPTED = "They've already set a password. If they forgot it, they can use “Forgot password?” on the sign-in page."
+
 def _get_org_member(db: Session, user_id: UUID, membership: models.Membership) -> models.Membership:
     member = crud.get_membership(db, user_id, membership.organization_id)
     if not member:
@@ -140,6 +143,7 @@ def list_members(
         .filter(models.Membership.organization_id == membership.organization_id)
         .all()
     )
+    pending = invites.pending_invites(db, [m.user_id for m in members])
     return [
         {
             "user_id": str(m.user_id),
@@ -148,6 +152,7 @@ def list_members(
             "role": m.role,
             "groups": [{"id": str(g.id), "name": g.name} for g in m.groups],
             "joined_at": m.created_at.isoformat() if m.created_at else None,
+            "invite_pending": m.user_id in pending,
         }
         for m in sorted(members, key=lambda m: (models.ROLES.index(m.role), m.user.email))
     ]
@@ -156,19 +161,45 @@ def list_members(
 @router.post("/org/members", status_code=status.HTTP_201_CREATED)
 def add_member(
     data: schemas.MemberAdd,
+    background: BackgroundTasks,
     db: Session = Depends(get_db),
     membership: models.Membership = Depends(require_manager),
 ):
-    """Add an existing account to the organization, e.g. to make someone an examiner."""
+    """Add someone by email, e.g. to make them an examiner. Without an account, they're invited."""
     _check_role_change(membership, None, data.role)
+    org_name = membership.organization.name
     user = crud.get_user_by_email(db, data.email)
-    if not user:
-        raise HTTPException(status_code=404, detail="No account with that email. Ask them to sign up first")
-    if crud.get_membership(db, user.id, membership.organization_id):
+    invited = user is None
+    if invited:
+        user, link = invites.create_invited_user(db, data.email.strip().lower(), data.full_name, datetime.now(timezone.utc))
+        email = invites.invite_email(org_name, user, link, data.role)
+    elif crud.get_membership(db, user.id, membership.organization_id):
         raise HTTPException(status_code=400, detail="Already a member of this organization")
+    else:
+        email = invites.added_email(org_name, user, data.role)
     db.add(models.Membership(user_id=user.id, organization_id=membership.organization_id, role=data.role))
     db.commit()
-    return {"user_id": str(user.id), "email": user.email, "role": data.role}
+    background.add_task(notify.send_email, *email)
+    return {"user_id": str(user.id), "email": user.email, "role": data.role, "invited": invited}
+
+
+@router.post("/org/members/{user_id}/invite")
+def resend_invite(
+    user_id: UUID,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_manager),
+):
+    """Send a new invite link to someone who hasn't set a password yet. Older links stop working."""
+    target = _get_org_member(db, user_id, membership)
+    _check_role_change(membership, target, None)
+    if target.user_id not in invites.pending_invites(db, [target.user_id]):
+        raise HTTPException(status_code=400, detail=INVITE_ACCEPTED)
+    limiter.hit(f"invite-email:{target.user_id}", rate_limit.INVITE_RESEND_PER_USER, rate_limit.TOO_MANY_INVITES)
+    link = invites.reissue_invite(db, target.user, datetime.now(timezone.utc))
+    db.commit()
+    background.add_task(notify.send_email, *invites.invite_email(membership.organization.name, target.user, link, target.role))
+    return {"status": "success", "email": target.user.email}
 
 
 @router.patch("/org/members/{user_id}")
