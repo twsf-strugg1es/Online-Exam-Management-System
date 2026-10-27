@@ -54,3 +54,12 @@ def test_filtering_by_tag_works_in_any_script(client, test_db):
     assert titles("Physics") == ["Optics", "Waves"]
     assert titles("বাংলা") == ["Grammar"]
     assert titles("wave") == []  # whole tags only
+
+
+def test_underscores_in_tags_are_not_wildcards(client, test_db):
+    org = make_org(test_db, "Wildcard Coaching")
+    owner = make_user(test_db, "owner@wildcard.com", org, models.ROLE_OWNER)
+    h = headers_for(owner, org)
+    client.post("/admin/upload-questions/", headers=h, files=workbook([("A", "unit_1"), ("B", "unitx1")]))
+    res = client.get("/admin/questions/", headers=h, params={"tag": "unit_1"}).json()
+    assert [q["title"] for q in res] == ["A"]

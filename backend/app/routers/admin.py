@@ -104,11 +104,12 @@ def list_questions(
         query = query.filter(models.Question.complexity == complexity)
 
     if tag:
-        # tags is a JSON array such as ["math", "waves"]: match the tag as it appears in the
-        # stored JSON text (json.dumps escapes non-ASCII the same way the column does)
+        # tags is a JSON array such as ["math", "waves"]: match the quoted tag inside the stored
+        # JSON text, where non-ASCII is escaped (\u09ac...) as json.dumps does. autoescape keeps
+        # PostgreSQL's LIKE from eating those backslashes and stops _ and % acting as wildcards
         wanted = crud.normalize_tags([tag])
         if wanted:
-            query = query.filter(cast(models.Question.tags, String).contains(json.dumps(wanted[0])))
+            query = query.filter(cast(models.Question.tags, String).contains(json.dumps(wanted[0]), autoescape=True))
 
     return query.all()
 
