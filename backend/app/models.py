@@ -64,6 +64,11 @@ ROLES = (ROLE_OWNER, ROLE_ADMIN, ROLE_EXAMINER, ROLE_CANDIDATE)
 STAFF_ROLES = (ROLE_OWNER, ROLE_ADMIN, ROLE_EXAMINER)  # can manage questions, exams and grading
 MANAGER_ROLES = (ROLE_OWNER, ROLE_ADMIN)  # can also manage members and groups
 
+QUESTION_TYPES = ("single_choice", "multi_choice", "text", "image_upload")
+CHOICE_TYPES = ("single_choice", "multi_choice")  # graded automatically
+COMPLEXITIES = ("easy", "medium", "hard")
+MAX_OPTIONS = 10
+
 # Interface languages with a catalog in the frontend (src/i18n); BCP 47 codes
 LANGUAGES = ("en", "bn")
 DEFAULT_LANGUAGE = "en"

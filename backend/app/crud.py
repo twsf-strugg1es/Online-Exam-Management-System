@@ -228,6 +228,32 @@ def get_exams(db: Session, organization_id: uuid.UUID) -> list[models.Exam]:
     )
 
 
+QUESTION_LOCKED = "Students have already taken an exam with this question, so changing it would change their results. Duplicate it to make a new version."
+
+
+def question_edit_blocker(db: Session, question: models.Question) -> str | None:
+    """A question locks once any student has started an exam that contains it: editing it then
+    would change what they saw or how they're graded. A copy can be edited instead."""
+    started = (
+        db.query(models.ExamAttempt.id)
+        .join(models.exam_questions, models.exam_questions.c.exam_id == models.ExamAttempt.exam_id)
+        .filter(models.exam_questions.c.question_id == question.id)
+        .first()
+    )
+    answered = db.query(models.Answer.id).filter(models.Answer.question_id == question.id).first()
+    return QUESTION_LOCKED if started or answered else None
+
+
+def save_question(db: Session, question: models.Question, data: schemas.QuestionEdit) -> models.Question:
+    for field in ("title", "description", "complexity", "type", "options", "correct_answers", "max_score"):
+        setattr(question, field, getattr(data, field))
+    question.tags = normalize_tags(data.tags)
+    db.add(question)
+    db.commit()
+    db.refresh(question)
+    return question
+
+
 def question_in_use(db: Session, question_id: uuid.UUID) -> bool:
     """Whether deleting the question would erase part of an exam or a student's answer."""
     answered = db.query(models.Answer.id).filter(models.Answer.question_id == question_id).first()

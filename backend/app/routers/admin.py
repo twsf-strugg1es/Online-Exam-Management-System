@@ -114,15 +114,73 @@ def list_questions(
     return query.all()
 
 
-@router.get("/questions/{question_id}", response_model=schemas.Question)
+def _question_payload(db: Session, question: models.Question) -> dict:
+    return {
+        **schemas.Question.model_validate(question).model_dump(mode="json"),
+        # Why the question can't be edited any more; null while it can
+        "edit_blocked": crud.question_edit_blocker(db, question),
+    }
+
+
+@router.get("/questions/{question_id}")
 def get_question(
     question_id: UUID,
     db: Session = Depends(get_db),
     membership: models.Membership = Depends(require_staff),
 ):
-    """Get a single question by ID."""
+    """Get a single question by ID, with whether it can still be edited."""
+    return _question_payload(db, _get_org_question(db, question_id, membership))
+
+
+@router.post("/questions/", status_code=status.HTTP_201_CREATED)
+def create_question(
+    data: schemas.QuestionEdit,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """Write one question in the editor."""
+    question = crud.save_question(db, models.Question(organization_id=membership.organization_id), data)
+    return _question_payload(db, question)
+
+
+@router.put("/questions/{question_id}")
+def update_question(
+    question_id: UUID,
+    data: schemas.QuestionEdit,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """Change a question nobody has met in an exam yet; otherwise 409 (duplicate it instead)."""
     question = _get_org_question(db, question_id, membership)
-    return question
+    reason = crud.question_edit_blocker(db, question)
+    if reason:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=reason)
+    return _question_payload(db, crud.save_question(db, question, data))
+
+
+@router.post("/questions/{question_id}/duplicate", status_code=status.HTTP_201_CREATED)
+def duplicate_question(
+    question_id: UUID,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """Copy a question into a new, editable one. Exams keep using the original."""
+    original = _get_org_question(db, question_id, membership)
+    copy = models.Question(
+        organization_id=membership.organization_id,
+        title=original.title,
+        description=original.description,
+        complexity=original.complexity,
+        type=original.type,
+        options=list(original.options) if isinstance(original.options, list) else original.options,
+        correct_answers=list(original.correct_answers) if isinstance(original.correct_answers, list) else original.correct_answers,
+        max_score=original.max_score,
+        tags=list(original.tags or []),
+    )
+    db.add(copy)
+    db.commit()
+    db.refresh(copy)
+    return _question_payload(db, copy)
 
 
 @router.delete("/questions/{question_id}")

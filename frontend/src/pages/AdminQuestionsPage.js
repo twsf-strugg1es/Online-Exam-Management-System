@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { LuDownload, LuFileSpreadsheet, LuFileQuestion, LuSearch, LuTrash2, LuUpload, LuEye, LuCheck } from 'react-icons/lu';
+import { LuDownload, LuFileSpreadsheet, LuFileQuestion, LuSearch, LuTrash2, LuUpload, LuEye, LuCheck, LuPencil, LuPlus } from 'react-icons/lu';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import AppShell from '../components/AppShell';
 import {
@@ -174,6 +175,7 @@ function AdminQuestionsPage() {
   const [selected, setSelected] = useState(new Set());
   const [viewing, setViewing] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
+  const navigate = useNavigate();
   const [confirmDialog, confirm] = useConfirm();
 
   const fetchQuestions = async () => {
@@ -263,7 +265,8 @@ function AdminQuestionsPage() {
         actions={
           <>
             <Button variant="secondary" icon={LuDownload} onClick={downloadTemplate}>{t('Template')}</Button>
-            <Button icon={LuUpload} onClick={() => setImportOpen(true)}>{t('Import from Excel')}</Button>
+            <Button variant="secondary" icon={LuUpload} onClick={() => setImportOpen(true)}>{t('Import from Excel')}</Button>
+            <Button icon={LuPlus} onClick={() => navigate('/admin-questions/new')}>{t('New question')}</Button>
           </>
         }
       />
@@ -279,13 +282,14 @@ function AdminQuestionsPage() {
             icon={LuFileQuestion}
             title={t('No questions yet')}
             action={
-              <div className="flex gap-2">
-                <Button variant="secondary" icon={LuDownload} onClick={downloadTemplate}>{t('Download template')}</Button>
-                <Button icon={LuUpload} onClick={() => setImportOpen(true)}>{t('Import from Excel')}</Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button icon={LuPlus} onClick={() => navigate('/admin-questions/new')}>{t('Write a question')}</Button>
+                <Button variant="secondary" icon={LuUpload} onClick={() => setImportOpen(true)}>{t('Import from Excel')}</Button>
+                <Button variant="ghost" icon={LuDownload} onClick={downloadTemplate}>{t('Download template')}</Button>
               </div>
             }
           >
-            {t('Fill in the Excel template with your questions, then import it. You can import as many files as you like.')}
+            {t('Write questions one at a time, or fill in the Excel template and import many at once.')}
           </EmptyState>
         </Card>
       ) : (
@@ -349,6 +353,7 @@ function AdminQuestionsPage() {
                     <td>
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="sm" icon={LuEye} onClick={() => setViewing(q)} aria-label={t('View')} />
+                        <Button variant="ghost" size="sm" icon={LuPencil} onClick={() => navigate(`/admin-questions/${q.id}/edit`)} aria-label={t('Edit')} />
                         <Button variant="danger-ghost" size="sm" icon={LuTrash2} onClick={() => deleteQuestions([q.id])} aria-label={t('Delete')} />
                       </div>
                     </td>

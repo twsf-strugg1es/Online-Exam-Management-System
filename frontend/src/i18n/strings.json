@@ -64,10 +64,16 @@
     "source": "server"
   },
   "A private space for your school, coaching center or company: your own question bank, exams, students and results.": {},
+  "A single-choice question has exactly one correct answer.": {
+    "source": "server"
+  },
   "A violation is leaving the exam (another tab, window or app) or exiting fullscreen. Every violation is recorded either way.": {},
   "Account": {},
   "Actions": {},
   "Add": {},
+  "Add at least two options.": {},
+  "Add option": {},
+  "Add question": {},
   "Add to group": {},
   "Admin": {},
   "After {{count}} violation your exam is submitted automatically.": {
@@ -95,6 +101,7 @@
   "Answer not found": {
     "source": "server"
   },
+  "Answer options": {},
   "Answer:": {},
   "answered": {},
   "Answered": {},
@@ -190,18 +197,22 @@
   "Delete exam": {},
   "Delete group": {},
   "Delete this question?": {},
+  "Details": {},
   "Details and schedule": {},
   "Difficulty": {},
   "Dismiss": {},
   "Done": {},
   "Download template": {},
+  "Duplicate and edit the copy": {},
   "Duration (minutes)": {},
   "e.g. Mirpur Science Coaching": {},
   "e.g. Physics, chapter 3 test": {},
+  "e.g. physics, class 9": {},
   "Each student gets their own order.": {},
   "Easy": {},
   "Edit": {},
   "Edit exam": {},
+  "Edit question": {},
   "Editing is closed": {},
   "Email": {},
   "Email already registered": {
@@ -260,7 +271,8 @@
   "File name is required": {
     "source": "server"
   },
-  "Fill in the Excel template with your questions, then import it. You can import as many files as you like.": {},
+  "Fill in every option or remove the empty ones.": {},
+  "Find questions by topic, chapter or class. Press Enter or type a comma after each tag.": {},
   "first, then come back to build the exam.": {},
   "flag": {},
   "Flag for review": {},
@@ -358,6 +370,7 @@
   "Log out": {},
   "Make this window wider to keep going": {},
   "Male": {},
+  "Mark the correct answer.": {},
   "Medium": {},
   "Member": {},
   "Member added": {},
@@ -384,6 +397,7 @@
   "New join code for {{name}}?": {},
   "New organization": {},
   "New password": {},
+  "New question": {},
   "Next": {},
   "No account with that email. Ask them to sign up first": {
     "source": "server"
@@ -413,6 +427,7 @@
   "Not graded yet": {},
   "Not saved": {},
   "Not set": {},
+  "Notes": {},
   "Nothing changed": {},
   "Nothing here": {},
   "Nothing to grade": {},
@@ -426,6 +441,7 @@
   "Only owners can manage owners": {
     "source": "server"
   },
+  "Only staff see this, for example the source or how to grade it.": {},
   "Only students in the ticked groups.": {},
   "Open menu": {},
   "Open now": {},
@@ -433,6 +449,8 @@
   "Opens {{date}}": {},
   "Opens in {{n}} h": {},
   "Opens in {{n}} min": {},
+  "Option {{letter}}": {},
+  "Option {{letter}} is correct": {},
   "optional": {},
   "Options:": {},
   "Organization": {},
@@ -453,6 +471,7 @@
   "Pick at least one question.": {},
   "Pick from your question bank.": {},
   "Points": {},
+  "Points must be at least 1.": {},
   "Prefer not to say": {},
   "Pressed {{key}}": {},
   "Pressed a blocked shortcut": {},
@@ -486,8 +505,10 @@
   "Register your organization": {},
   "Remove": {},
   "Remove {{name}}?": {},
+  "Remove {{tag}}": {},
   "Remove from {{name}}": {},
   "Remove from organization": {},
+  "Remove option {{letter}}": {},
   "Report": {},
   "Require fullscreen": {},
   "Reset password": {},
@@ -514,6 +535,8 @@
   "Select all": {},
   "Select all that apply": {},
   "Select shown": {},
+  "Select the bubble of every correct answer.": {},
+  "Select the bubble of the one correct answer.": {},
   "Send reset link": {},
   "Send the link again": {},
   "Sent. Check {{email}}, including the spam folder.": {},
@@ -555,9 +578,14 @@
   "Students have already started this exam, so it can't be changed.": {
     "source": "server"
   },
+  "Students have already taken an exam with this question, so changing it would change their results. Duplicate it to make a new version.": {
+    "source": "server"
+  },
   "Students in {{groups}} will see it and can start it from {{date}}.": {},
   "Students in your organization will see it and can start it from {{date}}.": {},
   "Students join by signing up with your organization's join code, or a group's code.": {},
+  "Students type their answer. An examiner grades it.": {},
+  "Students upload a photo of their work. An examiner grades it.": {},
   "Students who join with the organization code are in no group, and see exams open to everyone.": {},
   "Students, teachers and recruiters all sign in here.": {},
   "Students' attempts appear here as soon as they start the exam.": {},
@@ -581,10 +609,14 @@
   "Switched to another window or app": {},
   "Switching to another tab, window or app is recorded and counted as a violation.": {},
   "Tag": {},
+  "Tags": {},
   "Template": {},
   "TestKori home": {},
   "TestKori works on a computer": {},
   "That image is larger than 2 MB. Take a smaller photo or crop it.": {},
+  "The correct answer must be one of the options.": {
+    "source": "server"
+  },
   "The current code and links for this group stop working.": {},
   "The current code and links stop working. Students who already joined are not affected.": {},
   "The exam must close after it opens.": {},
@@ -642,6 +674,7 @@
   "Tried to paste (blocked)": {},
   "Tried to paste from the menu (blocked)": {},
   "Try a different search or filter.": {},
+  "Two options have the same text.": {},
   "Two-letter code, such as BD or GB.": {},
   "Type": {},
   "Type your answer here": {},
@@ -661,6 +694,9 @@
   "Uploaded answer": {},
   "Use a computer": {},
   "Use a different email": {},
+  "Use at most 10 options.": {
+    "source": "server"
+  },
   "Use the join code your school, coaching center or employer gave you.": {},
   "User not found": {
     "source": "server"
@@ -676,6 +712,9 @@
   "When {{org}} publishes an exam for you, it appears here.": {},
   "Who can take it": {},
   "Window": {},
+  "Write a question": {},
+  "Write questions one at a time, or fill in the Excel template and import many at once.": {},
+  "Write the question.": {},
   "Written": {},
   "Written answer": {},
   "X-Organization-Id header is required": {

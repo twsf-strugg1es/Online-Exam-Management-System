@@ -13,6 +13,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import OrganizationsPage from './pages/OrganizationsPage';
 import AdminQuestionsPage from './pages/AdminQuestionsPage';
+import QuestionEditorPage from './pages/QuestionEditorPage';
 import AdminExamsPage from './pages/AdminExamsPage';
 import ExamFormPage from './pages/ExamFormPage';
 import ExamResultsPage from './pages/ExamResultsPage';
@@ -77,6 +78,8 @@ function App() {
       <Route path="/admin-integrity/:attemptId" element={only(isStaff, <IntegrityReportPage />)} />
       <Route path="/admin-evaluate-answers/:attemptId" element={only(isStaff, <AdminEvaluateAnswersPage />)} />
       <Route path="/admin-questions" element={only(isStaff, <AdminQuestionsPage />)} />
+      <Route path="/admin-questions/new" element={only(isStaff, <QuestionEditorPage />)} />
+      <Route path="/admin-questions/:questionId/edit" element={only(isStaff, <QuestionEditorPage />)} />
       <Route path="/admin-students" element={only(isStaff, <AdminStudentsPage />)} />
       <Route path="/admin-organization" element={only(isManager, <AdminOrganizationPage />)} />
 

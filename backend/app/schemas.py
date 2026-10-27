@@ -371,3 +371,70 @@ class PasswordResetConfirm(BaseModel):
 
 class EmailVerification(BaseModel):
     token: str = Field(min_length=20, max_length=2000)
+
+
+class QuestionEdit(BaseModel):
+    """A question written in the editor. Choice questions need 2-10 distinct options and the
+    correct one(s) among them; written and image answers have neither (an examiner grades them)."""
+    title: str = Field(min_length=1, max_length=2000)
+    description: Optional[str] = Field(default=None, max_length=5000)
+    complexity: str
+    type: str
+    options: Optional[list[str]] = None
+    correct_answers: Any = None
+    max_score: int = Field(default=1, ge=1, le=100)
+    tags: list[str] = []
+
+    @field_validator("title")
+    @classmethod
+    def _title(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Write the question.")
+        return v.strip()
+
+    @field_validator("description")
+    @classmethod
+    def _description(cls, v: Optional[str]) -> Optional[str]:
+        return v.strip() or None if v else None
+
+    @field_validator("complexity")
+    @classmethod
+    def _complexity(cls, v: str) -> str:
+        if v not in models.COMPLEXITIES:
+            raise ValueError(f"Difficulty must be one of: {', '.join(models.COMPLEXITIES)}")
+        return v
+
+    @field_validator("type")
+    @classmethod
+    def _type(cls, v: str) -> str:
+        if v not in models.QUESTION_TYPES:
+            raise ValueError(f"Type must be one of: {', '.join(models.QUESTION_TYPES)}")
+        return v
+
+    @model_validator(mode="after")
+    def _answers(self):
+        if self.type not in models.CHOICE_TYPES:
+            self.options, self.correct_answers = None, None
+            return self
+        options = [str(o).strip() for o in (self.options or [])]
+        if any(not o for o in options):
+            raise ValueError("Fill in every option or remove the empty ones.")
+        if len(options) < 2:
+            raise ValueError("Add at least two options.")
+        if len(options) > models.MAX_OPTIONS:
+            raise ValueError("Use at most 10 options.")
+        if len(set(options)) != len(options):
+            raise ValueError("Two options have the same text.")
+        correct = self.correct_answers if isinstance(self.correct_answers, list) else (
+            [] if self.correct_answers in (None, "") else [self.correct_answers])
+        correct = list(dict.fromkeys(str(c).strip() for c in correct))
+        if not correct:
+            raise ValueError("Mark the correct answer.")
+        if any(c not in options for c in correct):
+            raise ValueError("The correct answer must be one of the options.")
+        if self.type == "single_choice" and len(correct) != 1:
+            raise ValueError("A single-choice question has exactly one correct answer.")
+        self.options = options
+        # Stored the way the importer stores them: one value for single choice, a list for multiple
+        self.correct_answers = correct[0] if self.type == "single_choice" else correct
+        return self
