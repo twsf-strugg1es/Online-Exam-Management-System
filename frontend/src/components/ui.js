@@ -116,7 +116,7 @@ export function Switch({ checked, onChange, label, description, disabled }) {
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <span className="h-5 w-9 rounded-full bg-line transition-colors peer-checked:bg-brand peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40" />
+        <span className="h-5 w-9 rounded-full bg-line transition-colors peer-checked:bg-brand peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40 peer-disabled:opacity-50" />
         <span className="absolute start-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4 rtl:peer-checked:-translate-x-4" />
       </span>
     </label>

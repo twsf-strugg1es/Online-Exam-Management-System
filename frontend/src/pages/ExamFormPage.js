@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { LuArrowLeft, LuSearch, LuFileQuestion } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
 import {
-  Alert, Badge, Button, Card, CardHeader, Checkbox, EmptyState, Field, Input, PageHeader, Select, Switch, cx,
+  Alert, Badge, Button, Card, CardHeader, Checkbox, EmptyState, Field, Input, PageHeader, PageLoader, Select, Switch, cx,
 } from '../components/ui';
 import { QUESTION_TYPE_LABELS, errorMessage, fromZonedInput, timeZoneLabel, toZonedInput } from '../utils';
 import { useI18n } from '../i18n';
@@ -17,8 +17,11 @@ const defaultTimes = () => {
   return { start: toZonedInput(start), end: toZonedInput(end) };
 };
 
+// New exam (/admin-exams/new) or, with an exam ID, edit one that hasn't opened yet
 function ExamFormPage() {
   const navigate = useNavigate();
+  const { examId } = useParams();
+  const editing = Boolean(examId);
   const { t, tn } = useI18n();
   const times = useMemo(defaultTimes, []);
   const [form, setForm] = useState({ title: '', start: times.start, end: times.end, duration: '60' });
@@ -35,12 +38,32 @@ function ExamFormPage() {
   const [selectedGroups, setSelectedGroups] = useState(new Set());
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
-  const [saving, setSaving] = useState(null); // 'draft' | 'publish'
+  const [saving, setSaving] = useState(null); // 'draft' | 'publish' | 'save'
+  const [existing, setExisting] = useState(editing ? null : {}); // the exam being edited
 
   useEffect(() => {
     api.get('/admin/questions/').then((res) => setQuestions(res.data || [])).catch(() => setQuestions([]));
     api.get('/org/groups').then((res) => setGroups(res.data || [])).catch(() => setGroups([]));
   }, []);
+
+  useEffect(() => {
+    if (!editing) return;
+    api.get(`/admin/exams/${examId}`)
+      .then(({ data }) => {
+        setExisting(data);
+        setForm({ title: data.title, start: toZonedInput(data.start_time), end: toZonedInput(data.end_time), duration: String(data.duration_minutes) });
+        setSettings({
+          shuffle_questions: data.shuffle_questions,
+          shuffle_options: data.shuffle_options,
+          require_fullscreen: data.require_fullscreen,
+          block_copy_paste: data.block_copy_paste,
+          max_violations: data.max_violations ? String(data.max_violations) : '',
+        });
+        setSelectedQuestions(new Set(data.questions.map((q) => q.id)));
+        setSelectedGroups(new Set(data.groups.map((g) => g.id)));
+      })
+      .catch((err) => { setExisting({ edit_blocked: errorMessage(err, 'Exam not found') }); });
+  }, [editing, examId]);
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
   const toggleIn = (set, setter, id) => {
@@ -60,15 +83,15 @@ function ExamFormPage() {
           : null;
 
   const submit = async (publish) => {
+    if (editing && existing?.edit_blocked) return;
     setError('');
     if (!form.title.trim()) return setError(t('Give the exam a title.'));
     if (!(Number(form.duration) > 0)) return setError(t('Set a duration in minutes.'));
     if (windowMinutes <= 0) return setError(t('The exam must close after it opens.'));
     if (selectedQuestions.size === 0) return setError(t('Pick at least one question.'));
 
-    setSaving(publish ? 'publish' : 'draft');
-    try {
-      const res = await api.post('/admin/exams/', {
+    setSaving(editing ? 'save' : publish ? 'publish' : 'draft');
+    const payload = {
         title: form.title.trim(),
         // Send real instants (UTC), so the exam opens at the same moment wherever the server runs
         start_time: fromZonedInput(form.start).toISOString(),
@@ -81,23 +104,34 @@ function ExamFormPage() {
         require_fullscreen: settings.require_fullscreen,
         block_copy_paste: settings.block_copy_paste,
         max_violations: settings.max_violations ? parseInt(settings.max_violations, 10) : null,
-      });
-      if (publish) await api.post(`/admin/exams/${res.data.id}/publish`);
+    };
+    try {
+      if (editing) {
+        await api.put(`/admin/exams/${examId}`, payload); // a published exam stays published
+      } else {
+        const res = await api.post('/admin/exams/', payload);
+        if (publish) await api.post(`/admin/exams/${res.data.id}/publish`);
+      }
       navigate('/admin-exams');
     } catch (err) {
-      setError(errorMessage(err, 'Could not create the exam'));
+      setError(errorMessage(err, editing ? 'Could not save the exam' : 'Could not create the exam'));
       setSaving(null);
     }
   };
+
+  if (!existing) return <AppShell><PageLoader /></AppShell>;
+  const locked = editing && existing.edit_blocked;
 
   return (
     <AppShell>
       <Link to="/admin-exams" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
         <LuArrowLeft className="h-4 w-4 rtl:-scale-x-100" /> {t('Exams')}
       </Link>
-      <PageHeader title={t('New exam')} />
+      <PageHeader title={editing ? t('Edit exam') : t('New exam')} />
+      {locked && <Alert tone="warn" className="mb-6" title={t('Editing is closed')}>{t(existing.edit_blocked)}</Alert>}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      {/* A disabled fieldset disables every input and switch inside it */}
+      <fieldset disabled={!!locked} className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-6">
           <Card>
             <CardHeader title={t('Details and schedule')} description={t('Students can start any time in the window. Each attempt lasts the duration, but never past the closing time.')} />
@@ -236,14 +270,20 @@ function ExamFormPage() {
             </div>
           </Card>
         </div>
-      </div>
+      </fieldset>
 
       <div className="sticky bottom-0 z-10 -mx-4 mt-8 border-t border-line bg-paper px-4 py-4 sm:-mx-8 sm:px-8">
         {error && <Alert tone="danger" className="mb-3">{error}</Alert>}
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Button variant="ghost" onClick={() => navigate('/admin-exams')}>{t('Cancel')}</Button>
-          <Button variant="secondary" loading={saving === 'draft'} disabled={!!saving} onClick={() => submit(false)}>{t('Save as draft')}</Button>
-          <Button loading={saving === 'publish'} disabled={!!saving} onClick={() => submit(true)}>{t('Create and publish')}</Button>
+          {editing ? (
+            <Button loading={saving === 'save'} disabled={!!saving || !!locked} onClick={() => submit(false)}>{t('Save changes')}</Button>
+          ) : (
+            <>
+              <Button variant="secondary" loading={saving === 'draft'} disabled={!!saving} onClick={() => submit(false)}>{t('Save as draft')}</Button>
+              <Button loading={saving === 'publish'} disabled={!!saving} onClick={() => submit(true)}>{t('Create and publish')}</Button>
+            </>
+          )}
         </div>
       </div>
     </AppShell>

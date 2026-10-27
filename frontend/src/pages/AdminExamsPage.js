@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LuPlus, LuClipboardList, LuEllipsis, LuTrash2, LuEyeOff, LuSend } from 'react-icons/lu';
+import { LuPlus, LuClipboardList, LuEllipsis, LuTrash2, LuEyeOff, LuSend, LuPencil } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Button, Card, EmptyState, PageHeader, PageLoader, useConfirm } from '../components/ui';
@@ -59,6 +59,7 @@ export function ProtectionIcons({ exam }) {
 
 function ExamMenu({ exam, onPublishToggle, onDelete }) {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
@@ -67,6 +68,16 @@ function ExamMenu({ exam, onPublishToggle, onDelete }) {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute end-0 z-20 mt-1 w-48 animate-fade-in overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-pop">
+            {!exam.edit_blocked && (
+              <button
+                type="button"
+                onClick={() => { setOpen(false); navigate(`/admin-exams/${exam.id}/edit`); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-sunken"
+              >
+                <LuPencil className="h-4 w-4 text-muted" />
+                {t('Edit')}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => { setOpen(false); onPublishToggle(exam); }}

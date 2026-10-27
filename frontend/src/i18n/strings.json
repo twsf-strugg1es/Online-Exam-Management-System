@@ -200,6 +200,9 @@
   "e.g. Physics, chapter 3 test": {},
   "Each student gets their own order.": {},
   "Easy": {},
+  "Edit": {},
+  "Edit exam": {},
+  "Editing is closed": {},
   "Email": {},
   "Email already registered": {
     "source": "server"
@@ -549,6 +552,9 @@
   "Students": {},
   "Students and their groups": {},
   "Students can start any time in the window. Each attempt lasts the duration, but never past the closing time.": {},
+  "Students have already started this exam, so it can't be changed.": {
+    "source": "server"
+  },
   "Students in {{groups}} will see it and can start it from {{date}}.": {},
   "Students in your organization will see it and can start it from {{date}}.": {},
   "Students join by signing up with your organization's join code, or a group's code.": {},
@@ -599,6 +605,12 @@
   "They lose access to your exams. Their account and past results are kept, and they can rejoin with a join code.": {},
   "This attempt has no written or image answers. Multiple-choice questions were graded automatically.": {},
   "This confirmation link is invalid or has expired. Sign in and send a new one.": {
+    "source": "server"
+  },
+  "This exam is already open. Unpublish it before changing it.": {
+    "source": "server"
+  },
+  "This exam is archived.": {
     "source": "server"
   },
   "This exam is not available to you.": {},

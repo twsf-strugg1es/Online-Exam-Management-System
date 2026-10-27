@@ -72,6 +72,7 @@ function App() {
       {/* Staff */}
       <Route path="/admin-exams" element={only(isStaff, <AdminExamsPage />)} />
       <Route path="/admin-exams/new" element={only(isStaff, <ExamFormPage />)} />
+      <Route path="/admin-exams/:examId/edit" element={only(isStaff, <ExamFormPage />)} />
       <Route path="/admin-exams/:examId" element={only(isStaff, <ExamResultsPage />)} />
       <Route path="/admin-integrity/:attemptId" element={only(isStaff, <IntegrityReportPage />)} />
       <Route path="/admin-evaluate-answers/:attemptId" element={only(isStaff, <AdminEvaluateAnswersPage />)} />

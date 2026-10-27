@@ -188,6 +188,37 @@ def create_exam(db: Session, exam: schemas.ExamCreate, organization_id: uuid.UUI
     return db_exam
 
 
+# Why an exam can't be edited (shown to staff, translated on the client)
+EXAM_ARCHIVED = "This exam is archived."
+EXAM_STARTED = "Students have already started this exam, so it can't be changed."
+EXAM_OPEN = "This exam is already open. Unpublish it before changing it."
+
+
+def exam_edit_blocker(db: Session, exam: models.Exam, now: datetime | None = None) -> str | None:
+    """Why this exam can't be edited any more, or None while it still can be: a draft, or
+    published but not open yet, and nobody has started it."""
+    now = now or datetime.now(timezone.utc)
+    if exam.archived_at is not None:
+        return EXAM_ARCHIVED
+    if db.query(models.ExamAttempt.id).filter(models.ExamAttempt.exam_id == exam.id).first():
+        return EXAM_STARTED
+    if exam.is_published and as_utc(exam.start_time) <= now:
+        return EXAM_OPEN
+    return None
+
+
+def update_exam(db: Session, exam: models.Exam, data: schemas.ExamCreate) -> models.Exam:
+    """Replace an exam's details, questions and groups (callers check exam_edit_blocker first)."""
+    for field in ("title", "start_time", "end_time", "duration_minutes", "shuffle_questions",
+                  "shuffle_options", "require_fullscreen", "block_copy_paste", "max_violations"):
+        setattr(exam, field, getattr(data, field))
+    exam.questions = db.query(models.Question).filter(models.Question.id.in_(data.question_ids)).all()
+    exam.groups = db.query(models.Group).filter(models.Group.id.in_(data.group_ids)).all() if data.group_ids else []
+    db.commit()
+    db.refresh(exam)
+    return exam
+
+
 def get_exams(db: Session, organization_id: uuid.UUID) -> list[models.Exam]:
     """Get all of an organization's exams."""
     return (

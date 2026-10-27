@@ -34,6 +34,7 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | **Staff** | | | | |
 | Exams | `/admin-exams` | List exams with status (Draft/Scheduled/Live/Closed) and protections; publish/unpublish/delete | `/admin/exams/` | Staff |
 | New exam | `/admin-exams/new` | Details, schedule, questions, groups, integrity settings | `/admin/questions/`, `/org/groups` | Staff |
+| Edit exam | `/admin-exams/:id/edit` (row menu → Edit, shown only while editable) | Same form, one "Save changes" button; a published exam stays published. Locked exams show the reason and a disabled form | `GET`/`PUT /admin/exams/{id}` | Staff |
 | Exam results | `/admin-exams/:examId` | Stats, attempts with score/risk, filters, links to report and grading | `/admin/exams/`, `/admin/exams/:id/attempts` | Staff |
 | Integrity report | `/admin-integrity/:attemptId` | Risk, violations, flags, time away, event timeline | `/admin/attempts/:id/integrity` | Staff |
 | Grade answers | `/admin-evaluate-answers/:attemptId` | Mark written/image answers correct or incorrect, with a comment | `/admin/evaluations/attempts/:id` | Staff |

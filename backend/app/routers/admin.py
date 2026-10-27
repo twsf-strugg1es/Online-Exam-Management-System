@@ -520,7 +520,12 @@ def create_exam(
     membership: models.Membership = Depends(require_staff),
 ):
     """Create a new exam with associated questions."""
-    # Validate that all questions and groups belong to this organization
+    _check_exam_references(db, exam, membership)
+    return crud.create_exam(db, exam, membership.organization_id)
+
+
+def _check_exam_references(db: Session, exam: schemas.ExamCreate, membership: models.Membership) -> None:
+    """Every question and group must belong to this organization (archived questions don't count)."""
     for question_id in exam.question_ids:
         _get_org_question(db, question_id, membership)
     org_group_ids = {
@@ -529,7 +534,69 @@ def create_exam(
     if set(exam.group_ids) - org_group_ids:
         raise HTTPException(status_code=404, detail="Group not found")
 
-    return crud.create_exam(db, exam, membership.organization_id)
+
+def _exam_payload(db: Session, exam: models.Exam) -> dict:
+    publisher_email = None
+    if exam.published_by:
+        publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
+        publisher_email = publisher.email if publisher else "Unknown"
+    return {
+        "id": str(exam.id),
+        "title": exam.title,
+        "start_time": exam.start_time.isoformat(),
+        "end_time": exam.end_time.isoformat(),
+        "duration_minutes": exam.duration_minutes,
+        "is_published": exam.is_published,
+        "published_by": publisher_email,
+        "groups": _groups_payload(exam),
+        **crud.integrity_settings(exam),
+        # Why the exam can't be edited any more; null while it can
+        "edit_blocked": crud.exam_edit_blocker(db, exam),
+        "questions": [
+            {
+                "id": str(q.id),
+                "title": q.title,
+                "complexity": q.complexity,
+                "type": q.type,
+                "options": q.options,
+                "correct_answers": q.correct_answers,
+                "max_score": q.max_score,
+                "tags": q.tags,
+            }
+            for q in (exam.questions or [])
+        ],
+    }
+
+
+@router.get("/exams/{exam_id}")
+def get_exam(
+    exam_id: UUID,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """One exam with its questions and groups, e.g. for the edit form."""
+    exam = _get_org_exam(db, exam_id, membership)
+    if exam.archived_at is not None:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    return _exam_payload(db, exam)
+
+
+@router.put("/exams/{exam_id}")
+def update_exam(
+    exam_id: UUID,
+    data: schemas.ExamCreate,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """Change an exam before anyone has started it: while it's a draft or hasn't opened yet."""
+    exam = _get_org_exam(db, exam_id, membership)
+    if exam.archived_at is not None:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    reason = crud.exam_edit_blocker(db, exam)
+    if reason:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=reason)
+    _check_exam_references(db, data, membership)
+    return _exam_payload(db, crud.update_exam(db, exam, data))
 
 
 @router.get("/exams/")
@@ -538,42 +605,7 @@ def list_exams(
     membership: models.Membership = Depends(require_staff),
 ):
     """List all exams with publisher information."""
-    exams = crud.get_exams(db, membership.organization_id)
-    result = []
-    for exam in exams:
-        # Get publisher email if published
-        publisher_email = None
-        if exam.published_by:
-            publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
-            publisher_email = publisher.email if publisher else "Unknown"
-
-        # Manually build exam dict to avoid Pydantic validation issues
-        exam_dict = {
-            "id": str(exam.id),
-            "title": exam.title,
-            "start_time": exam.start_time.isoformat(),
-            "end_time": exam.end_time.isoformat(),
-            "duration_minutes": exam.duration_minutes,
-            "is_published": exam.is_published,
-            "published_by": publisher_email,
-            "groups": _groups_payload(exam),
-            **crud.integrity_settings(exam),
-            "questions": [
-                {
-                    "id": str(q.id),
-                    "title": q.title,
-                    "complexity": q.complexity,
-                    "type": q.type,
-                    "options": q.options,
-                    "correct_answers": q.correct_answers,
-                    "max_score": q.max_score,
-                    "tags": q.tags,
-                }
-                for q in (exam.questions or [])
-            ],
-        }
-        result.append(exam_dict)
-    return result
+    return [_exam_payload(db, exam) for exam in crud.get_exams(db, membership.organization_id)]
 
 
 @router.post("/exams/{exam_id}/publish")
