@@ -51,6 +51,9 @@
   .btn:not(:disabled):active { scale: 0.96; }
   .btn:disabled { opacity: 0.6; cursor: progress; }
   @media (hover: hover) { .btn:hover { background: var(--marker-deep); } }
+  .btn--lg { min-height: 54px; padding: 0 1.75rem; font-size: 1.02rem; border-radius: 12px; }
+  .hero__cta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem 1.25rem; margin-top: 2.25rem; }
+  .hero__cta .fine { margin: 0; }
   .btn--sm { min-height: 40px; padding: 0 1rem; font-size: 0.9rem; border-radius: 8px; }
 
   /* ---------- header ---------- */
@@ -135,7 +138,7 @@
   .steps { display: none; }
 
   /* Rotating drum: the section pins and the three points ride a 3D ring as you scroll */
-  .points.is-drum { height: 340vh; padding: 0; }
+  .points.is-drum { height: 230vh; padding: 0; }
   .points.is-drum .points__pin { position: sticky; top: 0; height: 100vh; display: grid; grid-template-rows: auto 1fr auto; padding-block: clamp(5.5rem, 4rem + 4vh, 8rem) 2.5rem; overflow: hidden; }
   .points.is-drum .section-head { margin-inline: auto; text-align: center; }
   .points.is-drum .grid3 { display: block; position: relative; margin: 0; perspective: 1500px; perspective-origin: 50% 40%; }
@@ -197,13 +200,21 @@
   }
 
   /* ---------- smaller screens ---------- */
-  @media (max-width: 960px) {
+  /* The hero preview needs room beside the copy; below ~1100px it goes underneath */
+  @media (max-width: 1100px) {
     .hero .wrap { grid-template-columns: 1fr; }
     .stage { max-width: 560px; width: 100%; justify-self: center; }
+  }
+  @media (max-width: 960px) {
     .grid3 { grid-template-columns: 1fr; }
     .point h3 { margin-top: 1.25rem; }
   }
+  @media (max-width: 420px) {
+    .question .dots { display: none; }
+    .question { padding: 1.2rem 1.15rem 1.25rem; }
+  }
   @media (max-width: 560px) {
+    .video { aspect-ratio: 4 / 3; border-radius: 16px; }
     .nav .btn { display: none; }
     .hero h1 { font-size: 2.65rem; }
     .field { flex-direction: column; padding: 0.4rem; }
@@ -238,16 +249,10 @@
         <span class="pill rise" style="--i:0"><i aria-hidden="true"></i>Launching soon</span>
         <h1 id="hero-title" class="rise" style="--i:1">Fair exams in <em>any browser.</em></h1>
         <p class="sub rise" style="--i:2">Set a test in minutes. Every student gets their own shuffled paper, answers are marked for you, and tab switches are flagged for review.</p>
-        <form class="join-form rise" style="--i:3" id="heroForm" novalidate>
-          <label class="visually-hidden" for="heroEmail">Your email</label>
-          <div class="field">
-            <input id="heroEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="Your email here" required>
-            <button class="btn" type="submit">Join the waitlist</button>
-          </div>
-          <span class="hp" aria-hidden="true"><label for="heroWebsite">Leave this empty</label><input id="heroWebsite" name="website" tabindex="-1" autocomplete="off"></span>
-          <p class="fine">One email when we launch. Nothing else. <a href="privacy.html">Privacy Policy</a></p>
-          <p class="msg" id="heroMsg" aria-live="polite"></p>
-        </form>
+        <div class="hero__cta rise" style="--i:3">
+          <a class="btn btn--lg" href="#join">Join the waitlist</a>
+          <span class="fine">Free to join. One email when it opens.</span>
+        </div>
       </div>
 
       <div class="stage rise" style="--i:2" id="stage" aria-label="Preview of Fairpaper: a student answering a question, and the teacher's results" role="img">
@@ -374,8 +379,12 @@
   const from = new URLSearchParams(location.search).get('from');
 
   /* Waitlist forms (saved by the API; see waitlist.js). ?from=instagram tags the signup. */
-  window.wireWaitlist({ form: $('heroForm'), email: $('heroEmail'), website: $('heroWebsite'), msg: $('heroMsg'), source: from || 'landing-hero' });
   window.wireWaitlist({ form: $('joinForm'), email: $('joinEmail'), website: $('joinWebsite'), msg: $('joinMsg'), source: from || 'landing-close' });
+
+  /* "Join the waitlist" links land in the email field */
+  document.querySelectorAll('a[href="#join"]').forEach((a) => a.addEventListener('click', () => {
+    setTimeout(() => $('joinEmail').focus({ preventScroll: true }), matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600);
+  }));
 
   /* Header rule appears once the page scrolls */
   const nav = $('nav');
@@ -420,7 +429,7 @@
     const span = p * (cards.length - 1);
     const i = Math.min(cards.length - 2, Math.floor(span));
     const f = span - i;
-    const swing = ease(Math.min(1, Math.max(0, (f - 0.25) / 0.5)));
+    const swing = ease(Math.min(1, Math.max(0, (f - 0.15) / 0.7)));
     const angle = (i + swing) * STEP;
     const radius = Math.min(460, innerWidth * 0.3);
     cards.forEach((card, n) => {
