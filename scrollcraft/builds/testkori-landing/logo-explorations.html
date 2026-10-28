@@ -45,10 +45,10 @@
 const G = '#0B6E4F';
 // Every mark is drawn on a 32×32 grid. `fg` is the mark's light color on the green tile.
 const marks = [
-  { name: 'Bubble and check', tag: 'CURRENT', note: 'An answer bubble with a tick. Friendly and clear.', svg: (fg = '#fff') =>
+  { name: 'Bubble and check', tag: 'PREVIOUS', note: 'An answer bubble with a tick. Friendly and clear.', svg: (fg = '#fff') =>
     `<rect width="32" height="32" rx="8" fill="${G}"/><circle cx="16" cy="16" r="9.5" fill="${fg}"/><path d="M11.6 16.3l3.1 3.1 5.9-6.3" fill="none" stroke="${G}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>` },
-  { name: 'Answer sheet row', tag: 'OMR', note: 'Four bubbles, one marked. Reads as “exam” instantly.', svg: (fg = '#fff') =>
-    `<rect width="32" height="32" rx="8" fill="${G}"/>${[8, 13.33, 18.67, 24].map((x, i) => i === 2 ? `<circle cx="${x}" cy="16" r="2.6" fill="${fg}"/>` : `<circle cx="${x}" cy="16" r="2.2" fill="none" stroke="${fg}" stroke-width="1.3" opacity="0.75"/>`).join('')}` },
+  { name: 'Answer sheet row', tag: 'CHOSEN', note: 'Four bubbles, one marked. Reads as “exam” instantly.', svg: (fg = '#fff') =>
+    `<rect width="32" height="32" rx="8" fill="${G}"/>${[6.5, 12.83, 19.17, 25.5].map((x, i) => i === 2 ? `<circle cx="${x}" cy="16" r="3.1" fill="${fg}"/>` : `<circle cx="${x}" cy="16" r="2.45" fill="none" stroke="${fg}" stroke-width="1.7"/>`).join('')}` },
   { name: 'Filled bubble', tag: 'MINIMAL', note: 'One answer bubble, pencilled in. The quietest option.', svg: (fg = '#fff') =>
     `<rect width="32" height="32" rx="8" fill="${G}"/><circle cx="16" cy="16" r="9" fill="none" stroke="${fg}" stroke-width="2.2"/><circle cx="16" cy="16" r="5" fill="${fg}"/>` },
   { name: 'T with a tick', tag: 'LETTER', note: 'The T’s stem ends in a check mark: the name and the result in one stroke.', svg: (fg = '#fff') =>
@@ -67,7 +67,7 @@ const marks = [
 
 const svg = (m, size) => `<svg viewBox="0 0 32 32" width="${size}" height="${size}" aria-hidden="true">${m.svg()}</svg>`;
 document.getElementById('grid').innerHTML = marks.map((m, i) => `
-  <article class="opt${i === 0 ? ' current' : ''}">
+  <article class="opt${i === 1 ? ' current' : ''}">
     <header><b>${i + 1}. ${m.name}</b><span>${m.tag}</span></header>
     <p>${m.note}</p>
     <div class="hero">${svg(m, 96)}</div>

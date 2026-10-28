@@ -55,7 +55,7 @@ function WaitlistPage() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder={t('you@school.edu')}
+              placeholder={t('Your email here')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               aria-invalid={Boolean(error)}

@@ -201,7 +201,7 @@ Rules that follow from the budget:
 
 | Asset | Status |
 |---|---|
-| **TestKori logo mark + wordmark** | **Done (1.1):** a filled answer bubble with a check on the brand green. `LogoMark` / `Logo` in `ui.js` (inline SVG, theme tokens, works in both themes); wordmark "TestKori" in IBM Plex Sans semibold |
+| **TestKori logo mark + wordmark** | **Done (1.1, changed 2026-10-28):** a row of four answer bubbles, the third filled in, on the brand green (owner's pick from `scrollcraft/builds/testkori-landing/logo-explorations.html`, option 2). `LogoMark` / `Logo` in `ui.js` (inline SVG, theme tokens, works in both themes); wordmark "TestKori" in IBM Plex Sans semibold |
 | Favicon, PWA icons, `index.html` title, `manifest.json` | **Done (1.1):** `public/favicon.svg`, `favicon.ico` (16–64), `logo192.png`, `logo512.png`, all from the same 32-unit geometry |
 | Icons | Lucide via `react-icons/lu`, 16–18 px, stroke 1.75–2; only icons that add meaning |
 | Illustrations | None by design |

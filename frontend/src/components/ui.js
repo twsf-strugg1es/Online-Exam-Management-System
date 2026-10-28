@@ -13,15 +13,10 @@ export function LogoMark({ size = 32, className }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className={cx('shrink-0', className)}>
       <rect width="32" height="32" rx="8" className="fill-brand" />
-      <circle cx="16" cy="16" r="9.5" className="fill-on-brand" />
-      <path
-        d="M11.6 16.3l3.1 3.1 5.9-6.3"
-        fill="none"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="stroke-brand"
-      />
+      {/* A row of answer bubbles, the third one filled in */}
+      {[6.5, 12.83, 19.17, 25.5].map((x, i) => (i === 2
+        ? <circle key={x} cx={x} cy="16" r="3.1" className="fill-on-brand" />
+        : <circle key={x} cx={x} cy="16" r="2.45" fill="none" strokeWidth="1.7" className="stroke-on-brand" />))}
     </svg>
   );
 }
