@@ -4,8 +4,113 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="fairpaper-api" content="http://localhost:8000">
-<title>Fairpaper · Fair exams in any browser</title>
-<meta name="description" content="Set a test in minutes. Every student gets their own shuffled paper, answers are marked for you, and tab switches are flagged. Join the waitlist.">
+<title>Fairpaper · Fair online exams in any browser</title>
+<meta name="description" content="Fairpaper is an online exam platform: set a timed test in minutes, give every student a shuffled paper, mark answers automatically and flag tab switches. Join the waitlist.">
+<link rel="canonical" href="https://fairpaper.app/">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0B6E4F">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Fairpaper">
+<meta property="og:title" content="Fairpaper · Fair online exams in any browser">
+<meta property="og:description" content="Set a test in minutes. Every student gets their own shuffled paper, answers are marked for you, and tab switches are flagged for review.">
+<meta property="og:url" content="https://fairpaper.app/">
+<meta property="og:image" content="https://fairpaper.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Fairpaper: fair exams in any browser">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fairpaper · Fair online exams in any browser">
+<meta name="twitter:description" content="Set a test in minutes. Shuffled papers for every student, automatic marking, and tab switches flagged for review.">
+<meta name="twitter:image" content="https://fairpaper.app/og-image.png">
+<script type="application/ld+json">
+[
+ {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://fairpaper.app/#kori-tech",
+  "name": "Kori.tech",
+  "brand": {
+   "@type": "Brand",
+   "name": "Fairpaper",
+   "logo": "https://fairpaper.app/favicon.svg"
+  }
+ },
+ {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "https://fairpaper.app/#website",
+  "url": "https://fairpaper.app/",
+  "name": "Fairpaper",
+  "description": "Fair online exams in any browser.",
+  "publisher": {
+   "@id": "https://fairpaper.app/#kori-tech"
+  },
+  "inLanguage": "en"
+ },
+ {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+   {
+    "@type": "Question",
+    "name": "What is Fairpaper?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Fairpaper is an online exam platform for teachers, schools and hiring teams. You write or import questions, set a time, and share one code. Students take the test in their browser, each with their own shuffled paper, and choice questions are marked automatically."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "How does Fairpaper reduce cheating in online exams?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Every student gets the questions and options in a different order, pasting is blocked during the exam, and leaving the exam tab is recorded. Attempts with unusual activity are flagged for you to review. No browser can make cheating impossible, so Fairpaper flags and records instead of accusing anyone automatically."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "Do students need to install anything?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "No. Students take exams in a desktop browser such as Chrome, Edge or Firefox, on a laptop or desktop computer. They can sign up and sign in on a phone."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "Can I use my existing questions?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Yes. Import questions from an Excel spreadsheet, or write them one at a time. You can also add a whole class at once from a CSV or Excel list of student emails."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "How is marking done?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Single-choice and multiple-choice questions are scored the moment a student submits. Written and image answers wait for you to mark them, with an optional comment."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "How much will Fairpaper cost?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Pricing will be announced before launch. Joining the waitlist is free, and everyone on it hears first."
+    }
+   },
+   {
+    "@type": "Question",
+    "name": "Who makes Fairpaper?",
+    "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Fairpaper is a product of Kori.tech."
+    }
+   }
+  ]
+ }
+]
+</script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
@@ -166,6 +271,30 @@
   .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
   /* ---------- closing band ---------- */
+  /* ---------- FAQ ---------- */
+  .faq { padding-block: var(--section); border-top: 1px solid var(--rule); }
+  .faq__grid { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(2rem, 1rem + 4vw, 5rem); align-items: start; }
+  .faq .section-head { position: sticky; top: 6.5rem; }
+  .faq__more { margin: 1.1rem 0 0; color: var(--ink-soft); }
+  .faq__more a { color: var(--marker); font-weight: 500; text-underline-offset: 3px; }
+  .faq__list { border-top: 1px solid var(--rule); }
+  .qa { border-bottom: 1px solid var(--rule); }
+  .qa summary { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1.35rem 0; cursor: pointer; list-style: none; -webkit-tap-highlight-color: transparent; }
+  .qa summary::-webkit-details-marker { display: none; }
+  .qa summary h3 { margin: 0; font-size: 1.12rem; line-height: 1.35; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+  .qa__icon { position: relative; width: 28px; height: 28px; flex: none; border: 1px solid var(--rule-strong); border-radius: 50%; transition: background-color 150ms ease-out, border-color 150ms ease-out; }
+  .qa__icon::before, .qa__icon::after { content: ""; position: absolute; left: 50%; top: 50%; width: 11px; height: 1.6px; background: var(--ink); border-radius: 1px; translate: -50% -50%; transition: rotate 200ms var(--ease), opacity 200ms var(--ease); }
+  .qa__icon::after { rotate: 90deg; }
+  .qa[open] .qa__icon { background: var(--marker); border-color: var(--marker); }
+  .qa[open] .qa__icon::before { background: #fff; }
+  .qa[open] .qa__icon::after { rotate: 0deg; opacity: 0; }
+  @media (hover: hover) { .qa summary:hover .qa__icon { border-color: var(--ink); } }
+  .qa p { margin: -0.35rem 0 1.4rem; max-width: 60ch; color: var(--ink-soft); line-height: 1.65; text-wrap: pretty; }
+  @media (max-width: 860px) {
+    .faq__grid { grid-template-columns: 1fr; }
+    .faq .section-head { position: static; }
+  }
+
   .closing { padding-block: var(--section); background: var(--hall); color: var(--hall-ink); }
   .closing .wrap { display: grid; justify-items: center; text-align: center; }
   .closing .eyebrow { color: var(--hall-soft); }
@@ -330,6 +459,46 @@
           <b>Video coming soon</b>
           <span>A one-minute walk through a real exam.</span>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq" id="faq" aria-labelledby="faq-title">
+    <div class="wrap faq__grid">
+      <div class="section-head reveal">
+        <span class="eyebrow rise">Questions</span>
+        <h2 id="faq-title" class="rise" style="--i:1">Questions, answered.</h2>
+        <p class="faq__more rise" style="--i:2">Something else on your mind? <a href="#join">Join the waitlist</a> and reply to our email.</p>
+      </div>
+      <div class="faq__list reveal">
+          <details class="qa" open>
+            <summary><h3>What is Fairpaper?</h3><span class="qa__icon" aria-hidden="true"></span></summary>
+            <p>Fairpaper is an online exam platform for teachers, schools and hiring teams. You write or import questions, set a time, and share one code. Students take the test in their browser, each with their own shuffled paper, and choice questions are marked automatically.</p>
+          </details>
+          <details class="qa">
+            <summary><h3>How does Fairpaper reduce cheating in online exams?</h3><span class="qa__icon" aria-hidden="true"></span></summary>
+            <p>Every student gets the questions and options in a different order, pasting is blocked during the exam, and leaving the exam tab is recorded. Attempts with unusual activity are flagged for you to review. No browser can make cheating impossible, so Fairpaper flags and records instead of accusing anyone automatically.</p>
+          </details>
+          <details class="qa">
+            <summary><h3>Do students need to install anything?</h3><span class="qa__icon" aria-hidden="true"></span></summary>
+            <p>No. Students take exams in a desktop browser such as Chrome, Edge or Firefox, on a laptop or desktop computer. They can sign up and sign in on a phone.</p>
+          </details>
+          <details class="qa">
+            <summary><h3>Can I use my existing questions?</h3><span class="qa__icon" aria-hidden="true"></span></summary>
+            <p>Yes. Import questions from an Excel spreadsheet, or write them one at a time. You can also add a whole class at once from a CSV or Excel list of student emails.</p>
+          </details>
+          <details class="qa">
+            <summary><h3>How is marking done?</h3><span class="qa__icon" aria-hidden="true"></span></summary>
+            <p>Single-choice and multiple-choice questions are scored the moment a student submits. Written and image answers wait for you to mark them, with an optional comment.</p>
+          </details>
+          <details class="qa">
+            <summary><h3>How much will Fairpaper cost?</h3><span class="qa__icon" aria-hidden="true"></span></summary>
+            <p>Pricing will be announced before launch. Joining the waitlist is free, and everyone on it hears first.</p>
+          </details>
+          <details class="qa">
+            <summary><h3>Who makes Fairpaper?</h3><span class="qa__icon" aria-hidden="true"></span></summary>
+            <p>Fairpaper is a product of Kori.tech.</p>
+          </details>
       </div>
     </div>
   </section>
