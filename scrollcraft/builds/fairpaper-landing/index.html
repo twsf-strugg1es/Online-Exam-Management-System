@@ -7,9 +7,7 @@
 <title>Fairpaper · Fair exams in any browser</title>
 <meta name="description" content="Set a test in minutes. Every student gets their own shuffled paper, answers are marked for you, and tab switches are flagged. Join the waitlist.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
   :root {
     --paper: #F6F4EE;
@@ -84,6 +82,7 @@
   .msg.ok { color: var(--marker); font-weight: 500; }
   .msg.err { color: var(--redpen); }
   .fine { margin: 0.85rem 0 0; font-size: 0.86rem; color: var(--faint); }
+  .fine a { color: inherit; text-underline-offset: 3px; }
 
   /* ---------- hero preview: three planes ---------- */
   .stage { position: relative; aspect-ratio: 1 / 0.92; isolation: isolate; }
@@ -231,7 +230,7 @@
             <button class="btn" type="submit">Join the waitlist</button>
           </div>
           <span class="hp" aria-hidden="true"><label for="heroWebsite">Leave this empty</label><input id="heroWebsite" name="website" tabindex="-1" autocomplete="off"></span>
-          <p class="fine">One email when we launch. Nothing else.</p>
+          <p class="fine">One email when we launch. Nothing else. <a href="privacy.html">Privacy Policy</a></p>
           <p class="msg" id="heroMsg" aria-live="polite"></p>
         </form>
       </div>
@@ -326,7 +325,7 @@
           <button class="btn" type="submit">Join the waitlist</button>
         </div>
         <span class="hp" aria-hidden="true"><label for="joinWebsite">Leave this empty</label><input id="joinWebsite" name="website" tabindex="-1" autocomplete="off"></span>
-        <p class="fine">No spam. Every email has an unsubscribe link.</p>
+        <p class="fine">No spam. Every email has an unsubscribe link. <a href="privacy.html">Privacy Policy</a></p>
         <p class="msg" id="joinMsg" aria-live="polite"></p>
       </form>
     </div>
@@ -347,7 +346,7 @@
     </div>
     <div class="legal">
       <span>© 2026 Kori.tech. All rights reserved.</span>
-      <a href="#join">Join the waitlist</a>
+      <span class="links"><a href="privacy.html">Privacy Policy</a> · <a href="#join">Join the waitlist</a></span>
     </div>
   </div>
 </footer>
