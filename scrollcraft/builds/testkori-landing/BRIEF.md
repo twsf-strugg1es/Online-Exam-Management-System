@@ -84,3 +84,9 @@ Device families: flow/in, pointer, pin, reveal, CSS `--sc-p`. Never the same fam
 - No invented numbers, logos, testimonials or customer names. Sample people and exams are labelled sample.
 - Copy says "recorded", "hidden", "flagged", "submitted automatically". It never says cheating is impossible.
 - Pricing: "Plans are announced at launch." No figures.
+
+## v2 (2026-10-28): owner feedback
+
+The owner found v1 too much: "we dont need to show the timer feature here right now", "the landing page looks overwhelming as there are too much information", "i also want the waitlist inside in the landing page, make the landing page simple so that potential users feel hooked", and remove "Online exams for schools, coaching centers and hiring teams".
+
+v2 (`index.html`) is a minimal conversion page with one action, joining the waitlist: a hero with the form inline and a three-plane product preview (question card, results, two chips), three short points, the video slot, and a dark closing band with the form again. The live proctoring demo, timer, question map and sections 2–8 are gone. v1 is kept as `index-v1.html`. The video facade no longer loads a YouTube thumbnail before play (PRD AC24).
