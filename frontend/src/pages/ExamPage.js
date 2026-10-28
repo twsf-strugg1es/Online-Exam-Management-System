@@ -1,746 +1,737 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { LuArrowLeft, LuImage, LuCircleAlert } from 'react-icons/lu';
+import { useAuth } from '../context/AuthContext';
 import api from '../api';
-import Button from '../components/Button';
+import useExamIntegrity, { clearClipboard, enterFullscreen, exitFullscreen, fullscreenSupported } from '../hooks/useExamIntegrity';
+import { Alert, Badge, Button, Card, Logo, LogoMark, Modal, PageLoader, Textarea, cx } from '../components/ui';
+import { errorMessage, formatClock, formatExamTime } from '../utils';
+import { useI18n } from '../i18n';
 
+const TEXT_SAVE_DELAY = 700; // save written answers once the student pauses typing
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
-function ExamPage() {
-  const { id, attemptId: resumeAttemptId } = useParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
-  const [exam, setExam] = useState(null);
-  const [attemptId, setAttemptId] = useState(null);
-  const [questions, setQuestions] = useState([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [showBackConfirmModal, setShowBackConfirmModal] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [results, setResults] = useState(null);
-  const [loadingResults, setLoadingResults] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(null);
-  const [examEndTime, setExamEndTime] = useState(null);
+const isAnswered = (value) => value !== undefined && value !== null && value !== '' && !(Array.isArray(value) && value.length === 0);
 
-  const handleBackClick = () => {
-    setShowBackConfirmModal(true);
-  };
+// --- Before the exam: what will be enforced; the timer starts only when they press Start ---
 
-  const handleConfirmBack = async () => {
-    setShowBackConfirmModal(false);
-    await handleSubmitExam();
-    // Navigate back after submit is complete
-    setTimeout(() => {
-      navigate('/student-account');
-    }, 500);
-  };
-
-  // Handle browser back button
-  useEffect(() => {
-    // Push a new history state to intercept back button
-    window.history.pushState(null, null, window.location.pathname);
-
-    const handlePopState = (event) => {
-      event.preventDefault();
-      setShowBackConfirmModal(true);
-      // Push state again to prevent navigation
-      window.history.pushState(null, null, window.location.pathname);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [navigate]);
-
-  const startExam = useCallback(async () => {
-    try {
-      let response;
-
-      if (resumeAttemptId) {
-        // Resume an existing exam attempt
-        response = await api.post(`/student/attempts/${resumeAttemptId}/resume`);
-      } else {
-        // Start a new exam attempt
-        response = await api.post(`/student/exams/${id}/start`);
-      }
-
-      // Backend returns { exam: ExamForStudent, attempt: ExamAttempt }
-      const examObj = response.data?.exam;
-      const attemptObj = response.data?.attempt;
-
-      setExam(examObj);
-      setAttemptId(attemptObj?.id || null);
-
-      // Set timer based on whether this is a new attempt or resuming
-      if (examObj?.duration_minutes && attemptObj?.start_time) {
-        // Calculate student's personal exam end time based on when they started + duration
-        const attemptStartTime = new Date(attemptObj.start_time);
-        const durationMs = examObj.duration_minutes * 60 * 1000;
-        const studentExamEndTime = new Date(attemptStartTime.getTime() + durationMs);
-        
-        setExamEndTime(studentExamEndTime);
-        
-        // Calculate remaining seconds for initial display
-        const now = new Date();
-        const remaining = Math.floor((studentExamEndTime - now) / 1000);
-        setTimeRemaining(Math.max(0, remaining));
-      }
-
-      const qList = examObj?.questions || [];
-      setQuestions(qList);
-
-      // Initialize answers object
-      const initialAnswers = {};
-      qList.forEach((q) => {
-        initialAnswers[q.id] = null;
-      });
-
-      // Always try to fetch existing answers (both for new and resumed attempts)
-      try {
-        const answersResponse = await api.get(`/student/attempts/${attemptObj?.id}/answers`);
-        const existingAnswers = {};
-        answersResponse.data.forEach(answer => {
-          existingAnswers[answer.question_id] = answer.answer_data;
-        });
-        setAnswers(existingAnswers);
-      } catch (err) {
-        // If no answers found, use empty/initial answers
-        setAnswers(initialAnswers);
-      }
-
-      setLoading(false);
-    } catch (err) {
-      let errorMessage = 'Failed to start exam';
-      const detail = err.response?.data?.detail;
-      if (typeof detail === 'string') {
-        errorMessage = detail;
-      } else if (Array.isArray(detail)) {
-        errorMessage = detail[0]?.msg || errorMessage;
-      } else if (detail && typeof detail === 'object') {
-        errorMessage = detail.msg || detail.message || detail.error || errorMessage;
-      } else if (err.response?.data?.message && typeof err.response.data.message === 'string') {
-        errorMessage = err.response.data.message;
-      }
-      setError(errorMessage);
-      setLoading(false);
-    }
-  }, [id, resumeAttemptId]);
-
-  useEffect(() => {
-    startExam();
-  }, [startExam]);
-
-  // Timer effect
-  useEffect(() => {
-    if (!examEndTime || results) return; // Don't run if exam is finished
-
-    const timerInterval = setInterval(() => {
-      const now = new Date();
-      const remaining = Math.floor((examEndTime - now) / 1000);
-
-      if (remaining <= 0) {
-        // Time expired - auto-submit
-        clearInterval(timerInterval);
-        setSubmitting(true);
-        api.post(`/student/attempts/${attemptId}/submit`)
-          .then(async () => {
-            setLoadingResults(true);
-            const res = await api.get(`/student/attempts/${attemptId}/results`);
-            setResults(res.data);
-            setLoadingResults(false);
-          })
-          .catch(err => {
-            setError('Exam time expired and auto-submission failed');
-          })
-          .finally(() => setSubmitting(false));
-        return;
-      }
-
-      setTimeRemaining(remaining);
-    }, 1000);
-
-    return () => clearInterval(timerInterval);
-  }, [examEndTime, attemptId, results]);
-
-  const handleAnswerChange = async (questionId, answer) => {
-    // Update local state
-    setAnswers({
-      ...answers,
-      [questionId]: answer,
-    });
-
-    // Auto-save answer
-    if (attemptId) {
-      setSaving(true);
-      try {
-        const response = await api.post(`/student/attempts/${attemptId}/save-answer`, {
-          question_id: questionId,
-          answer_data: answer,
-        });
-      } catch (err) {
-        // Handle error silently
-      } finally {
-        setSaving(false);
-      }
-    }
-  };
-
-  const handleImageUpload = async (questionId, file) => {
-    // Create a preview URL for the image
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const fileData = {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified,
-        preview: e.target.result  // Base64 preview URL
-      };
-      handleAnswerChange(questionId, fileData);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
-  };
-
-  const handleSubmitExam = async () => {
-    setShowSubmitModal(false);
-    setSubmitting(true);
-    try {
-      const submitResponse = await api.post(`/student/attempts/${attemptId}/submit`);
-
-      // Retry fetching results briefly in case of timing/commit delay
-      setLoadingResults(true);
-      const fetchWithRetry = async (retries = 3, delayMs = 350) => {
-        for (let i = 0; i < retries; i++) {
-          try {
-            const res = await api.get(`/student/attempts/${attemptId}/results`);
-            setResults(res.data);
-            setLoadingResults(false);
-            setSubmitting(false);
-            return;
-          } catch (e) {
-            console.error(`Result fetch attempt ${i + 1} failed:`, e);
-            const status = e?.response?.status;
-            const retriable = status === 404 || status === 400; // not found or not submitted yet
-            if (i === retries - 1 || !retriable) {
-              let msg = 'Failed to fetch results';
-              const detail = e?.response?.data?.detail;
-              if (typeof detail === 'string') msg = detail;
-              else if (Array.isArray(detail)) msg = detail[0]?.msg || msg;
-              setError(msg);
-              setLoadingResults(false);
-              setSubmitting(false);
-              return;
-            }
-            await new Promise((r) => setTimeout(r, delayMs));
-          }
-        }
-      };
-      await fetchWithRetry();
-    } catch (err) {
-      console.error('Submit exam error:', err);
-      let errorMessage = 'Failed to submit exam';
-      if (err.response?.data?.detail) {
-        if (Array.isArray(err.response.data.detail)) {
-          errorMessage = err.response.data.detail[0]?.msg || 'Failed to submit exam';
-        } else if (typeof err.response.data.detail === 'string') {
-          errorMessage = err.response.data.detail;
-        }
-      }
-      setError(errorMessage);
-      setSubmitting(false);
-    }
-  };
-
-  // Helper to render results view
-  const renderResults = () => {
-    if (!results) return null;
-    const attempt = results.attempt || {};
-    const examFull = results.exam || {};
-    const answersArr = attempt.answers || [];
-    const answerMap = {};
-    answersArr.forEach(a => { answerMap[a.question_id] = a.answer_data; });
-
-    const correctCount = attempt.score || 0;
-    const autoGradedCount = Array.isArray(examFull.questions)
-      ? examFull.questions.filter(q => q.type === 'single_choice' || q.type === 'multi_choice').length
-      : 0;
-
-    const isCorrect = (q, studentAns) => {
-      if (!q) return null;
-      if (q.type === 'single_choice' || q.type === 'multi_choice') {
-        const correct = q.correct_answers;
-        if (correct == null) return null;
-        const norm = v => Array.isArray(v) ? v.map(x => String(x)).sort() : [String(v)];
-        const a = norm(correct);
-        const b = norm(studentAns ?? []);
-        if (a.length !== b.length) return false;
-        for (let i = 0; i < a.length; i++) { if (a[i] !== b[i]) return false; }
-        return true;
-      }
-      return null;
-    };
-
-    const fmtAns = v => {
-      if (Array.isArray(v)) return v.join(', ');
-      if (typeof v === 'object' && v !== null) {
-        if (v.name) return `File: ${v.name}`;
-        return JSON.stringify(v);
-      }
-      return v ?? '';
-    };
-
-    return (
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <h1>{examFull.title || 'Exam Results'}</h1>
-          <h3 style={{ marginTop: 10, color: '#000000' }}>You got {correctCount} out of {autoGradedCount} auto-graded questions correct.</h3>
-          <Button onClick={() => navigate('/student-account')} style={{ marginTop: '10px' }}>Back to Dashboard</Button>
-        </div>
-        <div style={styles.content}>
-          <h2 style={{ marginBottom: '20px', color: '#0d6efd' }}>Answer Key</h2>
-          {(examFull.questions || []).map((q, idx) => {
-            const studentAns = answerMap[q.id];
-            const correctFlag = isCorrect(q, studentAns);
-            const studentDisplay = fmtAns(studentAns) || '—';
-            const correctDisplay = fmtAns(q.correct_answers) || (q.type === 'text' ? 'N/A (text question)' : '—');
-            return (
-              <div key={q.id} style={{ ...styles.questionCard, padding: '20px' }}>
-                <p style={{ fontWeight: 'bold', marginBottom: 8, color: '#000000' }}>Q{idx + 1}. {q.title}</p>
-                <p style={{ margin: '4px 0', color: '#000000' }}>
-                  <strong>Your answer:</strong>{' '}
-                  <span style={correctFlag === true ? styles.correct : (correctFlag === false ? styles.incorrect : styles.neutral)}>
-                    {studentDisplay}
-                  </span>
-                </p>
-                <p style={{ margin: '4px 0', color: '#000000' }}>
-                  <strong>Correct answer:</strong>{' '}
-                  <span style={styles.correct}>{correctDisplay}</span>
-                </p>
-                {correctFlag === true && <p style={{ color: '#28a745', margin: '4px 0' }}>Correct</p>}
-                {correctFlag === false && <p style={{ color: '#dc3545', margin: '4px 0' }}>Incorrect</p>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  if (loading) return <div style={styles(theme).container}><p style={{ color: theme.primary }}>Loading...</p></div>;
-  if (error) return <div style={styles(theme).container}><p style={styles(theme).error}>{error}</p><Button onClick={() => navigate('/student-account')}>Back to Dashboard</Button></div>;
-
-  if (results) {
-    return renderResults();
-  }
-
-  if (!exam) return <div style={styles(theme).container}><p style={{ color: theme.primary }}>Exam not found</p></div>;
-
-  const currentQuestion = questions[currentQuestionIndex];
+function RulesScreen({ exam, resuming, onStart, starting, error }) {
+  const { t, tn } = useI18n();
+  const s = exam.integrity || {};
+  const fullscreen = s.require_fullscreen && fullscreenSupported();
+  const rules = [
+    fullscreen && { text: t('The exam runs in fullscreen. Questions are hidden whenever you leave fullscreen.') },
+    { text: t('Switching to another tab, window or app is recorded and counted as a violation.') },
+    s.max_violations
+      ? { text: tn(s.max_violations, 'After {{count}} violation your exam is submitted automatically.', 'After {{count}} violations your exam is submitted automatically.'), strong: true }
+      : { text: t('Violations are recorded and shown to your examiner.') },
+    s.block_copy_paste && { text: t('Copy, paste and right-click are disabled. Your clipboard is emptied when you start and each time you come back.') },
+    (s.shuffle_questions || s.shuffle_options) && { text: t('Questions and options are in a different order for every student.') },
+  ].filter(Boolean);
 
   return (
-    <div style={styles(theme).container}>
-      {/* Header */}
-      <div style={styles(theme).header}>
-        <div>
-          <h1 style={{ margin: 0, color: theme.text, fontSize: '24px' }}>{exam.title}</h1>
-          <Button
-            onClick={handleBackClick}
-            style={{
-              marginTop: '10px',
-              backgroundColor: 'transparent',
-              color: theme.text,
-              border: `1px solid ${theme.text}`,
-              padding: '5px 10px',
-              fontSize: '12px'
-            }}
-          >
-            Back to Dashboard
-          </Button>
+    <div className="min-h-screen bg-paper">
+      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
+        <Logo />
+        <Link to="/student-account" className="btn btn-ghost btn-sm"><LuArrowLeft className="h-4 w-4 rtl:-scale-x-100" />{t('Back')}</Link>
+      </header>
+      <main className="sheet sheet-margin mx-auto mb-16 mt-4 max-w-2xl px-6 pb-10 pt-9 sm:ps-14 sm:pe-12">
+        <div className="flex items-baseline justify-between gap-4 border-b-2 border-ink pb-3.5">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em]">{exam.title}</h1>
+          <span className="eyebrow shrink-0">{resuming ? t('Continue') : t('Instructions')}</span>
         </div>
-        <div style={styles(theme).headerRight}>
-          {timeRemaining !== null && (
-            <div style={{ ...styles(theme).timer, ...(timeRemaining < 60 ? styles(theme).timerWarning : {}) }}>
-              Time Remaining: {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
-            </div>
-          )}
-          <div style={styles(theme).progress}>Question {currentQuestionIndex + 1} of {questions.length}</div>
-          {saving && <div style={styles(theme).saving}>Saving...</div>}
-        </div>
-      </div>
+        <dl className="mt-4 grid grid-cols-3 gap-4 border-b border-line pb-4 font-mono text-sm">
+          <div><dt className="eyebrow">{t('Time')}</dt><dd className="tabular mt-1">{t('{{n}} min', { n: exam.duration_minutes })}</dd></div>
+          <div><dt className="eyebrow">{t('Questions')}</dt><dd className="tabular mt-1">{exam.question_count}</dd></div>
+          <div><dt className="eyebrow">{t('Closes')}</dt><dd className="tabular mt-1">{formatExamTime(exam.end_time)}</dd></div>
+        </dl>
 
-      {/* Question Card */}
-      <div style={styles(theme).content}>
-        {currentQuestion && (
-          <div style={styles(theme).questionCard}>
-            <h2 style={styles(theme).questionText}>Q{currentQuestionIndex + 1}. {currentQuestion.title}</h2>
-
-            <div style={styles(theme).optionsContainer}>
-              {currentQuestion.type === 'single_choice' && currentQuestion.options && (
-                currentQuestion.options.map((opt, idx) => (
-                  <label key={idx} style={styles(theme).optionLabel}>
-                    <input
-                      type="radio"
-                      name={`question-${currentQuestion.id}`}
-                      value={opt}
-                      checked={answers[currentQuestion.id] === opt}
-                      onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                      style={styles(theme).radio}
-                    />
-                    {opt}
-                  </label>
-                ))
-              )}
-
-              {currentQuestion.type === 'multi_choice' && currentQuestion.options && (
-                currentQuestion.options.map((opt, idx) => {
-                  const currentAns = answers[currentQuestion.id] || [];
-                  return (
-                    <label key={idx} style={styles(theme).optionLabel}>
-                      <input
-                        type="checkbox"
-                        value={opt}
-                        checked={currentAns.includes(opt)}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          let newAns = [...currentAns];
-                          if (e.target.checked) {
-                            newAns.push(val);
-                          } else {
-                            newAns = newAns.filter(a => a !== val);
-                          }
-                          handleAnswerChange(currentQuestion.id, newAns);
-                        }}
-                        style={styles(theme).checkbox}
-                      />
-                      {opt}
-                    </label>
-                  );
-                })
-              )}
-
-              {currentQuestion.type === 'text' && (
-                <textarea
-                  value={answers[currentQuestion.id] || ''}
-                  onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                  rows={5}
-                  style={{ ...styles(theme).textarea, width: '100%', padding: '10px', borderRadius: '4px' }}
-                  placeholder="Type your answer here..."
-                />
-              )}
-
-              {currentQuestion.type === 'image_upload' && (
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        handleImageUpload(currentQuestion.id, e.target.files[0]);
-                      }
-                    }}
-                    style={{ marginBottom: '10px' }}
-                  />
-                  {answers[currentQuestion.id] && (
-                    <div style={{ marginTop: '15px' }}>
-                      <p style={{ fontSize: '14px', color: theme.secondary, marginBottom: '10px' }}>
-                        <strong>Selected File:</strong> {answers[currentQuestion.id].name}
-                      </p>
-                      <p style={{ fontSize: '12px', color: theme.secondary, marginBottom: '10px' }}>
-                        Size: {(answers[currentQuestion.id].size / 1024).toFixed(2)} KB
-                      </p>
-                      {answers[currentQuestion.id].preview && (
-                        <div style={{
-                          marginTop: '10px',
-                          padding: '10px',
-                          border: `1px solid ${theme.border}`,
-                          borderRadius: '4px',
-                          backgroundColor: theme.inputBg,
-                          maxWidth: '300px'
-                        }}>
-                          <p style={{ fontSize: '12px', color: theme.secondary, marginBottom: '8px' }}>Preview:</p>
-                          <img
-                            src={answers[currentQuestion.id].preview}
-                            alt="preview"
-                            style={{
-                              maxWidth: '100%',
-                              maxHeight: '250px',
-                              borderRadius: '4px'
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+        {resuming && (
+          <Alert tone="warn" className="mt-6" title={t('Your timer has been running')}>
+            {t("It started when you first opened the exam and doesn't pause. Violations recorded earlier still count.")}
+          </Alert>
         )}
 
-        {/* Navigation */}
-        <div style={styles(theme).navigation}>
-          <Button
-            onClick={handlePrevious}
-            disabled={currentQuestionIndex === 0}
-            style={currentQuestionIndex === 0 ? styles(theme).disabledButton : styles(theme).navButton}
-          >
-            Previous
-          </Button>
+        <ol className="mt-6">
+          {rules.map(({ text, strong }, i) => (
+            <li key={text} className="flex gap-4 border-b border-line py-3 last:border-b-0">
+              <span className="tabular w-6 shrink-0 font-mono text-sm text-faint">{String(i + 1).padStart(2, '0')}</span>
+              <p className={cx('text-[15px] leading-relaxed', strong && 'font-medium text-danger')}>{text}</p>
+            </li>
+          ))}
+        </ol>
 
-          {currentQuestionIndex < questions.length - 1 ? (
-            <Button onClick={handleNext} style={styles(theme).navButton}>Next</Button>
-          ) : (
-            <Button onClick={() => setShowSubmitModal(true)} style={styles(theme).submitButton}>Submit Exam</Button>
-          )}
-        </div>
-      </div>
+        <p className="mt-6 text-sm leading-relaxed text-muted">
+          {resuming ? t('Your saved answers are restored.') : t('Once you start, the timer runs even if you close the page.')} {t('Answers save automatically as you go.')}
+        </p>
 
-      {/* Submit Confirmation Modal */}
-      {showSubmitModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: theme.background,
-            color: theme.text,
-            borderRadius: '12px',
-            boxShadow: '0 12px 48px rgba(0, 0, 0, 0.3)',
-            padding: '40px',
-            maxWidth: '450px',
-            width: '90%',
-            border: `2px solid ${theme.primary}`
-          }}>
-            <h2 style={{ marginTop: 0, color: theme.primary }}>Submit Exam</h2>
-            <p style={{ color: theme.text, marginBottom: '30px' }}>Are you sure you want to submit the exam? This action cannot be undone.</p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <Button
-                onClick={() => setShowSubmitModal(false)}
-                style={{ backgroundColor: 'transparent', border: `2px solid ${theme.primary}`, color: theme.primary }}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleSubmitExam} disabled={submitting}>
-                {submitting ? 'Submitting...' : 'Submit'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+        {error && <Alert tone="danger" className="mt-6">{error}</Alert>}
 
-      {/* Back Confirmation Modal */}
-      {showBackConfirmModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            backgroundColor: theme.background,
-            color: theme.text,
-            borderRadius: '12px',
-            boxShadow: '0 12px 48px rgba(0, 0, 0, 0.3)',
-            padding: '40px',
-            maxWidth: '450px',
-            width: '90%',
-            border: `2px solid ${theme.primary}`
-          }}>
-            <h2 style={{ marginTop: 0, color: theme.primary }}>Leave Exam?</h2>
-            <p style={{ color: theme.text, marginBottom: '30px' }}>Are you sure you want to leave? Your exam will be submitted and your answers will be saved.</p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <Button
-                onClick={() => setShowBackConfirmModal(false)}
-                style={{ backgroundColor: 'transparent', border: `2px solid ${theme.primary}`, color: theme.primary }}
-              >
-                No, Continue
-              </Button>
-              <Button onClick={handleConfirmBack} disabled={submitting}>
-                {submitting ? 'Submitting...' : 'Yes, Submit & Leave'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+        <Button size="lg" className="mt-8 w-full" onClick={onStart} loading={starting}>
+          {resuming ? t('Continue exam') : fullscreen ? t('Start exam in fullscreen') : t('Start exam')}
+        </Button>
+      </main>
     </div>
   );
 }
 
-const styles = (theme) => ({
-  container: {
-    minHeight: '100vh',
-    backgroundColor: theme.background,
-    padding: '20px',
-    fontFamily: 'Roboto, sans-serif',
-  },
-  header: {
-    backgroundColor: theme.primary,
-    padding: '20px',
-    borderRadius: '8px',
-    boxShadow: `0 4px 12px ${theme.primary}40`,
-    marginBottom: '20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  headerRight: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: '10px',
-  },
-  progress: {
-    marginTop: '10px',
-    color: '#000000',
-    fontWeight: '500',
-    fontSize: '14px',
-  },
-  saving: {
-    color: '#000000',
-    fontStyle: 'italic',
-  },
-  timer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    padding: '10px 15px',
-    borderRadius: '4px',
-    color: '#000000',
-    fontWeight: '600',
-    fontSize: '14px',
-  },
-  timerWarning: {
-    backgroundColor: '#ff6b6b',
-    color: '#ffffff',
-  },
-  content: {
-    maxWidth: '800px',
-    margin: '0 auto',
-  },
-  questionCard: {
-    backgroundColor: theme.primary,
-    padding: '30px',
-    borderRadius: '8px',
-    boxShadow: `0 8px 20px ${theme.primary}30`,
-    marginBottom: '20px',
-    transition: 'all 0.3s ease',
-    fontFamily: 'Roboto, sans-serif',
-  },
-  questionText: {
-    fontSize: '18px',
-    marginBottom: '20px',
-    lineHeight: '1.6',
-    color: '#000000',
-    fontWeight: '500',
-    fontFamily: 'Roboto, sans-serif',
-  },
-  optionsContainer: {
-    marginTop: '20px',
-  },
-  optionLabel: {
-    display: 'block',
-    padding: '12px',
-    marginBottom: '10px',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    border: '2px solid transparent',
-    fontFamily: 'Roboto, sans-serif',
-    color: '#000000',
-  },
-  radio: {
-    marginRight: '10px',
-    accentColor: '#000000',
-  },
-  checkbox: {
-    marginRight: '10px',
-    accentColor: '#000000',
-  },
-  textarea: {
-    border: `1px solid ${theme.border}`,
-    backgroundColor: theme.inputBg,
-    color: theme.inputText,
-  },
-  navigation: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    gap: '10px',
-  },
-  navButton: {
-    flex: 1,
-    padding: '12px 24px',
-    backgroundColor: theme.primary,
-    color: '#000000',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    transition: 'all 0.3s ease',
-    fontFamily: 'Roboto, sans-serif',
-  },
-  disabledButton: {
-    flex: 1,
-    padding: '12px 24px',
-    backgroundColor: theme.secondary,
-    cursor: 'not-allowed',
-    color: theme.background,
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    fontFamily: 'Roboto, sans-serif',
-  },
-  submitButton: {
-    flex: 1,
-    padding: '12px 24px',
-    backgroundColor: '#28a745',
-    color: '#ffffff',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    transition: 'all 0.3s ease',
-    fontFamily: 'Roboto, sans-serif',
-  },
-  error: {
-    color: theme.danger,
-    fontSize: '16px',
-  },
-});
+// --- During the exam ---
+
+function Timer({ seconds }) {
+  const { t } = useI18n();
+  const tone = seconds <= 60 ? 'text-danger' : seconds <= 300 ? 'text-warn' : 'text-ink';
+  return (
+    <span className={cx('tabular flex items-baseline gap-2 font-mono text-[1.35rem] font-semibold leading-none', tone)} aria-label={t('{{time}} left', { time: formatClock(seconds) })}>
+      <span className="eyebrow">{t('Left')}</span>
+      {formatClock(seconds)}
+    </span>
+  );
+}
+
+function SaveStatus({ status }) {
+  const { t } = useI18n();
+  const states = { saving: [t('Saving'), 'text-faint'], saved: [t('Saved'), 'text-brand'], error: [t('Not saved'), 'text-danger'] };
+  if (!states[status]) return null;
+  const [label, tone] = states[status];
+  return (
+    <span className="flex items-center gap-2 font-mono text-xs text-faint" role="status">
+      <span className={cx('status-dot', tone, status !== 'saving' && 'bg-current')} />
+      {label}
+    </span>
+  );
+}
+
+function ViolationChip({ count, max }) {
+  const { t } = useI18n();
+  const hit = count > 0;
+  return (
+    <span
+      className={cx('tabular rounded border px-2.5 py-1.5 font-mono text-xs font-medium tracking-[0.04em]', hit ? 'border-danger text-danger' : 'border-line-strong text-muted')}
+      title={t('Times you left the exam')}
+    >
+      {t('LEFT EXAM')} <b className={hit ? 'text-danger' : 'text-ink'}>{count}</b>{max ? ` / ${max}` : ''}
+    </span>
+  );
+}
+
+function BlockedOverlay({ integrity, onReturn }) {
+  const { t, tn } = useI18n();
+  const remaining = integrity.maxViolations ? integrity.maxViolations - integrity.violations : null;
+  return (
+    <div className="fixed inset-0 z-40 grid place-items-center bg-paper p-6">
+      <div className="max-w-md text-center">
+        <p className="font-mono text-xs font-semibold uppercase tracking-[0.08em] text-danger">{t('Recorded')}</p>
+        <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+          {integrity.isAway ? t('You left the exam') : t('Fullscreen is required')}
+        </h2>
+        <p className="mt-3 text-[15px] leading-relaxed text-muted">
+          {integrity.fullscreenLost ? t('The questions are hidden until you come back to fullscreen.') : t('The questions are hidden until you come back.')}
+          {integrity.violations > 0 && ` ${tn(integrity.violations, '{{count}} violation has been recorded.', '{{count}} violations have been recorded.')}`}
+        </p>
+        {remaining !== null && remaining > 0 && (
+          <p className="mt-3 text-sm font-medium text-danger">
+            {remaining === 1 ? t('One more violation and your exam is submitted automatically.') : t('{{n}} more and your exam is submitted automatically.', { n: remaining })}
+          </p>
+        )}
+        <Button size="lg" className="mt-7" onClick={onReturn}>{t('Return to the exam')}</Button>
+      </div>
+    </div>
+  );
+}
+
+// The question map: one answer bubble per question. Filled = answered, ring = current, red dot = flagged
+function QuestionNav({ questions, answers, flagged, current, onJump }) {
+  const { t } = useI18n();
+  return (
+    <div>
+      <div className="grid grid-cols-5 gap-x-3 gap-y-2.5">
+        {questions.map((q, i) => {
+          const answered = isAnswered(answers[q.id]);
+          return (
+            <button
+              key={q.id}
+              type="button"
+              onClick={() => onJump(i)}
+              className={cx(
+                'bubble relative h-[34px] w-[34px] text-[11px]',
+                answered ? 'bubble-filled' : 'bg-transparent hover:border-ink hover:text-ink',
+                i === current && 'shadow-[0_0_0_2px_rgb(var(--surface)),0_0_0_4px_rgb(var(--ink))]',
+              )}
+              aria-label={[t('Question {{n}}', { n: i + 1 }), answered && t('answered'), flagged.has(q.id) && t('flagged for review')].filter(Boolean).join(', ')}
+              aria-current={i === current ? 'step' : undefined}
+            >
+              {String(i + 1).padStart(2, '0')}
+              {flagged.has(q.id) && <span className="absolute -end-[3px] -top-[3px] h-[9px] w-[9px] rounded-full border-2 border-surface bg-danger" />}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-5 space-y-2 border-t border-line pt-4 text-[13px] text-muted">
+        <p className="flex items-center gap-2.5"><span className="bubble bubble-filled h-4 w-4" />{t('Answered')}</p>
+        <p className="flex items-center gap-2.5"><span className="bubble h-4 w-4" />{t('Not answered')}</p>
+        <p className="flex items-center gap-2.5"><span className="relative"><span className="bubble h-4 w-4" /><span className="absolute -end-1 -top-1 h-2 w-2 rounded-full bg-danger" /></span>{t('Flagged')}</p>
+      </div>
+    </div>
+  );
+}
+
+const LETTERS = 'ABCDEFGHIJ';
+
+// An answer row: lettered bubble, the option, and its keyboard key
+function ChoiceOption({ type, index, label, checked, onChange }) {
+  return (
+    <label
+      className={cx(
+        'flex cursor-pointer items-center gap-4 border-b border-line px-3 py-3.5 transition-colors',
+        checked ? 'bg-brand-soft' : 'hover:bg-sunken/60',
+      )}
+    >
+      <input type={type} className="peer sr-only" checked={checked} onChange={onChange} />
+      <span className={cx('bubble peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-paper', checked && 'bubble-filled')} aria-hidden="true">
+        {LETTERS[index]}
+      </span>
+      <span className="flex-1 text-base">{label}</span>
+      {index < 9 && <span className="kbd hidden sm:inline-block" aria-hidden="true">{index + 1}</span>}
+    </label>
+  );
+}
+
+function QuestionBody({ question, value, onChange, onImage, onPickFile }) {
+  const { t } = useI18n();
+  if (question.type === 'single_choice') {
+    return (
+      <div className="border-t border-line" role="radiogroup" aria-label={t('Answer')}>
+        {(question.options || []).map((option, i) => (
+          <ChoiceOption key={option} type="radio" index={i} label={option} checked={value === option} onChange={() => onChange(option)} />
+        ))}
+      </div>
+    );
+  }
+  if (question.type === 'multi_choice') {
+    const selected = Array.isArray(value) ? value : [];
+    return (
+      <div>
+        <p className="mb-2 font-mono text-xs text-faint">{t('Select all that apply')}</p>
+        <div className="border-t border-line">
+          {(question.options || []).map((option, i) => (
+            <ChoiceOption
+              key={option}
+              type="checkbox"
+              index={i}
+              label={option}
+              checked={selected.includes(option)}
+              onChange={() => onChange(selected.includes(option) ? selected.filter((o) => o !== option) : [...selected, option])}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (question.type === 'text') {
+    return (
+      <div>
+        <label htmlFor={`answer-${question.id}`} className="eyebrow mb-2 block">{t('Your answer')}</label>
+        <Textarea
+          id={`answer-${question.id}`}
+          rows={9}
+          value={typeof value === 'string' ? value : ''}
+          onChange={(e) => onChange(e.target.value, { debounce: true })}
+          placeholder={t('Type your answer here')}
+          className="text-base"
+          spellCheck={false}
+        />
+      </div>
+    );
+  }
+  if (question.type === 'image_upload') {
+    return (
+      <div>
+        <label
+          className="flex cursor-pointer flex-col items-center rounded border-[1.5px] border-dashed border-line-strong px-6 py-10 text-center transition-colors hover:border-ink hover:bg-surface"
+          onClick={onPickFile}
+        >
+          <LuImage className="h-7 w-7 text-muted" />
+          <span className="mt-3 text-sm font-medium">{value?.name ? t('Choose a different image') : t('Upload an image of your answer')}</span>
+          <span className="mt-1 font-mono text-xs text-faint">{t('JPG or PNG, up to 2 MB')}</span>
+          <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files[0] && onImage(e.target.files[0])} />
+        </label>
+        {value?.preview && (
+          <img src={value.preview} alt={t('Your uploaded answer')} className="mt-4 max-h-80 rounded border border-line object-contain" />
+        )}
+      </div>
+    );
+  }
+  return null;
+}
+
+// --- After the exam ---
+
+// English is the translation key; ResultsScreen passes these through t()
+const SUBMIT_MESSAGES = {
+  violations: { tone: 'danger', title: 'Your exam was submitted automatically', text: 'The violation limit was reached. Your examiner can see what was recorded.' },
+  time_up: { tone: 'warn', title: 'Time ran out', text: 'Your exam was submitted with the answers you had saved.' },
+};
+
+function ResultsScreen({ results, submitReason }) {
+  const { t } = useI18n();
+  const attempt = results.attempt || {};
+  const exam = results.exam || {};
+  const answerMap = Object.fromEntries((attempt.answers || []).map((a) => [a.question_id, a.answer_data]));
+  const objective = (exam.questions || []).filter((q) => q.type === 'single_choice' || q.type === 'multi_choice');
+  const objectivePoints = objective.reduce((sum, q) => sum + (q.max_score || 0), 0);
+  const manual = (exam.questions || []).some((q) => q.type === 'text' || q.type === 'image_upload');
+  const reason = SUBMIT_MESSAGES[submitReason || attempt.submit_reason];
+
+  const fmt = (v) => (Array.isArray(v) ? v.join(', ') : v && typeof v === 'object' ? v.name || t('Image uploaded') : v ?? '—');
+  const isCorrect = (q) => {
+    if (q.correct_answers == null) return null;
+    const norm = (v) => (Array.isArray(v) ? v.map(String).sort() : [String(v)]).join('|');
+    return norm(q.correct_answers) === norm(answerMap[q.id] ?? []);
+  };
+
+  return (
+    <div className="min-h-screen bg-paper">
+      <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
+        <Logo />
+        <Link to="/student-account" className="btn btn-secondary btn-sm">{t('Back to exams')}</Link>
+      </header>
+      <main className="mx-auto max-w-2xl px-5 pb-16 pt-6">
+        <p className="eyebrow mb-2">{t('Submitted')}</p>
+        <h1 className="text-3xl font-semibold tracking-tight">{exam.title}</h1>
+
+        {reason && <Alert tone={reason.tone} title={t(reason.title)} className="mt-6">{t(reason.text)}</Alert>}
+
+        <Card className="mt-6 flex flex-wrap items-center justify-between gap-6 p-6">
+          <div>
+            <p className="text-sm text-muted">{manual ? t('Score so far') : t('Your score')}</p>
+            {manual && objectivePoints === 0 ? (
+              <p className="mt-1 text-2xl font-semibold tracking-tight">{t('Awaiting grading')}</p>
+            ) : (
+              <p className="tabular mt-1 text-4xl font-semibold tracking-tight">
+                {attempt.score ?? 0}
+                <span className="text-xl font-normal text-muted"> / {manual ? objectivePoints : attempt.total_possible_score}</span>
+              </p>
+            )}
+          </div>
+          <p className="max-w-xs text-sm leading-relaxed text-muted">
+            {manual
+              ? t('Multiple-choice questions are graded. Written and image answers are graded by your examiner; check Results later for your final score.')
+              : t('All questions were graded automatically.')}
+          </p>
+        </Card>
+
+        <h2 className="mb-3 mt-10 text-[15px] font-semibold">{t('Your answers')}</h2>
+        {exam.answers_revealed === false && (
+          <Alert tone="info" className="mb-4">{t('Correct answers are shown after the exam closes for everyone ({{date}}).', { date: formatExamTime(exam.end_time) })}</Alert>
+        )}
+        <div className="space-y-2.5">
+          {(exam.questions || []).map((q, i) => {
+            const correct = isCorrect(q);
+            return (
+              <Card key={q.id} className="px-5 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-medium"><span className="tabular me-2 text-muted">{i + 1}.</span>{q.title}</p>
+                  {correct === true && <Badge tone="brand">{t('Correct')}</Badge>}
+                  {correct === false && <Badge tone="danger">{t('Incorrect')}</Badge>}
+                  {correct === null && (q.type === 'text' || q.type === 'image_upload') && <Badge>{t('Graded later')}</Badge>}
+                </div>
+                <p className="mt-2 text-sm text-muted">{t('Your answer:')} <span className="text-ink">{fmt(answerMap[q.id])}</span></p>
+                {exam.answers_revealed && q.correct_answers != null && correct === false && (
+                  <p className="mt-1 text-sm text-muted">{t('Correct answer:')} <span className="font-medium text-brand">{fmt(q.correct_answers)}</span></p>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// --- The page ---
+
+function ExamPage() {
+  const { id: examIdParam, attemptId: resumeAttemptId } = useParams();
+  const navigate = useNavigate();
+  const { refreshSession } = useAuth();
+  const { t, tn } = useI18n();
+
+  const [phase, setPhase] = useState('loading'); // loading | rules | running | finished | error
+  const [meta, setMeta] = useState(null); // exam summary for the rules screen
+  const [session, setSession] = useState(null); // { exam, attempt, integrity } from start/resume
+  const [answers, setAnswers] = useState({});
+  const [current, setCurrent] = useState(0);
+  const [flagged, setFlagged] = useState(new Set());
+  const [secondsLeft, setSecondsLeft] = useState(null);
+  const [saveStatus, setSaveStatus] = useState(null);
+  const [error, setError] = useState('');
+  const [starting, setStarting] = useState(false);
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [results, setResults] = useState(null);
+  const [submitReason, setSubmitReason] = useState(null);
+  const [showWarning, setShowWarning] = useState(false);
+
+  const deadline = useRef(null);
+  const saveTimers = useRef({}); // questionId -> { id, flush } for written answers waiting to be saved
+  const finishing = useRef(false);
+  const attemptId = session?.attempt?.id;
+
+  // Load the exam summary (and any unfinished attempt) for the rules screen
+  useEffect(() => {
+    Promise.all([api.get('/student/exams/'), api.get('/student/unfinished-attempts/')])
+      .then(([examsRes, unfinishedRes]) => {
+        const attempt = resumeAttemptId
+          ? unfinishedRes.data.find((a) => a.id === resumeAttemptId)
+          : unfinishedRes.data.find((a) => a.exam_id === examIdParam);
+        const examId = resumeAttemptId ? attempt?.exam_id : examIdParam;
+        const exam = examsRes.data.find((e) => e.id === examId);
+        if (!exam) throw new Error(t('This exam is not available to you.'));
+        if (exam.is_submitted && !attempt) throw new Error(t("You've already submitted this exam."));
+        setMeta({ ...exam, resumeAttemptId: attempt?.id });
+        setPhase('rules');
+      })
+      .catch((err) => {
+        setError(err.response ? errorMessage(err) : err.message);
+        setPhase('error');
+      });
+  }, [examIdParam, resumeAttemptId, t]);
+
+  const finish = useCallback(async (reason) => {
+    if (finishing.current) return;
+    finishing.current = true;
+    Object.values(saveTimers.current).forEach((pending) => clearTimeout(pending.id));
+    if (reason) setSubmitReason(reason);
+    exitFullscreen();
+    setPhase('finished');
+    try {
+      const res = await api.get(`/student/attempts/${attemptId}/results`);
+      setResults(res.data);
+    } catch (err) {
+      setError(errorMessage(err, 'Your exam was submitted, but the results could not be loaded.'));
+    }
+  }, [attemptId]);
+
+  const integrity = useExamIntegrity({
+    attemptId,
+    settings: session?.integrity,
+    active: phase === 'running',
+    initialViolations: session?.integrity?.violations || 0,
+    onSubmitted: (reason) => finish(reason),
+  });
+
+  // Show the warning banner for a few seconds after each violation
+  useEffect(() => {
+    if (!integrity.lastViolation) return undefined;
+    setShowWarning(true);
+    const t = setTimeout(() => setShowWarning(false), 7000);
+    return () => clearTimeout(t);
+  }, [integrity.lastViolation]);
+
+  const start = async () => {
+    setError('');
+    setStarting(true);
+    // Fullscreen and clipboard access must happen directly in the click, before any network call
+    if (meta.integrity?.require_fullscreen) enterFullscreen();
+    if (meta.integrity?.block_copy_paste) clearClipboard();
+    try {
+      const res = meta.resumeAttemptId
+        ? await api.post(`/student/attempts/${meta.resumeAttemptId}/resume`)
+        : await api.post(`/student/exams/${meta.id}/start`);
+
+      if (res.data.exam?.auto_submitted) {
+        setSession(res.data);
+        setSubmitReason('time_up');
+        exitFullscreen();
+        setPhase('finished');
+        setResults((await api.get(`/student/attempts/${res.data.attempt.id}/results`)).data);
+        return;
+      }
+
+      const saved = await api.get(`/student/attempts/${res.data.attempt.id}/answers`);
+      setAnswers(Object.fromEntries(saved.data.map((a) => [a.question_id, a.answer_data])));
+      try {
+        setFlagged(new Set(JSON.parse(sessionStorage.getItem(`flagged:${res.data.attempt.id}`) || '[]')));
+      } catch {
+        // nothing flagged
+      }
+      deadline.current = Date.now() + res.data.exam.time_remaining_seconds * 1000;
+      setSecondsLeft(res.data.exam.time_remaining_seconds);
+      setSession(res.data);
+      setPhase('running');
+    } catch (err) {
+      exitFullscreen();
+      setError(errorMessage(err, 'Could not start the exam'));
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const submit = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      // Send any answer still waiting for its typing pause
+      await Promise.all(Object.values(saveTimers.current).map((pending) => pending.flush()));
+      const res = await api.post(`/student/attempts/${attemptId}/submit`);
+      setConfirmSubmit(false);
+      finish(res.data.submit_reason);
+    } catch (err) {
+      if (err.response?.status === 400) finish(); // already submitted (e.g. by the violation limit)
+      else setError(errorMessage(err, 'Could not submit. Check your connection and try again.'));
+    } finally {
+      setSubmitting(false);
+    }
+  }, [attemptId, finish]);
+
+  // Countdown from the server's remaining time; submits when it reaches zero
+  useEffect(() => {
+    if (phase !== 'running') return undefined;
+    const tick = setInterval(() => {
+      const left = Math.max(0, Math.round((deadline.current - Date.now()) / 1000));
+      setSecondsLeft(left);
+      if (left === 0) {
+        clearInterval(tick);
+        submit();
+      }
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [phase, submit]);
+
+  // Keep the student signed in for the whole exam
+  useEffect(() => {
+    if (phase !== 'running') return undefined;
+    refreshSession();
+    const keepAlive = setInterval(refreshSession, 60 * 1000);
+    return () => clearInterval(keepAlive);
+  }, [phase, refreshSession]);
+
+  const persist = useCallback(async (questionId, value) => {
+    setSaveStatus('saving');
+    try {
+      await api.post(`/student/attempts/${attemptId}/save-answer`, { question_id: questionId, answer_data: value });
+      setSaveStatus('saved');
+    } catch (err) {
+      setSaveStatus('error');
+      const detail = err.response?.data?.detail || '';
+      if (/submitted|time is over/i.test(detail)) finish();
+    }
+  }, [attemptId, finish]);
+
+  const answer = (questionId, value, { debounce = false } = {}) => {
+    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    clearTimeout(saveTimers.current[questionId]?.id);
+    delete saveTimers.current[questionId];
+    if (!debounce) {
+      persist(questionId, value);
+      return;
+    }
+    setSaveStatus('saving');
+    // setTimeout returns a plain number in browsers, so keep the timer and its flush together
+    const pending = {
+      id: setTimeout(() => pending.flush(), TEXT_SAVE_DELAY),
+      flush: () => {
+        clearTimeout(pending.id);
+        delete saveTimers.current[questionId];
+        return persist(questionId, value);
+      },
+    };
+    saveTimers.current[questionId] = pending;
+  };
+
+  const uploadImage = (questionId, file) => {
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError(t('That image is larger than 2 MB. Take a smaller photo or crop it.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => answer(questionId, {
+      name: file.name, size: file.size, type: file.type, lastModified: file.lastModified, preview: e.target.result,
+    });
+    reader.readAsDataURL(file);
+  };
+
+  const toggleFlag = (questionId) => {
+    const next = new Set(flagged);
+    next.has(questionId) ? next.delete(questionId) : next.add(questionId);
+    setFlagged(next);
+    try {
+      sessionStorage.setItem(`flagged:${attemptId}`, JSON.stringify([...next]));
+    } catch {
+      // flags just won't survive a reload
+    }
+  };
+
+  const questions = useMemo(() => session?.exam?.questions || [], [session]);
+  const answeredCount = questions.filter((q) => isAnswered(answers[q.id])).length;
+
+  // Keyboard: number keys choose an answer, arrow keys move, F flags. Typing in an answer box is left alone.
+  useEffect(() => {
+    if (phase !== 'running') return undefined;
+    const onKey = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || integrity.blocked || confirmSubmit) return;
+      if (e.target.closest?.('input[type="text"], textarea, [contenteditable="true"]')) return;
+      const q = questions[current];
+      if (!q) return;
+      const rtl = document.documentElement.dir === 'rtl';
+      const [nextKey, prevKey] = rtl ? ['ArrowLeft', 'ArrowRight'] : ['ArrowRight', 'ArrowLeft'];
+      if (e.key === nextKey && current < questions.length - 1) { e.preventDefault(); setCurrent(current + 1); return; }
+      if (e.key === prevKey && current > 0) { e.preventDefault(); setCurrent(current - 1); return; }
+      if (e.key.toLowerCase() === 'f') { e.preventDefault(); toggleFlag(q.id); return; }
+      const n = Number(e.key);
+      const option = Number.isInteger(n) && n >= 1 ? q.options?.[n - 1] : undefined;
+      if (option === undefined) return;
+      e.preventDefault();
+      if (q.type === 'single_choice') answer(q.id, option);
+      if (q.type === 'multi_choice') {
+        const selected = Array.isArray(answers[q.id]) ? answers[q.id] : [];
+        answer(q.id, selected.includes(option) ? selected.filter((o) => o !== option) : [...selected, option]);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  if (phase === 'loading') return <div className="min-h-screen bg-paper"><PageLoader /></div>;
+
+  if (phase === 'error') {
+    return (
+      <div className="grid min-h-screen place-items-center bg-paper p-6">
+        <Card className="max-w-md p-8 text-center">
+          <LuCircleAlert className="mx-auto h-8 w-8 text-muted" />
+          <p className="mt-4 font-medium">{error}</p>
+          <Button variant="secondary" className="mt-6" onClick={() => navigate('/student-account')}>{t('Back to exams')}</Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (phase === 'rules') {
+    return <RulesScreen exam={meta} resuming={Boolean(meta.resumeAttemptId)} onStart={start} starting={starting} error={error} />;
+  }
+
+  if (phase === 'finished') {
+    if (results) return <ResultsScreen results={results} submitReason={submitReason} />;
+    return (
+      <div className="min-h-screen bg-paper">
+        {error ? <div className="mx-auto max-w-md p-10"><Alert tone="warn">{error}</Alert></div> : <PageLoader label={t('Submitting…')} />}
+      </div>
+    );
+  }
+
+  const question = questions[current];
+  const isLast = current === questions.length - 1;
+  const remainingViolations = integrity.maxViolations ? integrity.maxViolations - integrity.violations : null;
+
+  const typeLabel = { single_choice: t('Single answer'), multi_choice: t('Multiple answers'), text: t('Written answer'), image_upload: t('Image answer') };
+
+  return (
+    <div className={cx('grid min-h-screen grid-rows-[auto_1fr_auto] bg-paper', session.integrity.block_copy_paste && 'select-none')}>
+      {integrity.blocked && <BlockedOverlay integrity={integrity} onReturn={() => integrity.requireFullscreen && enterFullscreen()} />}
+
+      <header className="sticky top-0 z-30 border-b border-line bg-surface">
+        <div className="flex items-center gap-5 px-6 py-3">
+          <LogoMark size={22} />
+          <p className="min-w-0 flex-1 truncate text-sm font-medium">
+            {session.exam.title}
+            <span className="ms-3 font-mono text-xs font-normal text-faint">{tn(questions.length, '{{count}} question', '{{count}} questions')}</span>
+          </p>
+          <SaveStatus status={saveStatus} />
+          <ViolationChip count={integrity.violations} max={integrity.maxViolations} />
+          <Timer seconds={secondsLeft ?? 0} />
+        </div>
+        {showWarning && (
+          <div className="border-t border-danger/25 bg-danger-soft px-4 py-2 text-center text-sm text-danger-ink" role="alert">
+            {integrity.maxViolations
+              ? t('Violation recorded ({{n}} of {{max}}).', { n: integrity.violations, max: integrity.maxViolations })
+              : t('Violation recorded ({{n}}).', { n: integrity.violations })}
+            {remainingViolations === 1 && ` ${t('One more and your exam is submitted automatically.')}`}
+            {remainingViolations > 1 && ` ${t('{{n}} more and your exam is submitted automatically.', { n: remainingViolations })}`}
+          </div>
+        )}
+      </header>
+
+      <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_300px]">
+        <main className="min-w-0 px-8 pb-12 pt-12">
+          <div className="mx-auto max-w-[42rem]">
+            {error && <Alert tone="danger" className="mb-6" onClose={() => setError('')}>{error}</Alert>}
+            {question && (
+              <article>
+                <div className="flex items-baseline gap-4 border-b border-line-strong pb-3.5">
+                  <span className="tabular font-mono text-[2.5rem] font-semibold leading-[0.9] tracking-[-0.02em]">{String(current + 1).padStart(2, '0')}</span>
+                  <span className="font-mono text-xs leading-relaxed text-faint">
+                    <b className="font-medium text-muted">{typeLabel[question.type] || t('Question')}</b> · {tn(question.max_score, '{{count}} mark', '{{count}} marks')}
+                    <br />{t('Question {{n}} of {{total}}', { n: current + 1, total: questions.length })}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cx('ms-auto', flagged.has(question.id) && 'text-danger hover:text-danger')}
+                    onClick={() => toggleFlag(question.id)}
+                    aria-pressed={flagged.has(question.id)}
+                  >
+                    {flagged.has(question.id) ? t('Flagged for review') : t('Flag for review')}
+                  </Button>
+                </div>
+                <h2 className="my-7 max-w-[62ch] text-[1.2rem] font-normal leading-relaxed [text-wrap:pretty]">{question.title}</h2>
+                <QuestionBody
+                  question={question}
+                  value={answers[question.id]}
+                  onChange={(value, opts) => answer(question.id, value, opts)}
+                  onImage={(file) => uploadImage(question.id, file)}
+                  onPickFile={integrity.allowFilePicker}
+                />
+                {(question.type === 'single_choice' || question.type === 'multi_choice') && (
+                  <p className="mt-5 flex flex-wrap items-center gap-2 font-mono text-xs text-faint" aria-hidden="true">
+                    <span className="kbd">1</span>–<span className="kbd">{Math.min(9, question.options?.length || 1)}</span> {t('choose')} ·
+                    <span className="kbd">←</span><span className="kbd">→</span> {t('move')} · <span className="kbd">F</span> {t('flag')}
+                  </p>
+                )}
+              </article>
+            )}
+          </div>
+        </main>
+
+        <aside className="border-s border-line bg-surface px-7 py-8" aria-label={t('Questions')}>
+          <div className="sticky top-24">
+            <p className="tabular font-mono text-xs text-muted"><b className="block text-xl font-semibold text-ink">{t('{{n}} of {{total}}', { n: answeredCount, total: questions.length })}</b>{t('answered')}</p>
+            <div className="mt-5">
+              <QuestionNav questions={questions} answers={answers} flagged={flagged} current={current} onJump={setCurrent} />
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <footer className="sticky bottom-0 z-20 flex items-center gap-3 border-t border-line bg-surface px-6 py-3">
+        <Button variant="secondary" disabled={current === 0} onClick={() => setCurrent(current - 1)}>{t('Previous')}</Button>
+        <Button variant="secondary" disabled={isLast} onClick={() => setCurrent(current + 1)}>{t('Next')}</Button>
+        <span className="flex-1" />
+        <Button onClick={() => setConfirmSubmit(true)}>{t('Submit exam')}</Button>
+      </footer>
+
+      <Modal
+        open={confirmSubmit}
+        onClose={() => setConfirmSubmit(false)}
+        title={t('Submit your exam?')}
+        description={t("You can't change your answers after submitting.")}
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setConfirmSubmit(false)}>{t('Keep working')}</Button>
+            <Button onClick={submit} loading={submitting}>{t('Submit exam')}</Button>
+          </>
+        }
+      >
+        <div className="space-y-2 text-sm">
+          <p className="flex justify-between"><span className="text-muted">{t('Answered')}</span><span className="tabular font-medium">{t('{{n}} of {{total}}', { n: answeredCount, total: questions.length })}</span></p>
+          {flagged.size > 0 && <p className="flex justify-between"><span className="text-muted">{t('Flagged for review')}</span><span className="tabular font-medium">{flagged.size}</span></p>}
+          <p className="flex justify-between"><span className="text-muted">{t('Time left')}</span><span className="tabular font-mono">{formatClock(secondsLeft ?? 0)}</span></p>
+          {answeredCount < questions.length && (
+            <Alert tone="warn" className="mt-3">{tn(questions.length - answeredCount, '{{count}} question is unanswered.', '{{count}} questions are unanswered.')}</Alert>
+          )}
+        </div>
+      </Modal>
+    </div>
+  );
+}
 
 export default ExamPage;
-
-
-

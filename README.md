@@ -1,309 +1,180 @@
-# Online Exam Management System
+# Fairpaper
 
-A web-based exam management system built with **FastAPI** (Python) and **React** (JavaScript). Administrators manage questions and exams, while students take exams with auto-save functionality and auto-grading for objective questions.
+[![CI](https://github.com/twsf-strugg1es/Online-Exam-Management-System/actions/workflows/ci.yml/badge.svg)](https://github.com/twsf-strugg1es/Online-Exam-Management-System/actions/workflows/ci.yml)
+
+An online exam platform for schools, coaching centers and hiring teams. Each organization runs its own question bank, exams, students and results. Students take timed exams that save as they go, and choice questions are graded automatically. Built for a global audience, launching in Bangladesh first.
+
+FastAPI + PostgreSQL backend, React + Tailwind frontend.
+
+**Docs:** [PRD](docs/01-PRD.md) · [TRD](docs/02-TRD.md) · [App flow](docs/03-APP-FLOW.md) · [UI/UX brief](docs/04-UI-UX-BRIEF.md) · [Backend schema](docs/05-BACKEND-SCHEMA.md) · [Implementation plan](docs/06-IMPLEMENTATION-PLAN.md) · [Guide for coding agents](docs/AGENTS.md)
+
+> The app's screens still show the old name, PorikkhaKori, until task 1.1 of the plan.
 
 ## Features
 
-### Admin
+**Organizations and people**
+- Any number of organizations, each with its own data
+- Roles per organization: owner, admin, examiner (questions, exams, grading), candidate
+- One account can belong to several organizations
+- Groups (batches, classes, hiring rounds) decide who sees which exam
+- Students join with an organization or group join code
 
-- Import questions from Excel files
-- Create and publish exams
-- Manage students and view performance
-- Grade text and image-based answers manually
+**Exams and integrity**
+- Question bank with Excel import: single choice, multiple choice, written text, image upload
+- Scheduled exams with a window and a duration; answers save automatically and the exam resumes after a reload
+- Question and option order shuffled per student, stable on reload
+- Fullscreen required; leaving the tab, window or app is recorded as a violation and hides the questions
+- Copy, paste, right-click and common shortcuts are blocked and flagged
+- Optional automatic submission after a set number of violations, enforced by the server
+- Integrity report per attempt: risk level, time away, event timeline
+- One attempt per student per exam
 
-### Student
+**Grading and results**
+- Choice questions graded on submit; written and image answers graded by staff
+- Results for staff (per exam) and for students (correct answers shown only after the exam closes)
 
-- View and take available exams
-- Auto-save progress and resume exams
-- View results with detailed answer breakdown
-- Manage profile and change password
+A browser can't physically stop someone from using another device. Fairpaper detects, deters and records; it doesn't promise that cheating is impossible.
 
-## Tech Stack
+## Requirements
 
-- **Backend**: FastAPI, SQLAlchemy, PostgreSQL, JWT
-- **Frontend**: React, React Router, Context API
+- Python 3.10+
+- Node.js 20
+- PostgreSQL 14+ (16 recommended)
+- Git
 
-## Prerequisites
+Docker is optional (see below). On a PC with 8 GB of RAM, the native setup is lighter.
 
-- Python 3.8+ ([Download](https://www.python.org/downloads/))
-- Node.js 14+ ([Download](https://nodejs.org/))
-- Git (for cloning the repository)
-- PostgreSQL 12+ ([Download](https://www.postgresql.org/download/))
+## Setup (native)
 
-## Setup
+### 1. Database
 
-### Quick Reference - Commands Used
-
-These are the exact commands that were used to run the project:
-
-**Terminal 1 (Backend on Windows):** 
-
-(d:\Downloads path in my case)
-
-```powershell
-cd d:\Downloads\Online-Exam-Management-System-main\backend
-pip install -r requirements.txt
-python create_admin.py
-python -m uvicorn app.main:app --reload --port 8000
-```
-
-**Terminal 2 (Frontend on Windows):**
-
-```powershell
-cd d:\Downloads\Online-Exam-Management-System-main\frontend
-npm install
-npm start
-```
-
----
-
-### Detailed Setup Instructions
-
-### Important: Start PostgreSQL First
-
-1. **Installed** on your machine
-2. **Running** (check Task Manager on Windows or use `pg_isready` command)
-3. **Accessible** with username and password
-
-If you haven't installed PostgreSQL yet, download it from [postgresql.org](https://www.postgresql.org/download/)
-
-**Verify PostgreSQL is running:**
-
-- **Windows**: Check Services (search for "Services") and find PostgreSQL
-- **Linux/macOS**: Run `pg_isready` in terminal
-
-### 1. Clone the Repository
+Install PostgreSQL and create the database. On Windows:
 
 ```bash
-git clone https://github.com/your-username/Online-Exam-Management-System.git
-cd Online-Exam-Management-System
+winget install -e --id PostgreSQL.PostgreSQL.16
 ```
 
-### 2. Backend Setup
+Then create the database (using the `postgres` password you set during install):
 
-#### Step 1: Create `.env` file
-
-In the `backend/` directory, create a `.env` file with:
-
-```
-DATABASE_URL=postgresql://postgres:password@localhost:5432/online_exam_system
-SECRET_KEY=your-super-secret-key-change-this-in-production
+```bash
+psql -U postgres -c "CREATE DATABASE online_exam_system;"
 ```
 
-**Replace:**
-
-- `postgres` with your PostgreSQL username
-- `password` with your PostgreSQL password
-- `localhost` with your PostgreSQL host (if different)
-- `5432` with your PostgreSQL port (if different)
-
-**Note:** Make sure the database `online_exam_system` exists. If it doesn't, create it:
-
-```sql
-CREATE DATABASE online_exam_system;
-```
-
-Or use pgAdmin (PostgreSQL GUI tool) to create it.
-
-#### Step 2: Install Dependencies
-
-**Windows (PowerShell):**
-
-```powershell
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-**Linux/macOS:**
+### 2. Backend
 
 ```bash
 cd backend
-python3 -m venv venv
-source venv/bin/activate
+cp .env.example .env          # then edit DATABASE_URL and SECRET_KEY
+python -m venv .venv
+.venv/Scripts/activate        # Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-#### Step 3: Create Admin Account
-
-```bash
-python create_admin.py
-```
-
-**Output:**
-
-```
-Admin user created successfully!
-Email: admin@example.com
-Role: admin
-Password: admin123
-```
-
-#### Step 4: Start Backend Server
-
-**Windows:**
-
-```powershell
+alembic upgrade head          # creates or updates the tables; run again after every pull
+python create_admin.py        # demo organization + owner; prints a random password once
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-**Linux/macOS:**
+- Generate a `SECRET_KEY` with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+- API docs: http://localhost:8000/docs · Health: http://localhost:8000/health
+- To choose your own owner details: `python create_admin.py you@example.com yourpassword "Your School"`. New organizations can also sign up from the app.
+- **Upgrading a database from before organizations existed?** `alembic upgrade head` keeps your data and moves it into a "Default Organization". Back up first.
 
-```bash
-python -m uvicorn app.main:app --reload --port 8000
-```
+### 3. Frontend
 
-**API Documentation**: `http://localhost:8000/docs`
-
-### 3. Frontend Setup
-
-**In a new terminal, from the project root:**
+In a second terminal:
 
 ```bash
 cd frontend
-npm install
-npm start
+npm ci
+npm start                     # http://localhost:3000
 ```
 
-Frontend runs at: `http://localhost:3000`
+The frontend calls the API at `http://localhost:8000`. For another address, copy `frontend/.env.example` to `frontend/.env` and set `REACT_APP_API_URL` before `npm start` or `npm run build`.
 
-## Running Both Servers
+### 4. Log in
 
-Open **two separate terminals** from the project root directory:
+Use `admin@example.com` and the password `create_admin.py` printed. Students sign up themselves and enter the join code it printed, or a group's code from Organization → Invite.
 
-**Terminal 1 - Backend:**
+## Running with Docker (optional)
+
+Docker needs a few GB of RAM. CI builds and checks the images on every push, so you don't need Docker to develop.
 
 ```bash
-cd backend
-# On Windows:
-.\venv\Scripts\Activate.ps1
-# On Linux/macOS:
-source venv/bin/activate
-
-python -m uvicorn app.main:app --reload --port 8000
+SECRET_KEY=$(python -c "import secrets; print(secrets.token_urlsafe(48))") docker compose up --build
+docker compose exec api python create_admin.py
 ```
 
-**Terminal 2 - Frontend:**
+- Web: http://localhost:3000 · API: http://localhost:8000
+- The API container runs `alembic upgrade head` before it starts.
+- Data lives in the `db-data` volume; `docker compose down -v` deletes it.
+
+## Tests
 
 ```bash
-cd frontend
-npm start
+# backend (from backend/, venv active)
+DATABASE_URL=sqlite:///:memory: SECRET_KEY=test python -m pytest tests/ -q
+
+# same suite against PostgreSQL
+TEST_DATABASE_URL=postgresql+psycopg://user:pass@localhost:5432/tests DATABASE_URL=sqlite:///:memory: SECRET_KEY=test python -m pytest tests/ -q
+
+# frontend (from frontend/)
+npm test -- --watchAll=false
+npm run build
 ```
 
-Both servers will start and auto-reload on code changes. Open `http://localhost:3000` in your browser.
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs all of these, plus migration checks, a Semgrep security scan, and a Docker build with health checks.
 
-## Login Credentials
+## Excel import
 
-After setup completes, use these default credentials to log in:
+Download the template from Question bank → Import, or use `sample_questions.xlsx`.
 
-- **Email**: `admin@example.com`
-- **Password**: `admin123`
-- **Role**: Admin
+| Column | Required | Example |
+|---|---|---|
+| `title` | yes | `What is 2 + 2?` |
+| `complexity` | yes | `easy`, `medium` or `hard` |
+| `type` | yes | `single_choice`, `multi_choice`, `text` or `image_upload` |
+| `options` | for choice types | `["1", "2", "3", "4"]` |
+| `correct_answers` | for choice types | `["4"]` |
+| `max_score` | no (default 1) | `1` |
+| `tags` | no | `math, arithmetic` |
 
-## Running Tests
+Single choice needs the exact answer. Multiple choice needs all correct options and no wrong ones. Text and image answers are graded by staff.
 
-From the `backend/` directory (with virtual environment activated):
-
-```bash
-python -m pytest tests/ -v
-```
-
-For coverage report:
-
-```bash
-python -m pytest tests/ -v --cov=app
-```
-
-## Project Structure
+## Project structure
 
 ```
-Online-Exam-Management-System/
-├── backend/
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── models.py
-│   │   ├── crud.py
-│   │   ├── schemas.py
-│   │   ├── database.py
-│   │   ├── security.py
-│   │   └── routers/
-│   │       ├── admin.py
-│   │       ├── auth.py
-│   │       ├── profile.py
-│   │       └── student.py
-│   ├── tests/
-│   ├── create_admin.py
-│   └── requirements.txt
-│
-└── frontend/
-    ├── public/
-    │   └── index.html
-    ├── src/
-    │   ├── pages/
-    │   ├── components/
-    │   ├── context/
-    │   ├── styles/
-    │   ├── App.js
-    │   ├── index.js
-    │   ├── api.js
-    │   └── theme.js
-    ├── package.json
-    └── tailwind.config.js
+backend/
+  app/
+    main.py             app, middleware, /health
+    models.py           SQLAlchemy models and constants (roles, event types)
+    schemas.py          Pydantic request/response models
+    crud.py             business logic: grading, shuffling, deadlines, integrity
+    permissions.py      organization membership and role checks
+    security.py         passwords and JWT
+    logging_config.py   JSON logs with request IDs
+    database.py         engine and session
+    routers/            auth, organizations, admin (staff), student, profile
+  migrations/versions/  Alembic migrations (0001 onwards)
+  tests/
+  create_admin.py       seed an organization and owner
+  Dockerfile, docker-entrypoint.sh
+frontend/
+  src/
+    App.js              routes and role guards
+    api.js              axios instance (auth + organization headers)
+    components/         ui.js (design system), AppShell, AuthLayout
+    context/            AuthContext, ThemeContext
+    hooks/              useExamIntegrity
+    pages/              one file per screen
+    utils.js            formatting helpers
+  Dockerfile, nginx.conf
+docs/                   PRD, TRD, app flow, UI/UX brief, schema, plan, agent guide
+docker-compose.yml
+.github/workflows/ci.yml
 ```
-
-## Excel Import Format
-
-**Required Columns:**
-
-- `title` - Question title
-- `complexity` - easy, medium, or hard
-- `type` - single_choice, multi_choice, text, or image_upload
-- `options` - JSON array for choice questions
-- `correct_answers` - Answer(s)
-- `max_score` - Points (default: 1)
-
-## Auto-Grading
-
-- **Single-Choice**: Exact match required
-- **Multi-Choice**: All correct answers must be selected
-- **Text/Image**: Manual grading by admin
 
 ## Troubleshooting
 
-### Port already in use
-
-**Problem**: `Address already in use` error
-
-**Solution**: Change the port in the command:
-
-```bash
-python -m uvicorn app.main:app --reload --port 8001  # Use 8001 instead of 8000
-```
-
-Then update the frontend API URL in `frontend/src/api.js` accordingly.
-
-### npm install fails
-
-**Problem**: Dependencies installation errors
-
-**Solution**:
-
-```bash
-cd frontend
-rm -rf node_modules package-lock.json  # Windows: del node_modules, del package-lock.json
-npm install
-```
-
-### Virtual environment issues
-
-**Problem**: `python: command not found` or `python -m venv` fails
-
-**Solution**:
-
-- Use `python3` instead of `python` on Linux/macOS
-- Ensure Python is added to PATH on Windows
-- Try: `python --version` to verify installation
-
-
-Lastly, thanks to vibe coding. :)
+- **`DATABASE_URL environment variable is not set`**: create `backend/.env` from `.env.example`, or set the variables in your shell.
+- **Port already in use**: start the API on another port (`--port 8001`) and set `REACT_APP_API_URL=http://localhost:8001` in `frontend/.env`.
+- **`npm ci` fails**: check `node --version` is 20, delete `node_modules`, and run `npm ci` again. Don't delete `package-lock.json`.
+- **`psql` not found on Windows**: it's in `C:\Program Files\PostgreSQL\16\bin`; add that folder to PATH or use the full path.

@@ -1,200 +1,104 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-// import './App.css';
 import { useAuth } from './context/AuthContext';
-import { useTheme } from './context/ThemeContext';
-import ThemeSwitch from './components/ThemeSwitch';
+import { PageLoader } from './components/ui';
+import DesktopOnly from './components/DesktopOnly';
+import { LANGUAGES, useI18n } from './i18n';
+import { setTimeZone } from './utils';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
-import AdminDashboard from './pages/AdminDashboard';
+import OrgSignupPage from './pages/OrgSignupPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import WaitlistPage from './pages/WaitlistPage';
+import WaitlistUnsubscribePage from './pages/WaitlistUnsubscribePage';
+import OrganizationsPage from './pages/OrganizationsPage';
 import AdminQuestionsPage from './pages/AdminQuestionsPage';
+import QuestionEditorPage from './pages/QuestionEditorPage';
 import AdminExamsPage from './pages/AdminExamsPage';
+import ExamFormPage from './pages/ExamFormPage';
+import ExamResultsPage from './pages/ExamResultsPage';
+import IntegrityReportPage from './pages/IntegrityReportPage';
 import AdminStudentsPage from './pages/AdminStudentsPage';
-import AdminEvaluatePage from './pages/AdminEvaluatePage';
+import AdminOrganizationPage from './pages/AdminOrganizationPage';
 import AdminEvaluateAnswersPage from './pages/AdminEvaluateAnswersPage';
 import StudentDashboard from './pages/StudentDashboard';
 import ExamPage from './pages/ExamPage';
-import EvaluationPage from './pages/EvaluationPage';
 import StudentExamsPage from './pages/StudentExamsPage';
 import StudentResultsPage from './pages/StudentResultsPage';
 import StudentProfilePage from './pages/StudentProfilePage';
-import ComponentShowcase from './components/ComponentShowcase';
-import NotebookDemo from './pages/NotebookDemo';
-function App() {
-  const { user, isLoading } = useAuth();
-  const { theme, toggleTheme, themeName } = useTheme();
 
-  // Show loading screen while checking auth state
+function App() {
+  const { user, isLoading, currentMembership, isStaff, isManager, isCandidate } = useAuth();
+  const { language, setLanguage } = useI18n();
+
+  // Set during render so every date on this render already uses the organization's timezone
+  setTimeZone(currentMembership?.timezone);
+
+  // The account's language wins, then the organization's. ?lang= in the URL overrides both, and a
+  // test pseudo-language (en-XA, en-XB) stays until it's changed, so it survives reloads
+  const preferredLanguage = user?.language || currentMembership?.default_language;
+  useEffect(() => {
+    const testing = !LANGUAGES.some((l) => l.code === language);
+    if (preferredLanguage && !testing && !new URLSearchParams(window.location.search).has('lang')) setLanguage(preferredLanguage);
+  }, [preferredLanguage, setLanguage]); // eslint-disable-line react-hooks/exhaustive-deps -- only when the preference changes
+
   if (isLoading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        backgroundColor: theme.background,
-        fontSize: '16px',
-        color: theme.text,
-      }}>
-        Loading...
-      </div>
-    );
+    return <div className="min-h-screen bg-paper"><PageLoader /></div>;
   }
 
+  // Pages for one kind of member; anyone else goes back to the root, which routes them
+  const only = (allowed, element) => (allowed ? element : <Navigate to="/" replace />);
+
   return (
-    <div className="App" style={{ backgroundColor: theme.background, color: theme.text, minHeight: '100vh' }}>
-      <div style={{
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        zIndex: 1000,
-      }}>
-        <ThemeSwitch
-          checked={themeName === 'dark'}
-          onChange={toggleTheme}
-        />
-      </div>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            !user ? (
-              <Navigate to="/login" replace />
-            ) : user.role === 'admin' ? (
-              <Navigate to="/admin-questions" replace />
-            ) : user.role === 'student' ? (
-              <Navigate to="/student-account" replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route
-          path="/exam/resume/:attemptId"
-          element={
-            user && user.role === 'student' ? (
-              <ExamPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/exam/:id"
-          element={
-            user && user.role === 'student' ? (
-              <ExamPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/evaluate/:attemptId"
-          element={
-            user && user.role === 'admin' ? (
-              <EvaluationPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/student-exams"
-          element={
-            user && user.role === 'student' ? (
-              <StudentExamsPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/exam-results/:attemptId"
-          element={
-            user && user.role === 'student' ? (
-              <StudentResultsPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/student-profile"
-          element={
-            user && user.role === 'student' ? (
-              <StudentProfilePage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/student-account"
-          element={
-            user && user.role === 'student' ? (
-              <StudentDashboard />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/admin-questions"
-          element={
-            user && user.role === 'admin' ? (
-              <AdminQuestionsPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/admin-exams"
-          element={
-            user && user.role === 'admin' ? (
-              <AdminExamsPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/admin-students"
-          element={
-            user && user.role === 'admin' ? (
-              <AdminStudentsPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/admin-evaluate/:attemptId"
-          element={
-            user && user.role === 'admin' ? (
-              <AdminEvaluatePage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/admin-evaluate-answers/:attemptId"
-          element={
-            user && user.role === 'admin' ? (
-              <AdminEvaluateAnswersPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route path="/showcase" element={<ComponentShowcase />} />
-        <Route path="/notebook-demo" element={<NotebookDemo />} />
-      </Routes>
-    </div>
+    <DesktopOnly>
+    <Routes>
+      <Route
+        path="/"
+        element={
+          !user ? <Navigate to="/login" replace />
+            : !currentMembership ? <Navigate to="/organizations" replace />
+              : isStaff ? <Navigate to="/admin-exams" replace />
+                : <Navigate to="/student-account" replace />
+        }
+      />
+      <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignupPage />} />
+      <Route path="/signup/organization" element={<OrgSignupPage />} />
+      <Route path="/forgot-password" element={user ? <Navigate to="/" replace /> : <ForgotPasswordPage />} />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+      <Route path="/invite/:token" element={<ResetPasswordPage invite />} />
+      <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+      <Route path="/waitlist" element={<WaitlistPage />} />
+      <Route path="/waitlist/unsubscribe/:token" element={<WaitlistUnsubscribePage />} />
+      <Route path="/organizations" element={user ? <OrganizationsPage /> : <Navigate to="/login" replace />} />
+      <Route path="/profile" element={only(currentMembership, <StudentProfilePage />)} />
+
+      {/* Staff */}
+      <Route path="/admin-exams" element={only(isStaff, <AdminExamsPage />)} />
+      <Route path="/admin-exams/new" element={only(isStaff, <ExamFormPage />)} />
+      <Route path="/admin-exams/:examId/edit" element={only(isStaff, <ExamFormPage />)} />
+      <Route path="/admin-exams/:examId" element={only(isStaff, <ExamResultsPage />)} />
+      <Route path="/admin-integrity/:attemptId" element={only(isStaff, <IntegrityReportPage />)} />
+      <Route path="/admin-evaluate-answers/:attemptId" element={only(isStaff, <AdminEvaluateAnswersPage />)} />
+      <Route path="/admin-questions" element={only(isStaff, <AdminQuestionsPage />)} />
+      <Route path="/admin-questions/new" element={only(isStaff, <QuestionEditorPage />)} />
+      <Route path="/admin-questions/:questionId/edit" element={only(isStaff, <QuestionEditorPage />)} />
+      <Route path="/admin-students" element={only(isStaff, <AdminStudentsPage />)} />
+      <Route path="/admin-organization" element={only(isManager, <AdminOrganizationPage />)} />
+
+      {/* Students */}
+      <Route path="/student-account" element={only(isCandidate, <StudentDashboard />)} />
+      <Route path="/exam/:id" element={only(isCandidate, <ExamPage />)} />
+      <Route path="/exam/resume/:attemptId" element={only(isCandidate, <ExamPage />)} />
+      <Route path="/student-exams" element={only(isCandidate, <StudentExamsPage />)} />
+      <Route path="/exam-results/:attemptId" element={only(isCandidate, <StudentResultsPage />)} />
+      <Route path="/student-profile" element={<Navigate to="/profile" replace />} />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+    </DesktopOnly>
   );
 }
 

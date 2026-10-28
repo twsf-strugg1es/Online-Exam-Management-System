@@ -1,202 +1,145 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LuBookOpen } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import StudentSidebar from '../components/StudentSidebar';
 import api from '../api';
-import Button from '../components/Button';
+import AppShell from '../components/AppShell';
+import { Alert, Button, Card, EmptyState, PageLoader, cx } from '../components/ui';
+import { errorMessage, formatExamTime, formatShortDate } from '../utils';
+import { useI18n } from '../i18n';
+
+const greeting = (t) => {
+  const hour = new Date().getHours();
+  return hour < 12 ? t('Good morning') : hour < 18 ? t('Good afternoon') : t('Good evening');
+};
+
+const opensIn = (start, t) => {
+  const minutes = Math.round((new Date(start) - Date.now()) / 60000);
+  if (minutes < 60) return t('Opens in {{n}} min', { n: Math.max(1, minutes) });
+  if (minutes < 24 * 60) return t('Opens in {{n}} h', { n: Math.round(minutes / 60) });
+  return t('Opens {{date}}', { date: formatExamTime(start) });
+};
+
+function ExamCard({ exam, attempt, onOpen }) {
+  const { t } = useI18n();
+  const inProgress = Boolean(attempt);
+  const available = exam.is_active && !exam.is_submitted;
+  const [label, tone, dot] = inProgress ? [t('In progress, timer running'), 'text-warn', 'bg-current']
+    : exam.is_submitted ? [t('Submitted'), 'text-faint', 'bg-current opacity-50']
+      : exam.is_upcoming ? [opensIn(exam.start_time, t), 'text-ink', 'bg-[linear-gradient(90deg,currentColor_50%,transparent_50%)]']
+        : exam.is_expired ? [t('Closed'), 'text-faint', '']
+          : [t('Open now'), 'text-brand', 'bg-current'];
+  return (
+    <article className={cx('sheet flex flex-col px-5 pb-4 pt-5', inProgress && 'border-warn/60')}>
+      <h3 className="text-[1.05rem] font-semibold leading-snug">{exam.title}</h3>
+      <p className={cx('mt-2 flex items-center gap-2 text-sm font-medium', tone)}>
+        <span className={cx('status-dot', dot)} aria-hidden="true" />{label}
+      </p>
+      <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-3 font-mono text-[13px]">
+        <div><dt className="eyebrow">{t('Time')}</dt><dd className="tabular mt-1">{t('{{n}} min', { n: exam.duration_minutes })}</dd></div>
+        <div><dt className="eyebrow">{t('Qs')}</dt><dd className="tabular mt-1">{exam.question_count}</dd></div>
+        <div><dt className="eyebrow">{exam.is_upcoming ? t('Opens') : t('Closes')}</dt><dd className="tabular mt-1">{formatShortDate(exam.is_upcoming ? exam.start_time : exam.end_time)}</dd></div>
+      </dl>
+      {(available || inProgress) && (
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
+          <span className="font-mono text-xs text-faint">{exam.integrity?.require_fullscreen ? t('Runs in fullscreen') : t('Timed exam')}</span>
+          <Button size="sm" onClick={() => onOpen(exam, attempt)}>{inProgress ? t('Continue') : t('Start')}</Button>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function Section({ title, hint, count, children }) {
+  return (
+    <section className="mb-10">
+      <div className="mb-4 flex items-baseline justify-between gap-3 border-b border-line-strong pb-2">
+        <h2 className="flex items-baseline gap-2.5 text-[15px] font-semibold">{title}<span className="tabular font-mono text-xs font-normal text-faint">{count}</span></h2>
+        {hint && <p className="font-mono text-xs text-faint">{hint}</p>}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{children}</div>
+    </section>
+  );
+}
 
 function StudentDashboard() {
-  const { user, logout } = useAuth();
-  const { theme } = useTheme();
+  const { user, currentMembership } = useAuth();
+  const { t, tn } = useI18n();
   const navigate = useNavigate();
-  const [exams, setExams] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [exams, setExams] = useState(null);
+  const [unfinished, setUnfinished] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchExams();
-  }, [navigate]);
+    Promise.all([api.get('/student/exams/'), api.get('/student/unfinished-attempts/')])
+      .then(([examsRes, attemptsRes]) => {
+        setExams(examsRes.data);
+        setUnfinished(attemptsRes.data);
+      })
+      .catch((err) => {
+        setError(errorMessage(err, 'Failed to load exams'));
+        setExams([]);
+      });
+  }, []);
 
-  const fetchExams = async () => {
-    try {
-      const response = await api.get('/student/exams/');
-      setExams(response.data);
-      setError('');
-      setLoading(false);
-    } catch (err) {
-      let errorMessage = 'Failed to load exams';
-      if (err.response?.data?.detail) {
-        if (Array.isArray(err.response.data.detail)) {
-          errorMessage = err.response.data.detail[0]?.msg || 'Failed to load exams';
-        } else if (typeof err.response.data.detail === 'string') {
-          errorMessage = err.response.data.detail;
-        }
-      }
-      console.error('Error fetching exams:', err);
-      setError(errorMessage);
-      setLoading(false);
-    }
-  };
+  const attemptFor = (exam) => unfinished.find((a) => a.exam_id === exam.id);
+  const open = (exam, attempt) => navigate(attempt ? `/exam/resume/${attempt.id}` : `/exam/${exam.id}`);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const handleStartExam = async (examId) => {
-    try {
-      // Check if student has an unfinished attempt for this exam
-      const response = await api.get('/student/unfinished-attempts/');
-      const unfinishedAttempt = response.data.find(attempt => attempt.exam_id === examId);
-
-      if (unfinishedAttempt) {
-        // Resume existing attempt instead of starting new one
-        navigate(`/exam/resume/${unfinishedAttempt.id}`);
-      } else {
-        // Start new exam
-        navigate(`/exam/${examId}`);
-      }
-    } catch (err) {
-      // If checking for unfinished attempts fails, just start new exam
-      console.error('Error checking for unfinished attempts:', err);
-      navigate(`/exam/${examId}`);
-    }
-  };
+  const list = exams || [];
+  const inProgress = list.filter((e) => attemptFor(e) && !e.is_expired && !e.is_submitted);
+  const available = list.filter((e) => e.is_active && !e.is_submitted && !attemptFor(e));
+  const upcoming = list.filter((e) => e.is_upcoming).sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+  const done = list.filter((e) => (e.is_submitted || e.is_expired) && !inProgress.includes(e));
+  const firstName = (user?.full_name || '').split(' ')[0];
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.background, color: theme.text, fontFamily: 'Roboto, sans-serif' }}>
-      {/* Sidebar */}
-      <StudentSidebar user={user} onLogout={logout} />
-
-      {/* Main Content */}
-      <div style={{ marginLeft: '70px', flex: 1, padding: '30px', overflow: 'auto', transition: 'margin-left 0.3s ease' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          {/* Header */}
-          <div style={{ marginBottom: '30px', animation: 'fadeInDown 0.6s ease' }}>
-            <h1 style={{ margin: '0 0 24px 0', color: theme.primary, fontSize: '28px', fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}>Available Exams</h1>
-          </div>
-
-          {loading ? (
-            <p style={{ color: theme.text, fontFamily: 'Roboto, sans-serif' }}>Loading exams...</p>
-          ) : error ? (
-            <p style={{ color: theme.danger, fontFamily: 'Roboto, sans-serif', padding: '15px', backgroundColor: 'rgba(220, 53, 69, 0.1)', borderLeft: `4px solid ${theme.danger}`, borderRadius: '4px' }}>{error}</p>
-          ) : (
-            <>
-              <h2 style={{ color: theme.primary, fontFamily: 'Roboto, sans-serif' }}>Available Exams</h2>
-              {exams.length === 0 ? (
-                <p style={{ color: theme.text, fontFamily: 'Roboto, sans-serif' }}>No exams available at the moment.</p>
-              ) : (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                  gap: '20px',
-                  marginTop: '20px',
-                }}>
-                  {exams.map((exam, index) => {
-                    // Determine exam status
-                    let statusColor = theme.primary;
-                    let statusText = 'Active';
-                    let buttonDisabled = false;
-                    let buttonColor = theme.primary;
-
-                    if (exam.is_expired) {
-                      statusColor = theme.danger;
-                      statusText = 'Expired';
-                      buttonDisabled = true;
-                      buttonColor = theme.secondary;
-                    } else if (exam.is_upcoming) {
-                      statusColor = theme.warning;
-                      statusText = 'Upcoming';
-                      buttonDisabled = true;
-                      buttonColor = theme.secondary;
-                    }
-
-                    return (
-                      <div
-                        key={exam.id}
-                        style={{
-                          backgroundColor: theme.cardBg,
-                          border: `1px solid ${theme.border}`,
-                          padding: '20px',
-                          borderRadius: '8px',
-                          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                          animation: `slideInUp 0.5s ease ${index * 0.1}s both`,
-                          color: theme.text
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-                          e.currentTarget.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.2)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                          <h3 style={{ color: theme.primary, margin: '0' }}>{exam.title}</h3>
-                          <span style={{
-                            padding: '6px 12px',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            backgroundColor: statusColor,
-                            color: '#ffffff',
-                            fontFamily: 'Roboto, sans-serif',
-                          }}>{statusText}</span>
-                        </div>
-                        <p style={{ color: theme.text, fontFamily: 'Roboto, sans-serif' }}><strong>Start Time:</strong> {new Date(exam.start_time).toLocaleString()}</p>
-                        <p style={{ color: theme.text, fontFamily: 'Roboto, sans-serif' }}><strong>End Time:</strong> {new Date(exam.end_time).toLocaleString()}</p>
-                        <p style={{ color: theme.text, fontFamily: 'Roboto, sans-serif' }}><strong>Duration:</strong> {exam.duration_minutes} minutes</p>
-                        <Button
-                          onClick={() => !buttonDisabled && handleStartExam(exam.id)}
-                          disabled={buttonDisabled}
-                          style={{
-                            marginTop: '15px',
-                            backgroundColor: buttonColor,
-                            color: '#ffffff',
-                            opacity: buttonDisabled ? 0.6 : 1,
-                          }}
-                        >
-                          {exam.is_expired ? 'Exam Expired' : exam.is_upcoming ? 'Not Started Yet' : 'Start Exam'}
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        <style>{`
-        @keyframes slideInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fadeInDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
+    <AppShell>
+      <div className="mb-10 border-b-2 border-ink pb-5">
+        <p className="eyebrow mb-2">{currentMembership?.organization_name}</p>
+        <h1 className="text-[2rem] font-semibold leading-none tracking-[-0.025em]">{greeting(t)}{firstName && `, ${firstName}`}</h1>
+        <p className="mt-2.5 text-sm text-muted">
+          {available.length + inProgress.length
+            ? tn(available.length + inProgress.length, 'You have {{count}} exam you can take right now.', 'You have {{count}} exams you can take right now.')
+            : upcoming.length ? t('Your next exam: {{when}}.', { when: opensIn(upcoming[0].start_time, t) }) : t('No exams are open right now.')}
+        </p>
       </div>
-    </div>
+
+      {error && <Alert tone="danger" className="mb-6">{error}</Alert>}
+
+      {exams === null ? (
+        <PageLoader />
+      ) : list.length === 0 ? (
+        <Card>
+          <EmptyState icon={LuBookOpen} title={t('No exams yet')}>
+            {t('When {{org}} publishes an exam for you, it appears here.', { org: currentMembership?.organization_name || t('your organization') })}
+          </EmptyState>
+        </Card>
+      ) : (
+        <>
+          {inProgress.length > 0 && (
+            <Section title={t('Continue where you left off')} count={inProgress.length} hint={t("The timer keeps running while you're away")}>
+              {inProgress.map((e) => <ExamCard key={e.id} exam={e} attempt={attemptFor(e)} onOpen={open} />)}
+            </Section>
+          )}
+          {available.length > 0 && (
+            <Section title={t('Open now')} count={available.length}>
+              {available.map((e) => <ExamCard key={e.id} exam={e} onOpen={open} />)}
+            </Section>
+          )}
+          {upcoming.length > 0 && (
+            <Section title={t('Upcoming')} count={upcoming.length}>
+              {upcoming.map((e) => <ExamCard key={e.id} exam={e} onOpen={open} />)}
+            </Section>
+          )}
+          {done.length > 0 && (
+            <Section title={t('Done')} count={done.length}>
+              {done.map((e) => <ExamCard key={e.id} exam={e} onOpen={open} />)}
+            </Section>
+          )}
+        </>
+      )}
+    </AppShell>
   );
 }
 
 export default StudentDashboard;
-

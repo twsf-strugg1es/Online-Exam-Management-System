@@ -1,18 +1,43 @@
-from fastapi import FastAPI
+import asyncio
+import os
+from contextlib import asynccontextmanager
+
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
-from .database import Base, engine, SessionLocal
-from . import models, crud, schemas  # noqa: F401  # ensure models are imported so metadata has tables
-from .routers import admin, auth, student, profile
+from . import jobs, models, notify  # noqa: F401  # models: ensure metadata has tables
+from .database import get_db
+from .logging_config import configure_logging, request_logging_middleware
+from .routers import admin, auth, email_verification, organizations, password_reset, profile, student, student_import, waitlist
 
-app = FastAPI()
+configure_logging()
+notify.warn_if_not_sending()
 
-# Configure CORS - Restrict to specific origins for production
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Start the background jobs (e.g. finalizing abandoned attempts) with the API."""
+    task = asyncio.create_task(jobs.run_forever()) if jobs.jobs_enabled() else None
+    yield
+    if task:
+        task.cancel()
+
+
+# The database schema is managed by Alembic migrations: run `alembic upgrade head`.
+app = FastAPI(lifespan=lifespan)
+
+# Comma-separated list of frontend origins allowed to call the API
 allowed_origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",
-    # For production, add your domain: "https://yourdomain.com"
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173"
+    ).split(",")
+    if origin.strip()
 ]
 
 app.add_middleware(
@@ -24,31 +49,27 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=3600,
 )
+# Added last so it runs outermost: every request, including CORS preflights, is logged
+app.middleware("http")(request_logging_middleware)
 
 
-@app.on_event("startup")
-def on_startup() -> None:
-    # Create all database tables at startup
-    Base.metadata.create_all(bind=engine)
-    
-    # Note: Initial users should be created via migration or admin commands
-    # because the database schema must be updated first with the new fields
-    db = SessionLocal()
+@app.get("/health", tags=["Health"])
+def health(db: Session = Depends(get_db)):
+    """Liveness and database check for uptime monitors and container health checks."""
     try:
-        # Skip automatic user creation - users should be created manually
-        # after database schema is updated
-        pass
-    finally:
-        db.close()
-
-
-@app.get("/")
-async def read_root():
-    return {"message": "Hello"}
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        return JSONResponse(status_code=503, content={"status": "error", "database": "unreachable"})
+    return {"status": "ok", "database": "ok"}
 
 
 # Include routers AFTER middleware is configured
 app.include_router(admin.router)
 app.include_router(auth.router)
+app.include_router(password_reset.router)
+app.include_router(email_verification.router)
+app.include_router(organizations.router)
+app.include_router(student_import.router)
 app.include_router(student.router)
+app.include_router(waitlist.router)
 app.include_router(profile.router)

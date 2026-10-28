@@ -1,0 +1,863 @@
+{
+  "doc": {
+    "height": 9539,
+    "vh": 844,
+    "acts": [
+      "flow",
+      "pin",
+      "flow",
+      "pin",
+      "flow"
+    ],
+    "world": null
+  },
+  "report": [
+    {
+      "i": 0,
+      "y": 179,
+      "pct": 2,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "none",
+        "none"
+      ],
+      "act": "-",
+      "stages": [
+        2430,
+        5584
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 1,
+      "y": 526,
+      "pct": 6,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "none",
+        "none"
+      ],
+      "act": "-",
+      "stages": [
+        2083,
+        5237
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 2,
+      "y": 873,
+      "pct": 10,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "none",
+        "none"
+      ],
+      "act": "flow",
+      "stages": [
+        1736,
+        4890
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 3,
+      "y": 1220,
+      "pct": 14,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "none",
+        "none"
+      ],
+      "act": "flow",
+      "stages": [
+        1389,
+        4543
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 4,
+      "y": 1568,
+      "pct": 18,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "none",
+        "none"
+      ],
+      "act": "-",
+      "stages": [
+        1041,
+        4195
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 5,
+      "y": 1915,
+      "pct": 22,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "This is the page your students see. Leav",
+          "dir": "light-on-dark",
+          "worst": 15.58,
+          "mean": 15.58
+        }
+      ],
+      "cues": [
+        {
+          "t": "This is the page your students see. Leave this",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "none",
+        "none"
+      ],
+      "act": "-",
+      "stages": [
+        694,
+        3848
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 6,
+      "y": 2636,
+      "pct": 30,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "This is the page your students see. Leav",
+          "dir": "light-on-dark",
+          "worst": 15.58,
+          "mean": 15.58
+        }
+      ],
+      "cues": [
+        {
+          "t": "This is the page your students see. Leave this",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "none",
+        "none"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        3127
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 7,
+      "y": 2895,
+      "pct": 33,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "This is the page your students see. Leav",
+          "dir": "light-on-dark",
+          "worst": 15.58,
+          "mean": 15.58
+        }
+      ],
+      "cues": [
+        {
+          "t": "This is the page your students see. Leave this",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "none",
+        "none"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        2868
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 8,
+      "y": 3154,
+      "pct": 36,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Try copying the question, or pasting int",
+          "dir": "light-on-dark",
+          "worst": 15.58,
+          "mean": 15.58
+        }
+      ],
+      "cues": [
+        {
+          "t": "Try copying the question, or pasting into the ",
+          "o": 0.98
+        }
+      ],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "none",
+        "none"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        2609
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 9,
+      "y": 3413,
+      "pct": 39,
+      "settled": true,
+      "contrast": [],
+      "cues": [
+        {
+          "t": "Try copying the question, or pasting into the ",
+          "o": 0.83
+        }
+      ],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "none",
+        "none"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        2350
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 10,
+      "y": 3672,
+      "pct": 42,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Three times and the exam hands itself in",
+          "dir": "light-on-dark",
+          "worst": 15.58,
+          "mean": 15.58
+        }
+      ],
+      "cues": [
+        {
+          "t": "Three times and the exam hands itself in. You ",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "none",
+        "none"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        2091
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 11,
+      "y": 3932,
+      "pct": 45,
+      "settled": true,
+      "contrast": [],
+      "cues": [
+        {
+          "t": "Three times and the exam hands itself in. You ",
+          "o": 0.08
+        }
+      ],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 100%)",
+        "inset(0px 0px 100%)"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        1831
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 12,
+      "y": 3995,
+      "pct": 46,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 100%)",
+        "inset(0px 0px 100%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -36,
+        1768
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 13,
+      "y": 4342,
+      "pct": 50,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 48.68%)",
+        "inset(0px 0px 81.11%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -383,
+        1421
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 14,
+      "y": 4688,
+      "pct": 54,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "flow",
+      "stages": [
+        -729,
+        1075
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 15,
+      "y": 5034,
+      "pct": 58,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "flow",
+      "stages": [
+        -1075,
+        729
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 16,
+      "y": 5381,
+      "pct": 62,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -1422,
+        382
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 17,
+      "y": 5727,
+      "pct": 66,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -1768,
+        36
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 18,
+      "y": 5775,
+      "pct": 66,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -1816,
+        0
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 19,
+      "y": 5888,
+      "pct": 68,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -1929,
+        0
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 20,
+      "y": 6002,
+      "pct": 69,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -2043,
+        0
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 21,
+      "y": 6115,
+      "pct": 70,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -2156,
+        0
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 22,
+      "y": 6229,
+      "pct": 72,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -2270,
+        0
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 23,
+      "y": 6342,
+      "pct": 73,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -2383,
+        0
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 24,
+      "y": 6384,
+      "pct": 73,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -2425,
+        -30
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 25,
+      "y": 6670,
+      "pct": 77,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -2711,
+        -316
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 26,
+      "y": 6957,
+      "pct": 80,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "flow",
+      "stages": [
+        -2998,
+        -603
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 27,
+      "y": 7244,
+      "pct": 83,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "flow",
+      "stages": [
+        -3285,
+        -890
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 28,
+      "y": 7530,
+      "pct": 87,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "-",
+      "stages": [
+        -3571,
+        -1176
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 29,
+      "y": 7817,
+      "pct": 90,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "-",
+      "stages": [
+        -3858,
+        -1463
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    },
+    {
+      "i": 30,
+      "y": 8695,
+      "pct": 100,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [],
+      "wipes": [
+        "inset(0px 0px 0%)",
+        "inset(0px 0px 0%)"
+      ],
+      "act": "-",
+      "stages": [
+        -4736,
+        -2341
+      ],
+      "segs": [],
+      "custom": [],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#F6F4EE"
+    }
+  ],
+  "consoleErrors": [],
+  "failed": []
+}

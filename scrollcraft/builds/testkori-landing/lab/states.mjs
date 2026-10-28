@@ -1,0 +1,27 @@
+import { chromium } from 'playwright-core';
+const browser = await chromium.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe' });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+await page.goto('http://localhost:4500/', { waitUntil: 'networkidle' });
+await page.evaluate(() => { const p = document.getElementById('peak'); window.scrollTo(0, p.offsetTop + innerHeight * 0.4); });
+await page.waitForTimeout(800);
+await page.click('#simulate');
+await page.waitForTimeout(1400);
+await page.screenshot({ path: 'lab/states/peak-after-leave.png' });
+await page.click('#lockBack');
+for (let i = 0; i < 2; i++) { await page.click('#simulate'); await page.waitForTimeout(1300); if (i === 0) await page.click('#lockBack'); }
+await page.waitForTimeout(400);
+await page.screenshot({ path: 'lab/states/peak-auto-submitted.png' });
+await page.evaluate(() => { document.querySelector('input[name="q1"][value="forms"]').click(); window.scrollTo(0, 0); });
+await page.waitForTimeout(400);
+await page.screenshot({ path: 'lab/states/hero-answered.png' });
+await page.evaluate(() => window.scrollTo(0, document.getElementById('q6').offsetTop - 60));
+await page.click('text=Per question');
+await page.waitForTimeout(500);
+await page.screenshot({ path: 'lab/states/timing-per-question.png' });
+await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+await page.fill('#wlEmail', 'teacher@school.edu');
+await page.click('#wlForm button[type="submit"]');
+await page.waitForTimeout(300);
+await page.screenshot({ path: 'lab/states/close-submitted.png' });
+await browser.close();
+console.log('ok');

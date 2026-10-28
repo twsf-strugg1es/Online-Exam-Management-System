@@ -1,32 +1,117 @@
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
+import random
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from . import models, schemas
 from .security import get_password_hash
 
 
 def get_user_by_email(db: Session, email: str) -> models.User | None:
-    """Find a user by email address."""
-    return db.query(models.User).filter(models.User.email == email).first()
+    """Find a user by email address, ignoring case (Arif@Mail.com is arif@mail.com)."""
+    return db.query(models.User).filter(func.lower(models.User.email) == email.strip().lower()).first()
 
 
-def create_user(db: Session, user: schemas.UserCreate) -> models.User:
+def create_user(db: Session, user: schemas.UserCreate, commit: bool = True) -> models.User:
     """Create a new user with hashed password."""
     hashed_password = get_password_hash(user.password)
     db_user = models.User(
         email=user.email,
         hashed_password=hashed_password,
-        role=user.role,
         full_name=user.full_name,
         date_of_birth=user.date_of_birth,
         gender=user.gender,
-        exam_candidate=user.exam_candidate,
     )
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    if commit:
+        db.commit()
+        db.refresh(db_user)
+    else:
+        db.flush()
     return db_user
+
+
+def create_organization(
+    db: Session, name: str, owner: models.User, locale: schemas.LocaleFields | None = None
+) -> models.Organization:
+    """Create an organization with `owner` as its first member."""
+    org = models.Organization(name=name)
+    if locale:
+        for field in schemas.LocaleFields.model_fields:
+            if getattr(locale, field) is not None:
+                setattr(org, field, getattr(locale, field))
+    db.add(org)
+    db.flush()
+    db.add(models.Membership(user_id=owner.id, organization_id=org.id, role=models.ROLE_OWNER))
+    db.commit()
+    db.refresh(org)
+    return org
+
+
+def membership_out(membership: models.Membership) -> schemas.MembershipOut:
+    org = membership.organization
+    return schemas.MembershipOut(
+        organization_id=membership.organization_id,
+        organization_name=org.name,
+        role=membership.role,
+        timezone=org.timezone or models.DEFAULT_TIMEZONE,
+        default_language=org.default_language or models.DEFAULT_LANGUAGE,
+    )
+
+
+def get_membership(db: Session, user_id: uuid.UUID, organization_id: uuid.UUID) -> models.Membership | None:
+    return (
+        db.query(models.Membership)
+        .filter(models.Membership.user_id == user_id, models.Membership.organization_id == organization_id)
+        .first()
+    )
+
+
+def find_join_code(
+    db: Session, code: str
+) -> tuple[models.Organization, models.Group | None] | None:
+    """Resolve a join code to its organization, plus the group when it's a group's code."""
+    code = code.strip().upper()
+    group = db.query(models.Group).filter(models.Group.join_code == code).first()
+    if group:
+        return group.organization, group
+    org = db.query(models.Organization).filter(models.Organization.join_code == code).first()
+    return (org, None) if org else None
+
+
+def join_with_code(db: Session, user: models.User, code: str) -> models.Membership:
+    """Join an organization as a candidate using its join code or one of its groups' codes.
+
+    A group code also adds the candidate to that group. Joining again with another
+    group's code adds the group to the existing membership.
+    """
+    found = find_join_code(db, code)
+    if not found:
+        raise ValueError("Invalid join code")
+    org, group = found
+
+    membership = get_membership(db, user.id, org.id)
+    if not membership:
+        membership = models.Membership(user_id=user.id, organization_id=org.id, role=models.ROLE_CANDIDATE)
+        db.add(membership)
+    if group and group not in membership.groups:
+        if membership.role != models.ROLE_CANDIDATE:
+            raise ValueError("Staff members can't join a candidate group")
+        membership.groups.append(group)
+    db.commit()
+    db.refresh(membership)
+    return membership
+
+
+def visible_to_candidate(exam: models.Exam, membership: models.Membership) -> bool:
+    """Whether a candidate may see and take an exam: same organization, and in one of its groups if it has any."""
+    if exam.organization_id != membership.organization_id:
+        return False
+    if not exam.groups:
+        return True
+    return bool({g.id for g in exam.groups} & {g.id for g in membership.groups})
 
 
 def get_question_by_id(db: Session, question_id: uuid.UUID) -> models.Question | None:
@@ -34,9 +119,31 @@ def get_question_by_id(db: Session, question_id: uuid.UUID) -> models.Question |
     return db.query(models.Question).filter(models.Question.id == question_id).first()
 
 
-def create_question(db: Session, question: schemas.QuestionBase) -> models.Question:
-    """Create a new question from schema."""
+MAX_TAGS = 20
+MAX_TAG_LENGTH = 40
+
+
+def normalize_tags(raw) -> list[str]:
+    """Tags as the teacher wrote them: lower-cased, trimmed, without a leading '#', no repeats.
+
+    Accepts "Physics, Waves" or a list. Quotes and backslashes are dropped so a tag can
+    always be matched inside the stored JSON.
+    """
+    if raw is None:
+        return []
+    items = raw.split(",") if isinstance(raw, str) else [str(item) for item in raw if item is not None]
+    tags: list[str] = []
+    for item in items:
+        tag = " ".join(item.replace('"', "").replace("\\", "").strip().lstrip("#").split()).lower()
+        if tag and tag not in tags:
+            tags.append(tag[:MAX_TAG_LENGTH])
+    return tags[:MAX_TAGS]
+
+
+def create_question(db: Session, question: schemas.QuestionBase, organization_id: uuid.UUID) -> models.Question:
+    """Create a new question in an organization's question bank."""
     db_q = models.Question(
+        organization_id=organization_id,
         title=question.title,
         description=question.description,
         complexity=question.complexity,
@@ -44,7 +151,7 @@ def create_question(db: Session, question: schemas.QuestionBase) -> models.Quest
         options=question.options,
         correct_answers=question.correct_answers,
         max_score=question.max_score,
-        tags=question.tags or [],
+        tags=normalize_tags(question.tags),
     )
     db.add(db_q)
     db.commit()
@@ -52,16 +159,23 @@ def create_question(db: Session, question: schemas.QuestionBase) -> models.Quest
     return db_q
 
 
-def create_exam(db: Session, exam: schemas.ExamCreate) -> models.Exam:
-    """Create a new exam with associated questions."""
+def create_exam(db: Session, exam: schemas.ExamCreate, organization_id: uuid.UUID) -> models.Exam:
+    """Create a new exam with associated questions and target groups."""
     db_exam = models.Exam(
+        organization_id=organization_id,
         title=exam.title,
         start_time=exam.start_time,
         end_time=exam.end_time,
         duration_minutes=exam.duration_minutes,
         is_published=False,
-        target_candidates=exam.target_candidates,
+        shuffle_questions=exam.shuffle_questions,
+        shuffle_options=exam.shuffle_options,
+        require_fullscreen=exam.require_fullscreen,
+        block_copy_paste=exam.block_copy_paste,
+        max_violations=exam.max_violations,
     )
+    if exam.group_ids:
+        db_exam.groups = db.query(models.Group).filter(models.Group.id.in_(exam.group_ids)).all()
     
     # Attach questions to the exam
     for question_id in exam.question_ids:
@@ -75,9 +189,101 @@ def create_exam(db: Session, exam: schemas.ExamCreate) -> models.Exam:
     return db_exam
 
 
-def get_exams(db: Session) -> list[models.Exam]:
-    """Get all exams."""
-    return db.query(models.Exam).all()
+# Why an exam can't be edited (shown to staff, translated on the client)
+EXAM_ARCHIVED = "This exam is archived."
+EXAM_STARTED = "Students have already started this exam, so it can't be changed."
+EXAM_OPEN = "This exam is already open. Unpublish it before changing it."
+
+
+def exam_edit_blocker(db: Session, exam: models.Exam, now: datetime | None = None) -> str | None:
+    """Why this exam can't be edited any more, or None while it still can be: a draft, or
+    published but not open yet, and nobody has started it."""
+    now = now or datetime.now(timezone.utc)
+    if exam.archived_at is not None:
+        return EXAM_ARCHIVED
+    if db.query(models.ExamAttempt.id).filter(models.ExamAttempt.exam_id == exam.id).first():
+        return EXAM_STARTED
+    if exam.is_published and as_utc(exam.start_time) <= now:
+        return EXAM_OPEN
+    return None
+
+
+def update_exam(db: Session, exam: models.Exam, data: schemas.ExamCreate) -> models.Exam:
+    """Replace an exam's details, questions and groups (callers check exam_edit_blocker first)."""
+    for field in ("title", "start_time", "end_time", "duration_minutes", "shuffle_questions",
+                  "shuffle_options", "require_fullscreen", "block_copy_paste", "max_violations"):
+        setattr(exam, field, getattr(data, field))
+    exam.questions = db.query(models.Question).filter(models.Question.id.in_(data.question_ids)).all()
+    exam.groups = db.query(models.Group).filter(models.Group.id.in_(data.group_ids)).all() if data.group_ids else []
+    db.commit()
+    db.refresh(exam)
+    return exam
+
+
+def get_exams(db: Session, organization_id: uuid.UUID) -> list[models.Exam]:
+    """Get all of an organization's exams."""
+    return (
+        db.query(models.Exam)
+        .filter(models.Exam.organization_id == organization_id, models.Exam.archived_at.is_(None))
+        .all()
+    )
+
+
+QUESTION_LOCKED = "Students have already taken an exam with this question, so changing it would change their results. Duplicate it to make a new version."
+
+
+def question_edit_blocker(db: Session, question: models.Question) -> str | None:
+    """A question locks once any student has started an exam that contains it: editing it then
+    would change what they saw or how they're graded. A copy can be edited instead."""
+    started = (
+        db.query(models.ExamAttempt.id)
+        .join(models.exam_questions, models.exam_questions.c.exam_id == models.ExamAttempt.exam_id)
+        .filter(models.exam_questions.c.question_id == question.id)
+        .first()
+    )
+    answered = db.query(models.Answer.id).filter(models.Answer.question_id == question.id).first()
+    return QUESTION_LOCKED if started or answered else None
+
+
+def save_question(db: Session, question: models.Question, data: schemas.QuestionEdit) -> models.Question:
+    for field in ("title", "description", "complexity", "type", "options", "correct_answers", "max_score"):
+        setattr(question, field, getattr(data, field))
+    question.tags = normalize_tags(data.tags)
+    db.add(question)
+    db.commit()
+    db.refresh(question)
+    return question
+
+
+def question_in_use(db: Session, question_id: uuid.UUID) -> bool:
+    """Whether deleting the question would erase part of an exam or a student's answer."""
+    answered = db.query(models.Answer.id).filter(models.Answer.question_id == question_id).first()
+    in_exam = db.query(models.exam_questions.c.exam_id).filter(models.exam_questions.c.question_id == question_id).first()
+    return bool(answered or in_exam)
+
+
+def remove_question(db: Session, question: models.Question) -> str:
+    """Delete an unused question; archive one that exams or answers refer to. Returns what happened."""
+    if question_in_use(db, question.id):
+        question.archived_at = datetime.now(timezone.utc)
+        db.commit()
+        return "archived"
+    db.delete(question)
+    db.commit()
+    return "deleted"
+
+
+def remove_exam(db: Session, exam: models.Exam) -> str:
+    """Delete an exam nobody has started; archive (and unpublish) one with attempts. Returns what happened."""
+    started = db.query(models.ExamAttempt.id).filter(models.ExamAttempt.exam_id == exam.id).first()
+    if started:
+        exam.archived_at = datetime.now(timezone.utc)
+        exam.is_published = False
+        db.commit()
+        return "archived"
+    db.delete(exam)
+    db.commit()
+    return "deleted"
 
 
 def get_exam_by_id(db: Session, exam_id: uuid.UUID) -> models.Exam | None:
@@ -90,27 +296,60 @@ def get_exam_by_id(db: Session, exam_id: uuid.UUID) -> models.Exam | None:
     )
 
 
-def get_available_exams(db: Session) -> list[models.Exam]:
-    """Get all published exams available to students."""
-    return (
+def get_available_exams(db: Session, membership: models.Membership) -> list[models.Exam]:
+    """Get the published exams a candidate may take."""
+    exams = (
         db.query(models.Exam)
-        .options(joinedload(models.Exam.questions))
-        .filter(models.Exam.is_published == True)
+        .options(joinedload(models.Exam.questions), joinedload(models.Exam.groups))
+        .filter(
+            models.Exam.is_published == True,
+            models.Exam.organization_id == membership.organization_id,
+            models.Exam.archived_at.is_(None),
+        )
         .all()
     )
+    return [exam for exam in exams if visible_to_candidate(exam, membership)]
+
+
+# Extra time allowed after an attempt's deadline for answers that were
+# in flight when the clock ran out (network latency, slow connections).
+ANSWER_GRACE_SECONDS = 30
+
+
+def as_utc(dt: datetime) -> datetime:
+    """Treat naive datetimes (e.g. from SQLite) as UTC so they compare with aware ones."""
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def get_attempt_deadline(attempt: models.ExamAttempt, exam: models.Exam) -> datetime:
+    """When an attempt must finish: its own duration, but never past the exam window."""
+    personal_deadline = as_utc(attempt.start_time) + timedelta(minutes=exam.duration_minutes)
+    return min(personal_deadline, as_utc(exam.end_time))
 
 
 def create_exam_attempt(
     db: Session, exam_id: uuid.UUID, student_id: uuid.UUID
 ) -> models.ExamAttempt:
-    """Create a new exam attempt for a student."""
+    """Create a student's attempt at an exam, or return the one they already have.
+
+    Two "start" requests can arrive together (a double click, a retried request); the
+    database's one-attempt-per-exam constraint makes the second one reuse the first.
+    """
     attempt = models.ExamAttempt(
         exam_id=exam_id,
         student_id=student_id,
         start_time=datetime.now(timezone.utc),  # type: ignore
     )
     db.add(attempt)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return (
+            db.query(models.ExamAttempt)
+            .filter(models.ExamAttempt.exam_id == exam_id, models.ExamAttempt.student_id == student_id)
+            .one()
+        )
     db.refresh(attempt)
     return attempt
 
@@ -134,41 +373,66 @@ def save_answer(
     if not attempt:
         raise ValueError("Attempt not found or does not belong to student")
 
-    # Check if answer already exists
-    existing_answer = (
-        db.query(models.Answer)
-        .filter(
-            models.Answer.attempt_id == attempt_id,
-            models.Answer.question_id == answer_in.question_id,
-        )
-        .first()
-    )
+    if attempt.end_time is not None:
+        raise ValueError("Exam already submitted")
 
-    if existing_answer:
-        # Update existing answer
-        existing_answer.answer_data = answer_in.answer_data
-        db.commit()
-        db.refresh(existing_answer)
-        return existing_answer
+    exam = get_exam_by_id(db, attempt.exam_id)
+    if not exam:
+        raise ValueError("Exam not found")
+
+    deadline = get_attempt_deadline(attempt, exam)
+    if datetime.now(timezone.utc) > deadline + timedelta(seconds=ANSWER_GRACE_SECONDS):
+        raise ValueError("Exam time is over. Answers can no longer be changed")
+
+    if answer_in.question_id not in {q.id for q in exam.questions}:
+        raise ValueError("Question does not belong to this exam")
+
+    def existing() -> models.Answer | None:
+        return (
+            db.query(models.Answer)
+            .filter(models.Answer.attempt_id == attempt_id, models.Answer.question_id == answer_in.question_id)
+            .first()
+        )
+
+    answer = existing()
+    if answer is None:
+        answer = models.Answer(attempt_id=attempt_id, question_id=answer_in.question_id, answer_data=answer_in.answer_data)
+        db.add(answer)
+        try:
+            db.commit()
+        except IntegrityError:
+            # Another save (a second tab, a retried request) inserted it first: update that one
+            db.rollback()
+            answer = existing()
+            answer.answer_data = answer_in.answer_data
+            db.commit()
     else:
-        # Create new answer
-        new_answer = models.Answer(
-            attempt_id=attempt_id,
-            question_id=answer_in.question_id,
-            answer_data=answer_in.answer_data,
-        )
-        db.add(new_answer)
+        answer.answer_data = answer_in.answer_data
         db.commit()
-        db.refresh(new_answer)
-        return new_answer
+    db.refresh(answer)
+    return answer
 
 
-def calculate_and_save_score(db: Session, attempt: models.ExamAttempt) -> models.ExamAttempt:
-    """Auto-grade an exam attempt, compute total possible score, and save results."""
-    # Get the exam with questions
+def finish_attempt(
+    db: Session, attempt: models.ExamAttempt, reason: str = models.SUBMIT_STUDENT, ended_at: datetime | None = None
+) -> bool:
+    """Close an attempt and auto-grade it. Returns False when something else closed it first
+    (a second tab, a retried request, the abandoned-attempt job): it's scored exactly once."""
     exam = db.query(models.Exam).filter(models.Exam.id == attempt.exam_id).first()
     if not exam:
         raise ValueError("Exam not found")
+    ended_at = ended_at or datetime.now(timezone.utc)
+
+    # Claim it atomically; on PostgreSQL the row stays locked until the commit below
+    claimed = (
+        db.query(models.ExamAttempt)
+        .filter(models.ExamAttempt.id == attempt.id, models.ExamAttempt.end_time.is_(None))
+        .update({models.ExamAttempt.end_time: ended_at}, synchronize_session=False)
+    )
+    if not claimed:
+        db.rollback()
+        db.refresh(attempt)
+        return False
 
     # Get all answers for this attempt
     answers = (
@@ -204,13 +468,20 @@ def calculate_and_save_score(db: Session, attempt: models.ExamAttempt) -> models
                 if correct_norm == student_norm:
                     total_score += float(question.max_score or 0)
 
-    # Update attempt with score, total possible, and end time
     attempt.score = float(total_score)  # type: ignore
     attempt.total_possible_score = float(total_possible)  # type: ignore
-    attempt.end_time = datetime.now(timezone.utc)  # type: ignore
+    attempt.end_time = ended_at  # type: ignore
+    attempt.submit_reason = reason  # type: ignore
     db.commit()
-    # Refresh the object to ensure it has the committed values
     db.refresh(attempt)
+    return True
+
+
+def calculate_and_save_score(
+    db: Session, attempt: models.ExamAttempt, reason: str = models.SUBMIT_STUDENT, ended_at: datetime | None = None
+) -> models.ExamAttempt:
+    """Close and grade an attempt; if it was already closed, return it as it was saved."""
+    finish_attempt(db, attempt, reason, ended_at)
     return attempt
 
 
@@ -264,3 +535,109 @@ def get_evaluation_by_answer(db: Session, answer_id: uuid.UUID) -> models.Evalua
         .filter(models.Evaluation.answer_id == answer_id)
         .first()
     )
+
+
+# --- Integrity ---
+
+def questions_for_attempt(exam: models.Exam, attempt: models.ExamAttempt) -> list[dict]:
+    """The exam's questions as this student sees them, without answers.
+
+    Shuffling is seeded with the attempt's ID: every student gets their own order,
+    and it stays the same when they reload or resume.
+    """
+    questions = list(exam.questions or [])
+    if exam.shuffle_questions:
+        questions.sort(key=lambda q: str(q.id))  # a fixed starting point, so the seed alone decides the order
+        random.Random(f"{attempt.id}:questions").shuffle(questions)
+
+    result = []
+    for q in questions:
+        options = list(q.options) if isinstance(q.options, list) else q.options
+        # Answers are stored as option values, not positions, so shuffling never affects grading
+        if exam.shuffle_options and isinstance(options, list):
+            random.Random(f"{attempt.id}:{q.id}").shuffle(options)
+        result.append({
+            "id": str(q.id),
+            "title": q.title,
+            "type": q.type,
+            "complexity": q.complexity,
+            "max_score": q.max_score,
+            "options": options,
+        })
+    return result
+
+
+def integrity_settings(exam: models.Exam) -> dict:
+    return {
+        "shuffle_questions": exam.shuffle_questions,
+        "shuffle_options": exam.shuffle_options,
+        "require_fullscreen": exam.require_fullscreen,
+        "block_copy_paste": exam.block_copy_paste,
+        "max_violations": exam.max_violations,
+    }
+
+
+def count_violations(db: Session, attempt_id: uuid.UUID) -> int:
+    return (
+        db.query(models.IntegrityEvent)
+        .filter(
+            models.IntegrityEvent.attempt_id == attempt_id,
+            models.IntegrityEvent.type.in_(models.VIOLATION_EVENTS),
+        )
+        .count()
+    )
+
+
+def record_integrity_events(
+    db: Session, attempt: models.ExamAttempt, events: list[schemas.IntegrityEventIn]
+) -> int:
+    """Store events from the exam page and return the attempt's violation count.
+
+    Once the count reaches the exam's limit, the attempt is submitted on the spot.
+    """
+    for event in events:
+        db.add(models.IntegrityEvent(
+            attempt_id=attempt.id,
+            type=event.type,
+            occurred_at=event.occurred_at,
+            details=event.details,
+        ))
+    db.commit()
+
+    violations = count_violations(db, attempt.id)
+    limit = attempt.exam.max_violations
+    if limit and violations >= limit and attempt.end_time is None:
+        calculate_and_save_score(db, attempt, reason=models.SUBMIT_VIOLATIONS)
+    return violations
+
+
+def integrity_summary(attempt: models.ExamAttempt) -> dict:
+    """Counts and an overall risk level, so examiners know which attempts to look at first.
+
+    - high: auto-submitted for violations, 3+ violations, or a minute or more away from the exam
+    - review: any violation or flag
+    - clean: nothing recorded
+    """
+    events = attempt.integrity_events
+    counts = {event_type: 0 for event_type in models.EVENT_TYPES}
+    seconds_away = 0.0
+    for event in events:
+        counts[event.type] = counts.get(event.type, 0) + 1
+        if event.type == models.EVENT_FOCUS_RETURNED:
+            seconds_away += float((event.details or {}).get("away_ms") or 0) / 1000
+
+    violations = sum(counts[t] for t in models.VIOLATION_EVENTS)
+    flags = sum(counts[t] for t in models.FLAG_EVENTS)
+    if attempt.submit_reason == models.SUBMIT_VIOLATIONS or violations >= 3 or seconds_away >= 60:
+        risk = "high"
+    elif violations or flags:
+        risk = "review"
+    else:
+        risk = "clean"
+    return {
+        "risk": risk,
+        "violations": violations,
+        "flags": flags,
+        "seconds_away": round(seconds_away),
+        "counts": counts,
+    }

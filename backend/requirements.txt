@@ -1,12 +1,14 @@
 fastapi[all]
 uvicorn
 sqlalchemy
-psycopg2-binary
+alembic
+psycopg[binary]
 passlib[bcrypt]
 python-jose[cryptography]
 python-multipart
 python-dotenv
 openpyxl
+tzdata
 pytest
 pytest-asyncio
 pytest-cov

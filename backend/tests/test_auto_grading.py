@@ -8,10 +8,11 @@ from app import models, schemas, crud
 class TestAutoGrading:
     """Test suite for auto-grading logic."""
     
-    def test_single_choice_correct_answer(self, test_db):
+    def test_single_choice_correct_answer(self, test_db, org):
         """Test auto-grading for single choice with correct answer."""
         # Arrange
         question = models.Question(
+            organization_id=org.id,
             title="Capital of France?",
             complexity="easy",
             type="single_choice",
@@ -23,12 +24,12 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Test Exam",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
             duration_minutes=60,
             is_published=True,
-            target_candidates="SSC"
         )
         exam.questions.append(question)
         test_db.add(exam)
@@ -37,9 +38,7 @@ class TestAutoGrading:
         student = models.User(
             email="student@test.com",
             hashed_password="hashed",
-            role="student",
             full_name="Test Student",
-            exam_candidate="SSC"
         )
         test_db.add(student)
         test_db.commit()
@@ -69,10 +68,11 @@ class TestAutoGrading:
         assert result.end_time is not None
     
     
-    def test_single_choice_incorrect_answer(self, test_db):
+    def test_single_choice_incorrect_answer(self, test_db, org):
         """Test auto-grading for single choice with incorrect answer."""
         # Arrange
         question = models.Question(
+            organization_id=org.id,
             title="Capital of France?",
             complexity="easy",
             type="single_choice",
@@ -84,6 +84,7 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Test Exam",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
@@ -97,7 +98,6 @@ class TestAutoGrading:
         student = models.User(
             email="student2@test.com",
             hashed_password="hashed",
-            role="student"
         )
         test_db.add(student)
         test_db.commit()
@@ -126,10 +126,11 @@ class TestAutoGrading:
         assert result.total_possible_score == 1.0
     
     
-    def test_multi_choice_all_correct(self, test_db):
+    def test_multi_choice_all_correct(self, test_db, org):
         """Test auto-grading for multi-choice with all correct answers."""
         # Arrange
         question = models.Question(
+            organization_id=org.id,
             title="Which are planets?",
             complexity="medium",
             type="multi_choice",
@@ -141,6 +142,7 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Test Exam",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
@@ -154,7 +156,6 @@ class TestAutoGrading:
         student = models.User(
             email="student3@test.com",
             hashed_password="hashed",
-            role="student"
         )
         test_db.add(student)
         test_db.commit()
@@ -183,10 +184,11 @@ class TestAutoGrading:
         assert result.total_possible_score == 2.0
     
     
-    def test_multi_choice_partial_correct(self, test_db):
+    def test_multi_choice_partial_correct(self, test_db, org):
         """Test auto-grading for multi-choice with partial answers (should fail)."""
         # Arrange
         question = models.Question(
+            organization_id=org.id,
             title="Which are planets?",
             complexity="medium",
             type="multi_choice",
@@ -198,6 +200,7 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Test Exam",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
@@ -211,7 +214,6 @@ class TestAutoGrading:
         student = models.User(
             email="student4@test.com",
             hashed_password="hashed",
-            role="student"
         )
         test_db.add(student)
         test_db.commit()
@@ -240,10 +242,11 @@ class TestAutoGrading:
         assert result.total_possible_score == 2.0
     
     
-    def test_multi_choice_wrong_answers(self, test_db):
+    def test_multi_choice_wrong_answers(self, test_db, org):
         """Test auto-grading for multi-choice with wrong answers."""
         # Arrange
         question = models.Question(
+            organization_id=org.id,
             title="Which are planets?",
             complexity="medium",
             type="multi_choice",
@@ -255,6 +258,7 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Test Exam",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
@@ -268,7 +272,6 @@ class TestAutoGrading:
         student = models.User(
             email="student5@test.com",
             hashed_password="hashed",
-            role="student"
         )
         test_db.add(student)
         test_db.commit()
@@ -297,10 +300,11 @@ class TestAutoGrading:
         assert result.total_possible_score == 2.0
     
     
-    def test_mixed_question_types_auto_grade_only_objective(self, test_db):
+    def test_mixed_question_types_auto_grade_only_objective(self, test_db, org):
         """Test auto-grading with mixed question types (only objective grades)."""
         # Arrange - Create multiple questions
         q1 = models.Question(
+            organization_id=org.id,
             title="Single choice",
             complexity="easy",
             type="single_choice",
@@ -309,6 +313,7 @@ class TestAutoGrading:
             max_score=1
         )
         q2 = models.Question(
+            organization_id=org.id,
             title="Text question",
             complexity="medium",
             type="text",
@@ -317,6 +322,7 @@ class TestAutoGrading:
             max_score=2
         )
         q3 = models.Question(
+            organization_id=org.id,
             title="Multi choice",
             complexity="medium",
             type="multi_choice",
@@ -328,6 +334,7 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Mixed Exam",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
@@ -341,7 +348,6 @@ class TestAutoGrading:
         student = models.User(
             email="student6@test.com",
             hashed_password="hashed",
-            role="student"
         )
         test_db.add(student)
         test_db.commit()
@@ -382,10 +388,11 @@ class TestAutoGrading:
         assert result.total_possible_score == 5.0
     
     
-    def test_image_upload_not_auto_graded(self, test_db):
+    def test_image_upload_not_auto_graded(self, test_db, org):
         """Test that image upload questions are not auto-graded."""
         # Arrange
         question = models.Question(
+            organization_id=org.id,
             title="Upload image",
             complexity="medium",
             type="image_upload",
@@ -397,6 +404,7 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Image Exam",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
@@ -410,7 +418,6 @@ class TestAutoGrading:
         student = models.User(
             email="student7@test.com",
             hashed_password="hashed",
-            role="student"
         )
         test_db.add(student)
         test_db.commit()
@@ -440,10 +447,11 @@ class TestAutoGrading:
         assert result.total_possible_score == 3.0
     
     
-    def test_unanswered_questions_dont_score(self, test_db):
+    def test_unanswered_questions_dont_score(self, test_db, org):
         """Test that unanswered questions don't contribute to score."""
         # Arrange
         q1 = models.Question(
+            organization_id=org.id,
             title="Question 1",
             complexity="easy",
             type="single_choice",
@@ -452,6 +460,7 @@ class TestAutoGrading:
             max_score=1
         )
         q2 = models.Question(
+            organization_id=org.id,
             title="Question 2",
             complexity="easy",
             type="single_choice",
@@ -463,6 +472,7 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Test Exam",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
@@ -476,7 +486,6 @@ class TestAutoGrading:
         student = models.User(
             email="student8@test.com",
             hashed_password="hashed",
-            role="student"
         )
         test_db.add(student)
         test_db.commit()
@@ -506,10 +515,11 @@ class TestAutoGrading:
         assert result.total_possible_score == 2.0  # Both questions possible
     
     
-    def test_custom_max_score_calculation(self, test_db):
+    def test_custom_max_score_calculation(self, test_db, org):
         """Test auto-grading with custom max_score values."""
         # Arrange
         q1 = models.Question(
+            organization_id=org.id,
             title="Worth 5 points",
             complexity="easy",
             type="single_choice",
@@ -518,6 +528,7 @@ class TestAutoGrading:
             max_score=5
         )
         q2 = models.Question(
+            organization_id=org.id,
             title="Worth 10 points",
             complexity="medium",
             type="single_choice",
@@ -529,6 +540,7 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Custom Score Exam",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
@@ -542,7 +554,6 @@ class TestAutoGrading:
         student = models.User(
             email="student9@test.com",
             hashed_password="hashed",
-            role="student"
         )
         test_db.add(student)
         test_db.commit()
@@ -576,10 +587,11 @@ class TestAutoGrading:
         assert result.total_possible_score == 15.0  # 5 + 10
     
     
-    def test_answer_with_numeric_comparison(self, test_db):
+    def test_answer_with_numeric_comparison(self, test_db, org):
         """Test auto-grading with numeric string comparisons."""
         # Arrange
         question = models.Question(
+            organization_id=org.id,
             title="What is 2+2?",
             complexity="easy",
             type="single_choice",
@@ -591,6 +603,7 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Math Exam",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
@@ -604,7 +617,6 @@ class TestAutoGrading:
         student = models.User(
             email="student10@test.com",
             hashed_password="hashed",
-            role="student"
         )
         test_db.add(student)
         test_db.commit()
@@ -632,10 +644,11 @@ class TestAutoGrading:
         assert result.score == 1.0
     
     
-    def test_attempt_end_time_is_set_on_submit(self, test_db):
+    def test_attempt_end_time_is_set_on_submit(self, test_db, org):
         """Test that attempt end_time is set when submitting."""
         # Arrange
         question = models.Question(
+            organization_id=org.id,
             title="Test",
             complexity="easy",
             type="single_choice",
@@ -647,6 +660,7 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Test",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
@@ -660,7 +674,6 @@ class TestAutoGrading:
         student = models.User(
             email="student11@test.com",
             hashed_password="hashed",
-            role="student"
         )
         test_db.add(student)
         test_db.commit()
@@ -683,10 +696,11 @@ class TestAutoGrading:
         assert result.end_time is not None
     
     
-    def test_multi_choice_case_sensitive_comparison(self, test_db):
+    def test_multi_choice_case_sensitive_comparison(self, test_db, org):
         """Test multi-choice with case-sensitive answer comparison."""
         # Arrange
         question = models.Question(
+            organization_id=org.id,
             title="Which are correct?",
             complexity="medium",
             type="multi_choice",
@@ -698,6 +712,7 @@ class TestAutoGrading:
         test_db.commit()
         
         exam = models.Exam(
+            organization_id=org.id,
             title="Case Test",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
@@ -711,7 +726,6 @@ class TestAutoGrading:
         student = models.User(
             email="student12@test.com",
             hashed_password="hashed",
-            role="student"
         )
         test_db.add(student)
         test_db.commit()

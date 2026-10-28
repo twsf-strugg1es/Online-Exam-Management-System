@@ -1,0 +1,8 @@
+# Same line endings on every PC and inside Linux containers
+* text=auto eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary
+*.xlsx binary

@@ -1,646 +1,249 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import AdminSidebar from '../components/AdminSidebar';
-import ConfirmModal from '../components/ConfirmModal';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LuPlus, LuClipboardList, LuEllipsis, LuTrash2, LuEyeOff, LuSend, LuPencil } from 'react-icons/lu';
 import api from '../api';
-import Button from '../components/Button';
+import AppShell from '../components/AppShell';
+import { Alert, Button, Card, EmptyState, PageHeader, PageLoader, useConfirm } from '../components/ui';
+import { errorMessage, formatExamTime, formatShortDate, getTimeZone, isSameDay, timeZoneLabel } from '../utils';
+import { useI18n } from '../i18n';
 
+// Draft until published; then scheduled, live or closed depending on the exam window
+export function examStatus(exam, now = new Date()) {
+  if (!exam.is_published) return { label: 'Draft', tone: 'neutral' };
+  if (now < new Date(exam.start_time)) return { label: 'Scheduled', tone: 'info' };
+  if (now <= new Date(exam.end_time)) return { label: 'Live', tone: 'brand', live: true };
+  return { label: 'Closed', tone: 'neutral' };
+}
 
-function AdminExamsPage() {
-  const { user, logout } = useAuth();
-  const { theme } = useTheme();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('create');
-  const [exams, setExams] = useState([]);
-  const [examsLoading, setExamsLoading] = useState(true);
-  const [examsError, setExamsError] = useState('');
-  const [examMessage, setExamMessage] = useState('');
-  const [questions, setQuestions] = useState([]);
-  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteExamId, setDeleteExamId] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [examForm, setExamForm] = useState({
-    title: '',
-    start_time: '',
-    end_time: '',
-    duration_minutes: '',
-    target_candidates: '',
-  });
-  const [selectedExamForEvaluation, setSelectedExamForEvaluation] = useState(null);
-  const [examAttempts, setExamAttempts] = useState([]);
-  const [attemptsLoading, setAttemptsLoading] = useState(false);
-  const [attemptsError, setAttemptsError] = useState('');
-  const [studentSearchQuery, setStudentSearchQuery] = useState('');
-  const [filteredAttempts, setFilteredAttempts] = useState([]);
-  const [showEvaluationModal, setShowEvaluationModal] = useState(false);
+// Status as an answer-bubble dot: filled when live, half when scheduled, empty for drafts
+const STATUS_STYLE = {
+  Draft: ['text-faint', ''],
+  Scheduled: ['text-ink', 'bg-[linear-gradient(90deg,currentColor_50%,transparent_50%)]'],
+  Live: ['text-brand font-medium', 'bg-current'],
+  Closed: ['text-faint', 'bg-current opacity-50'],
+};
 
-  // Filter attempts based on search
-  useEffect(() => {
-    let filtered = examAttempts;
-    if (studentSearchQuery.trim()) {
-      filtered = filtered.filter(a =>
-        (a.student?.email && a.student.email.toLowerCase().includes(studentSearchQuery.toLowerCase())) ||
-        (a.student?.full_name && a.student.full_name.toLowerCase().includes(studentSearchQuery.toLowerCase()))
-      );
-    }
-    setFilteredAttempts(filtered);
-  }, [examAttempts, studentSearchQuery]);
-
-  // Fetch exams and questions on mount
-  useEffect(() => {
-    fetchExams();
-    fetchQuestions();
-  }, []);
-
-  const fetchExams = async () => {
-    setExamsError('');
-    setExamsLoading(true);
-    try {
-      const res = await api.get('/admin/exams/');
-      setExams(res.data);
-    } catch (err) {
-      let msg = 'Failed to load exams';
-      if (err.response?.data?.detail) {
-        if (typeof err.response.data.detail === 'string') {
-          msg = err.response.data.detail;
-        }
-      }
-      setExamsError(msg);
-    } finally {
-      setExamsLoading(false);
-    }
-  };
-
-  const fetchQuestions = async () => {
-    try {
-      const res = await api.get('/admin/questions/');
-      setQuestions(res.data || []);
-    } catch (err) {
-      console.error('Failed to fetch questions:', err);
-    }
-  };
-
-  const fetchExamAttempts = async (examId) => {
-    setAttemptsError('');
-    setAttemptsLoading(true);
-    try {
-      const res = await api.get(`/admin/exams/${examId}/attempts`);
-      setExamAttempts(res.data || []);
-    } catch (err) {
-      let msg = 'Failed to load exam attempts';
-      if (err.response?.data?.detail) {
-        if (typeof err.response.data.detail === 'string') {
-          msg = err.response.data.detail;
-        }
-      }
-      setAttemptsError(msg);
-    } finally {
-      setAttemptsLoading(false);
-    }
-  };
-
-  const handleEvaluateClick = (attemptId) => {
-    navigate(`/admin-evaluate-answers/${attemptId}`);
-  };
-
-  const handleExamInputChange = (e) => {
-    const { name, value } = e.target;
-    setExamForm(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleQuestionToggle = (questionId) => {
-    setSelectedQuestionIds(prev =>
-      prev.includes(questionId)
-        ? prev.filter(id => id !== questionId)
-        : [...prev, questionId]
-    );
-  };
-
-  const handleCreateExam = async () => {
-    if (!examForm.title || !examForm.start_time || !examForm.end_time || !examForm.duration_minutes || !examForm.target_candidates) {
-      setExamMessage('Please fill in all required fields');
-      return;
-    }
-
-    if (selectedQuestionIds.length === 0) {
-      setExamMessage('Please select at least one question');
-      return;
-    }
-
-    try {
-      await api.post('/admin/exams/', {
-        ...examForm,
-        duration_minutes: parseInt(examForm.duration_minutes),
-        question_ids: selectedQuestionIds,
-      });
-      setExamMessage('Exam created successfully');
-      setExamForm({
-        title: '',
-        start_time: '',
-        end_time: '',
-        duration_minutes: '',
-        target_candidates: '',
-      });
-      setSelectedQuestionIds([]);
-      fetchExams();
-    } catch (err) {
-      let msg = 'Failed to create exam';
-      if (err.response?.data?.detail) {
-        if (typeof err.response.data.detail === 'string') {
-          msg = err.response.data.detail;
-        }
-      }
-      setExamMessage(msg);
-    }
-  };
-
-  const handlePublish = async (examId) => {
-    setExamMessage('');
-    try {
-      await api.post(`/admin/exams/${examId}/publish`);
-      setExamMessage('Exam published successfully');
-      await fetchExams();
-    } catch (err) {
-      let msg = 'Failed to publish exam';
-      if (err.response?.data?.detail) {
-        if (typeof err.response.data.detail === 'string') {
-          msg = err.response.data.detail;
-        }
-      }
-      setExamMessage(msg);
-    }
-  };
-
-  const handleUnpublish = async (examId) => {
-    setExamMessage('');
-    try {
-      await api.post(`/admin/exams/${examId}/unpublish`);
-      setExamMessage('Exam unpublished successfully');
-      await fetchExams();
-    } catch (err) {
-      let msg = 'Failed to unpublish exam';
-      if (err.response?.data?.detail) {
-        if (typeof err.response.data.detail === 'string') {
-          msg = err.response.data.detail;
-        }
-      }
-      setExamMessage(msg);
-    }
-  };
-
-  const handleDeleteExam = async (examId) => {
-    setShowDeleteModal(true);
-    setDeleteExamId(examId);
-  };
-
-  const confirmDeleteExam = async () => {
-    setDeleteLoading(true);
-    try {
-      await api.delete(`/admin/exams/${deleteExamId}`);
-      setExamMessage('Exam deleted successfully');
-      setShowDeleteModal(false);
-      setDeleteExamId(null);
-      await fetchExams();
-    } catch (err) {
-      let msg = 'Failed to delete exam';
-      if (err.response?.data?.detail) {
-        if (typeof err.response.data.detail === 'string') {
-          msg = err.response.data.detail;
-        }
-      }
-      setExamMessage(msg);
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
+export function StatusBadge({ exam }) {
+  const { t } = useI18n();
+  const { label } = examStatus(exam);
+  const [text, dot] = STATUS_STYLE[label];
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.background, fontFamily: 'Roboto, sans-serif' }}>
-      {/* Sidebar */}
-      <AdminSidebar user={user} onLogout={logout} />
+    <span className={`inline-flex items-center gap-2 text-sm ${text}`}>
+      <span className={`status-dot ${dot}`} aria-hidden="true" />
+      {t(label)}
+    </span>
+  );
+}
 
-      {/* Main Content */}
-      <div style={{ marginLeft: '70px', flex: 1, padding: '30px', overflow: 'auto' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          {/* Header */}
-          <div style={{ marginBottom: '30px' }}>
-            <h1 style={{ margin: '0 0 24px 0', color: '#0d6efd', fontSize: '28px', fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}>Exams Management</h1>
+// Printed tags naming the protections an exam uses
+export function ProtectionIcons({ exam }) {
+  const { t, tn } = useI18n();
+  const items = [
+    exam.require_fullscreen && [t('Fullscreen'), t('Fullscreen required')],
+    (exam.shuffle_questions || exam.shuffle_options) && [t('Shuffle'), t('Shuffled per student')],
+    exam.block_copy_paste && [t('No paste'), t('Copy and paste blocked')],
+    exam.max_violations && [t('Limit {{n}}', { n: exam.max_violations }), tn(exam.max_violations, 'Submitted automatically after {{count}} violation', 'Submitted automatically after {{count}} violations')],
+  ].filter(Boolean);
+  if (!items.length) return <span className="text-xs text-faint">{t('No protections')}</span>;
+  return (
+    <span className="flex flex-wrap items-center gap-1">
+      {items.map(([tag, label]) => (
+        <span key={tag} title={label} className="tag uppercase">
+          {tag}
+          <span className="sr-only">: {label}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function ExamMenu({ exam, onPublishToggle, onDelete }) {
+  const { t } = useI18n();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <Button variant="ghost" size="sm" icon={LuEllipsis} onClick={() => setOpen(!open)} aria-label={t('More actions')} />
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute end-0 z-20 mt-1 w-48 animate-fade-in overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-pop">
+            {!exam.edit_blocked && (
+              <button
+                type="button"
+                onClick={() => { setOpen(false); navigate(`/admin-exams/${exam.id}/edit`); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-sunken"
+              >
+                <LuPencil className="h-4 w-4 text-muted" />
+                {t('Edit')}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onPublishToggle(exam); }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-sunken"
+            >
+              {exam.is_published ? <LuEyeOff className="h-4 w-4 text-muted" /> : <LuSend className="h-4 w-4 text-muted" />}
+              {exam.is_published ? t('Unpublish') : t('Publish')}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onDelete(exam); }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm text-danger hover:bg-danger-soft"
+            >
+              <LuTrash2 className="h-4 w-4" />
+              {t('Delete')}
+            </button>
           </div>
-
-          {/* Tabs */}
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
-            <button
-              onClick={() => setActiveTab('create')}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: activeTab === 'create' ? '#0d6efd' : 'transparent',
-                color: activeTab === 'create' ? '#000000' : '#0d6efd',
-                border: `2px solid #0d6efd`,
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontFamily: 'Roboto, sans-serif',
-              }}
-            >
-              Create Exam
-            </button>
-            <button
-              onClick={() => setActiveTab('manage')}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: activeTab === 'manage' ? '#0d6efd' : 'transparent',
-                color: activeTab === 'manage' ? '#000000' : '#0d6efd',
-                border: `2px solid #0d6efd`,
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontFamily: 'Roboto, sans-serif',
-              }}
-            >
-              Manage Exams
-            </button>
-            <button
-              onClick={() => setActiveTab('evaluation')}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: activeTab === 'evaluation' ? '#0d6efd' : 'transparent',
-                color: activeTab === 'evaluation' ? '#000000' : '#0d6efd',
-                border: `2px solid #0d6efd`,
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontFamily: 'Roboto, sans-serif',
-              }}
-            >
-              Exam Evaluation
-            </button>
-          </div>
-
-          {activeTab === 'create' && (
-            <div style={{ backgroundColor: 'rgba(135, 206, 235, 0.05)', border: '2px solid #0d6efd', borderRadius: '8px', padding: '30px' }}>
-              <h2 style={{ margin: '0 0 20px 0', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Create Exam</h2>
-              {examMessage && (
-                <div style={{
-                  marginBottom: '20px',
-                  padding: '15px',
-                  backgroundColor: examMessage.includes('success') ? 'rgba(132, 204, 22, 0.1)' : 'rgba(220, 53, 69, 0.1)',
-                  borderLeft: `4px solid ${examMessage.includes('success') ? '#84cc16' : '#dc3545'}`,
-                  color: examMessage.includes('success') ? '#84cc16' : '#ff6b6b',
-                  borderRadius: '4px',
-                  fontFamily: 'Roboto, sans-serif',
-                }}>
-                  {examMessage}
-                </div>
-              )}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Exam Title:</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={examForm.title}
-                  onChange={handleExamInputChange}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #0d6efd',
-                    borderRadius: '4px',
-                    backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                    color: '#0d6efd',
-                    fontFamily: 'Roboto, sans-serif',
-                  }}
-                />
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Start Time:</label>
-                <input
-                  type="datetime-local"
-                  name="start_time"
-                  value={examForm.start_time}
-                  onChange={handleExamInputChange}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #0d6efd',
-                    borderRadius: '4px',
-                    backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                    color: '#0d6efd',
-                    fontFamily: 'Roboto, sans-serif',
-                  }}
-                />
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>End Time:</label>
-                <input
-                  type="datetime-local"
-                  name="end_time"
-                  value={examForm.end_time}
-                  onChange={handleExamInputChange}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #0d6efd',
-                    borderRadius: '4px',
-                    backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                    color: '#0d6efd',
-                    fontFamily: 'Roboto, sans-serif',
-                  }}
-                />
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Duration (minutes):</label>
-                <input
-                  type="number"
-                  name="duration_minutes"
-                  value={examForm.duration_minutes}
-                  onChange={handleExamInputChange}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #0d6efd',
-                    borderRadius: '4px',
-                    backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                    color: '#0d6efd',
-                    fontFamily: 'Roboto, sans-serif',
-                  }}
-                />
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Target Candidates (Required):</label>
-                <select
-                  name="target_candidates"
-                  value={examForm.target_candidates}
-                  onChange={handleExamInputChange}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #0d6efd',
-                    borderRadius: '4px',
-                    backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                    color: '#0d6efd',
-                    fontFamily: 'Roboto, sans-serif',
-                  }}
-                >
-                  <option value="">-- Select Target Candidates --</option>
-                  <option value="SSC">SSC</option>
-                  <option value="HSC">HSC</option>
-                  <option value="Admission">Admission</option>
-                </select>
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: '#0d6efd' }}>Select Questions:</label>
-                <div style={{
-                  border: '1px solid #0d6efd',
-                  padding: '15px',
-                  borderRadius: '4px',
-                  maxHeight: '300px',
-                  overflowY: 'auto',
-                  backgroundColor: 'rgba(135, 206, 235, 0.05)',
-                }}>
-                  {questions.length === 0 ? (
-                    <p style={{ color: '#0d6efd' }}>No questions available</p>
-                  ) : (
-                    questions.map(q => (
-                      <div key={q.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                        <input
-                          type="checkbox"
-                          checked={selectedQuestionIds.includes(q.id)}
-                          onChange={() => handleQuestionToggle(q.id)}
-                        />
-                        <label style={{ marginLeft: '8px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{q.title} ({q.type})</label>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-              <Button onClick={handleCreateExam} style={{ marginTop: '20px' }}>Create Exam</Button>
-            </div>
-          )}
-
-          {activeTab === 'evaluation' && (
-            <div style={{ backgroundColor: 'rgba(135, 206, 235, 0.05)', border: '2px solid #0d6efd', borderRadius: '8px', padding: '30px' }}>
-              <h2 style={{ margin: '0 0 20px 0', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Exam Evaluation</h2>
-              {examMessage && (
-                <div style={{
-                  marginBottom: '20px',
-                  padding: '15px',
-                  backgroundColor: examMessage.includes('success') ? 'rgba(132, 204, 22, 0.1)' : 'rgba(220, 53, 69, 0.1)',
-                  borderLeft: `4px solid ${examMessage.includes('success') ? '#84cc16' : '#dc3545'}`,
-                  color: examMessage.includes('success') ? '#84cc16' : '#ff6b6b',
-                  borderRadius: '4px',
-                  fontFamily: 'Roboto, sans-serif',
-                }}>
-                  {examMessage}
-                </div>
-              )}
-
-              {!selectedExamForEvaluation ? (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-                  gap: '20px',
-                  marginTop: '20px',
-                }}>
-                  {exams.length === 0 ? (
-                    <p style={{ color: '#0d6efd' }}>No exams available</p>
-                  ) : (
-                    exams.map(exam => (
-                      <div
-                        key={exam.id}
-                        onClick={() => {
-                          setSelectedExamForEvaluation(exam);
-                          fetchExamAttempts(exam.id);
-                        }}
-                        style={{
-                          backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                          border: '1px solid #0d6efd',
-                          padding: '20px',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          transition: 'transform 0.2s',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                      >
-                        <h3 style={{ color: '#0d6efd', margin: '0 0 10px 0' }}>{exam.title}</h3>
-                        <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Questions:</strong> {exam.question_count || 0}</p>
-                        <p style={{ color: '#0d6efd', fontSize: '12px', margin: '5px 0' }}>Click to view student attempts</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <Button onClick={() => setSelectedExamForEvaluation(null)} style={{
-                    marginBottom: '20px',
-                    fontSize: '14px',
-                    padding: '10px 20px'
-                  }}>← Back to Exams</Button>
-                  <h3 style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{selectedExamForEvaluation.title} - Student Attempts</h3>
-
-                  <div style={{ marginBottom: '20px', marginTop: '20px' }}>
-                    <input
-                      type="text"
-                      placeholder="Search students by email or name"
-                      value={studentSearchQuery}
-                      onChange={(e) => setStudentSearchQuery(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #0d6efd',
-                        borderRadius: '4px',
-                        backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                        color: '#0d6efd',
-                        fontFamily: 'Roboto, sans-serif',
-                      }}
-                    />
-                  </div>
-
-                  {attemptsLoading ? (
-                    <p style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Loading attempts...</p>
-                  ) : attemptsError ? (
-                    <p style={{ color: '#ff6b6b', fontFamily: 'Roboto, sans-serif' }}>{attemptsError}</p>
-                  ) : filteredAttempts.length === 0 ? (
-                    <p style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>No student attempts found</p>
-                  ) : (
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ backgroundColor: '#0d6efd', color: '#000000' }}>
-                            <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Student Email</th>
-                            <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Student Name</th>
-                            <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Submission Time</th>
-                            <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Evaluated</th>
-                            <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredAttempts.map(attempt => {
-                            return (
-                              <tr key={attempt.id} style={{ borderBottom: '1px solid #0d6efd' }}>
-                                <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{attempt.student?.email || attempt.student_email || '-'}</td>
-                                <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{attempt.student?.full_name || attempt.student_name || '-'}</td>
-                                <td style={{ padding: '12px', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>{attempt.end_time ? new Date(attempt.end_time).toLocaleString() : '-'}</td>
-                                <td style={{ padding: '12px' }}>
-                                  <div style={{
-                                    width: '20px',
-                                    height: '20px',
-                                    backgroundColor: attempt.score !== null ? '#84cc16' : '#fbbf24'
-                                  }}></div>
-                                </td>
-                                <td style={{ padding: '12px' }}>
-                                  <Button onClick={() => handleEvaluateClick(attempt.id)} style={{
-                                    padding: '8px 16px',
-                                    fontSize: '12px',
-                                  }}>Evaluate</Button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'manage' && (
-            <div style={{ backgroundColor: 'rgba(135, 206, 235, 0.05)', border: '2px solid #0d6efd', borderRadius: '8px', padding: '30px' }}>
-              <h2 style={{ margin: '0 0 20px 0', color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Manage Exams</h2>
-              {examMessage && (
-                <div style={{
-                  marginBottom: '20px',
-                  padding: '15px',
-                  backgroundColor: examMessage.includes('success') ? 'rgba(132, 204, 22, 0.1)' : 'rgba(220, 53, 69, 0.1)',
-                  borderLeft: `4px solid ${examMessage.includes('success') ? '#84cc16' : '#dc3545'}`,
-                  color: examMessage.includes('success') ? '#84cc16' : '#ff6b6b',
-                  borderRadius: '4px',
-                  fontFamily: 'Roboto, sans-serif',
-                }}>
-                  {examMessage}
-                </div>
-              )}
-              {examsLoading ? (
-                <p style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>Loading exams...</p>
-              ) : examsError ? (
-                <p style={{ color: '#ff6b6b', fontFamily: 'Roboto, sans-serif' }}>{examsError}</p>
-              ) : exams.length === 0 ? (
-                <p style={{ color: '#0d6efd', fontFamily: 'Roboto, sans-serif' }}>No exams available</p>
-              ) : (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-                  gap: '20px',
-                  marginTop: '20px',
-                }}>
-                  {exams.map(exam => (
-                    <div key={exam.id} style={{
-                      backgroundColor: 'rgba(135, 206, 235, 0.1)',
-                      border: '1px solid #0d6efd',
-                      padding: '20px',
-                      borderRadius: '8px',
-                    }}>
-                      <h3 style={{ color: '#0d6efd', margin: '0 0 10px 0' }}>{exam.title}</h3>
-                      <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Status:</strong> {exam.is_published ? 'Published' : 'Draft'}</p>
-                      <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Questions:</strong> {exam.question_count || 0}</p>
-                      <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Start:</strong> {new Date(exam.start_time).toLocaleString()}</p>
-                      <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>End:</strong> {new Date(exam.end_time).toLocaleString()}</p>
-                      <p style={{ color: '#0d6efd', margin: '5px 0' }}><strong>Duration:</strong> {exam.duration_minutes} minutes</p>
-                      <div style={{
-                        display: 'flex',
-                        gap: '10px',
-                        marginTop: '15px',
-                      }}>
-                        {!exam.is_published ? (
-                          <Button onClick={() => handlePublish(exam.id)} style={{
-                            flex: 1,
-                            padding: '8px',
-                            fontSize: '14px',
-                          }}>Publish</Button>
-                        ) : (
-                          <Button onClick={() => handleUnpublish(exam.id)} style={{
-                            flex: 1,
-                            padding: '8px',
-                            fontSize: '14px',
-                          }}>Unpublish</Button>
-                        )}
-                        <Button onClick={() => handleDeleteExam(exam.id)} style={{
-                          flex: 1,
-                          padding: '8px',
-                          fontSize: '14px',
-                        }}>Delete</Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <ConfirmModal
-        isOpen={showDeleteModal}
-        title="Delete Exam"
-        message="Are you sure you want to delete this exam? This action cannot be undone."
-        onConfirm={confirmDeleteExam}
-        onCancel={() => {
-          setShowDeleteModal(false);
-          setDeleteExamId(null);
-        }}
-        confirmText="Delete"
-        cancelText="Cancel"
-        isLoading={deleteLoading}
-      />
+        </>
+      )}
     </div>
   );
 }
 
+// Date on one line, times on the next; both dates when the window spans days
+function ExamWindow({ exam }) {
+  const { t, locale } = useI18n();
+  const start = new Date(exam.start_time);
+  const end = new Date(exam.end_time);
+  const time = (d) => d.toLocaleTimeString(locale, { timeZone: getTimeZone(), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const day = (d) => (isSameDay(d, new Date()) ? t('Today') : formatShortDate(d));
+  const zone = timeZoneLabel(start);
+  return (
+    <>
+      <span className="block">{isSameDay(start, end) ? day(start) : `${day(start)} – ${day(end)}`}</span>
+      <span className="block text-faint">{time(start)} – {time(end)}{zone && ` ${zone}`}</span>
+    </>
+  );
+}
+
+function AdminExamsPage() {
+  const navigate = useNavigate();
+  const { t } = useI18n();
+  const [exams, setExams] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [confirmDialog, confirm] = useConfirm();
+
+  const fetchExams = async () => {
+    try {
+      const res = await api.get('/admin/exams/');
+      // Newest first
+      setExams([...res.data].sort((a, b) => new Date(b.start_time) - new Date(a.start_time)));
+    } catch (err) {
+      setMessage({ tone: 'danger', text: errorMessage(err, 'Failed to load exams') });
+      setExams([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchExams();
+  }, []);
+
+  const togglePublish = async (exam) => {
+    if (!exam.is_published) {
+      const ok = await confirm({
+        title: t('Publish “{{title}}”?', { title: exam.title }),
+        description: exam.groups?.length
+          ? t('Students in {{groups}} will see it and can start it from {{date}}.', { groups: exam.groups.map((g) => g.name).join(', '), date: formatExamTime(exam.start_time) })
+          : t('Students in your organization will see it and can start it from {{date}}.', { date: formatExamTime(exam.start_time) }),
+        confirmLabel: t('Publish'),
+      });
+      if (!ok) return;
+    }
+    try {
+      await api.post(`/admin/exams/${exam.id}/${exam.is_published ? 'unpublish' : 'publish'}`);
+      setMessage({ tone: 'success', text: exam.is_published ? t('Exam unpublished. Students can no longer see it.') : t('Exam published.') });
+      fetchExams();
+    } catch (err) {
+      setMessage({ tone: 'danger', text: errorMessage(err) });
+    }
+  };
+
+  const deleteExam = async (exam) => {
+    const ok = await confirm({
+      title: t('Delete “{{title}}”?', { title: exam.title }),
+      description: t('If students have started it, it is archived instead: hidden from lists and closed, with their results and integrity records kept.'),
+      confirmLabel: t('Delete exam'),
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const { data } = await api.delete(`/admin/exams/${exam.id}`);
+      setMessage({ tone: 'success', text: t(data.message) });
+      fetchExams();
+    } catch (err) {
+      setMessage({ tone: 'danger', text: errorMessage(err) });
+    }
+  };
+
+  return (
+    <AppShell>
+      <PageHeader
+        title={t('Exams')}
+        description={t('Schedule an exam from your question bank, then share it with one or more groups.')}
+        actions={<Button icon={LuPlus} onClick={() => navigate('/admin-exams/new')}>{t('New exam')}</Button>}
+      />
+
+      {message && <Alert tone={message.tone} className="mb-6" onClose={() => setMessage(null)}>{message.text}</Alert>}
+
+      {exams === null ? (
+        <PageLoader />
+      ) : exams.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={LuClipboardList}
+            title={t('No exams yet')}
+            action={<Button icon={LuPlus} onClick={() => navigate('/admin-exams/new')}>{t('Create your first exam')}</Button>}
+          >
+            {t('An exam picks questions from your question bank and runs in a time window you choose.')}
+          </EmptyState>
+        </Card>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="table min-w-[56rem] table-fixed">
+            <colgroup>
+              <col className="w-12" /><col /><col className="w-[11.5rem]" /><col className="w-[8.5rem]" /><col className="w-[14rem]" /><col className="w-[7.5rem]" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>{t('No.')}</th>
+                <th>{t('Exam')}</th>
+                <th>{t('Window')}</th>
+                <th>{t('Status')}</th>
+                <th>{t('Protections')}</th>
+                <th><span className="sr-only">{t('Actions')}</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {exams.map((exam, i) => (
+                <tr key={exam.id}>
+                  <td className="tabular font-mono text-faint">{String(i + 1).padStart(2, '0')}</td>
+                  <td>
+                    <Link to={`/admin-exams/${exam.id}`} className="font-medium text-ink hover:text-brand">{exam.title}</Link>
+                    <span className="mt-0.5 block truncate font-mono text-xs text-faint">
+                      {exam.groups?.length ? exam.groups.map((g) => g.name).join(', ') : t('Everyone')} · {t('{{n}} min', { n: exam.duration_minutes })} · {t('{{n}} Q', { n: exam.questions?.length || 0 })}
+                    </span>
+                  </td>
+                  <td className="tabular font-mono text-[13px] leading-snug"><ExamWindow exam={exam} /></td>
+                  <td className="whitespace-nowrap"><StatusBadge exam={exam} /></td>
+                  <td><ProtectionIcons exam={exam} /></td>
+                  <td>
+                    <div className="flex items-center justify-end gap-1">
+                      {!exam.is_published && (
+                        <Button variant="secondary" size="sm" onClick={() => togglePublish(exam)}>{t('Publish')}</Button>
+                      )}
+                      <ExamMenu exam={exam} onPublishToggle={togglePublish} onDelete={deleteExam} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {confirmDialog}
+    </AppShell>
+  );
+}
+
 export default AdminExamsPage;
-
-
-
