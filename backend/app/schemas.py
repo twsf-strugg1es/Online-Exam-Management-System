@@ -444,3 +444,21 @@ class QuestionEdit(BaseModel):
         # Stored the way the importer stores them: one value for single choice, a list for multiple
         self.correct_answers = correct[0] if self.type == "single_choice" else correct
         return self
+
+
+class WaitlistJoin(BaseModel):
+    email: EmailStr
+    source: Optional[str] = Field(None, max_length=40)  # which call to action
+    locale: Optional[str] = Field(None, max_length=20)  # navigator.language
+    website: Optional[str] = None  # honeypot: hidden from people, filled in by bots
+
+    @field_validator("source", "locale")
+    @classmethod
+    def tidy_label(cls, v: Optional[str]) -> Optional[str]:
+        # Free text from the page; keep only short, plain labels
+        v = (v or "").strip()
+        return v if re.fullmatch(r"[A-Za-z0-9_-]{1,40}", v) else None
+
+
+class WaitlistUnsubscribe(BaseModel):
+    token: str

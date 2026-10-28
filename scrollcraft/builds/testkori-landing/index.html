@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="testkori-api" content="http://localhost:8000">
 <title>TestKori · Fair exams in any browser</title>
 <meta name="description" content="Teachers set short, timed tests. Students take them on a locked-down page. Every tab switch is on the record. Join the waitlist.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -529,7 +530,6 @@
         <button class="btn btn-marker" type="submit">Join the waitlist</button>
         <p class="msg" id="wlMsg" aria-live="polite"></p>
       </form>
-      <p class="label" style="margin:0.5rem 0 0">Prototype: this form doesn't save yet</p>
     </div>
     <footer class="foot">
       <span>TestKori · fair exams in any browser</span>
@@ -540,6 +540,7 @@
 </main>
 
 <script src="scrollcraft.js"></script>
+<script src="waitlist.js"></script>
 <script>ScrollCraft.mount(document.body);</script>
 <script>
 (() => {
@@ -796,14 +797,8 @@
     }, { once: true });
   }
 
-  /* ---------- Q9: waitlist form (prototype: validates, doesn't save) ---------- */
-  $('wlForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = $('wlEmail').value.trim(), msg = $('wlMsg');
-    if ($('wlWebsite').value) return;    // bot trap
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { msg.className = 'msg err'; msg.textContent = 'That email doesn\'t look right. Check it and try again.'; $('wlEmail').focus(); return; }
-    msg.className = 'msg ok'; msg.textContent = 'You\'re on the list. We\'ll email you once, when TestKori opens.';
-  });
+  /* ---------- Q9: waitlist form (saved by the API; see waitlist.js) ---------- */
+  window.wireWaitlist({ form: $('wlForm'), email: $('wlEmail'), website: $('wlWebsite'), msg: $('wlMsg'), source: 'landing-close' });
 })();
 </script>
 </body>

@@ -312,3 +312,18 @@ class PasswordResetToken(Base):
     purpose = Column(String, nullable=False, default=TOKEN_RESET, server_default=TOKEN_RESET)
 
     user = relationship("User")
+
+
+class WaitlistSignup(Base):
+    """Someone who wants one email when TestKori launches. Belongs to TestKori itself, not to
+    an organization; read only by `manage_waitlist.py`, never through the API."""
+
+    __tablename__ = "waitlist_signups"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String, nullable=False, unique=True)  # lower-cased and trimmed
+    source = Column(String(40), nullable=True)  # which call to action, e.g. landing-hero
+    locale = Column(String(20), nullable=True)  # browser language, for the launch email
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    notified_at = Column(DateTime(timezone=True), nullable=True)  # launch email sent; never send twice
+    unsubscribed_at = Column(DateTime(timezone=True), nullable=True)

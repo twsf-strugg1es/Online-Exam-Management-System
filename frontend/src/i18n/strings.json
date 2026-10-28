@@ -153,6 +153,7 @@
     "source": "server"
   },
   "Already have an account?": {},
+  "Already running exams? You can start now.": {},
   "Already staff in this organization.": {
     "source": "server"
   },
@@ -200,6 +201,7 @@
   "Came back after {{time}}": {},
   "Cancel": {},
   "Change password": {},
+  "Changed your mind? Join again": {},
   "Check {{email}}, including the spam folder. The link works once, for 30 minutes.": {},
   "Check the list": {},
   "choose": {},
@@ -251,6 +253,7 @@
   "Create a new organization": {},
   "Create a student account": {},
   "Create account": {},
+  "Create an organization": {},
   "Create and publish": {},
   "create groups": {},
   "Create organization": {},
@@ -272,6 +275,7 @@
   "Difficulty": {},
   "Dismiss": {},
   "Done": {},
+  "Done. We won't email you about the launch.": {},
   "Download a template": {},
   "Download template": {},
   "Duplicate and edit the copy": {},
@@ -338,6 +342,7 @@
   },
   "Exited fullscreen": {},
   "Fair exams in any browser": {},
+  "Fair, timed exams in any browser, for schools, coaching centers and hiring teams. Leave your email and we'll send one message at launch.": {},
   "Feedback for the student (optional)": {},
   "Female": {},
   "File name is required": {
@@ -376,6 +381,7 @@
   },
   "Groups": {},
   "Hard": {},
+  "Hear when TestKori opens": {},
   "Hello, {{name}}": {},
   "If an account exists for that email, we've sent a link to reset the password.": {},
   "If students have started it, it is archived instead: hidden from lists and closed, with their results and integrity records kept.": {},
@@ -430,6 +436,7 @@
   "Its students stay in the organization. Exams limited to only this group become open to everyone.": {},
   "Join": {},
   "Join code": {},
+  "Join the waitlist": {},
   "Join with a code": {},
   "Join your organization": {},
   "Joined": {},
@@ -518,6 +525,7 @@
   "Nothing to grade": {},
   "Nothing was recorded during this attempt.": {},
   "Once you start, the timer runs even if you close the page.": {},
+  "One email when we launch, nothing else. Every email has an unsubscribe link.": {},
   "One more and your exam is submitted automatically.": {},
   "One more violation and your exam is submitted automatically.": {},
   "Only Excel files (.xlsx or .xls) are accepted. Please upload a valid Excel file.": {
@@ -658,6 +666,7 @@
   "Started": {},
   "Started {{date}}": {},
   "Status": {},
+  "Stop TestKori emails": {},
   "Student": {},
   "Student not found": {
     "source": "server"
@@ -705,6 +714,7 @@
   "Template": {},
   "TestKori home": {},
   "TestKori works on a computer": {},
+  "That email doesn't look right. Check it and try again.": {},
   "That image is larger than 2 MB. Take a smaller photo or crop it.": {},
   "The correct answer must be one of the options.": {
     "source": "server"
@@ -752,6 +762,9 @@
   "This reset link is invalid or has expired. Ask for a new one.": {
     "source": "server"
   },
+  "This unsubscribe link isn't valid. Copy the whole link from the email and try again.": {
+    "source": "server"
+  },
   "Time": {},
   "Time away": {},
   "Time left": {},
@@ -788,6 +801,7 @@
     "source": "server"
   },
   "Unpublish": {},
+  "Unsubscribe": {},
   "Unsupported language": {
     "source": "server"
   },
@@ -811,9 +825,11 @@
   "Violations": {},
   "Violations are recorded and shown to your examiner.": {},
   "We sent a link to {{email}}. Confirming it lets you reset your password by email if you forget it.": {},
+  "We'll email {{email}} once, when TestKori opens.": {},
   "We've sent this person 3 invites in the last hour. Try again later.": {
     "source": "server"
   },
+  "Website": {},
   "Welcome to TestKori": {},
   "What the exam page enforces and records.": {},
   "When {{org}} publishes an exam for you, it appears here.": {},
@@ -843,15 +859,26 @@
   "You have already submitted this exam": {
     "source": "server"
   },
+  "You joined the TestKori launch waitlist. Unsubscribe and we won't email you about the launch.": {},
   "You left the exam": {},
+  "You're off the list": {},
+  "You're off the list. We won't email you about the launch.": {
+    "source": "server"
+  },
+  "You're on the list": {},
+  "You're on the list. We'll email you once, when TestKori opens.": {
+    "source": "server"
+  },
   "You're signed in but not part of an organization yet. Enter the join code your school, coaching center or employer gave you.": {},
   "You've already submitted this exam.": {},
   "You've been invited to join an organization. Your join code is already filled in.": {},
+  "you@school.edu": {},
   "Your account (owner)": {},
   "Your account is ready. Sign in with your email and new password.": {},
   "Your answer": {},
   "Your answer:": {},
   "Your answers": {},
+  "Your email": {},
   "Your email is your login and can't be changed here.": {},
   "Your exam is still running": {},
   "Your name is what examiners see on your results.": {},

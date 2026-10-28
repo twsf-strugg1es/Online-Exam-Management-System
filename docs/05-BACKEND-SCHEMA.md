@@ -159,18 +159,22 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | used_at | timestamptz | | | Set when used, and on every older link when a new one is requested or a reset succeeds |
 | purpose | text | ✓ | `reset` | `reset` (30 min, "Forgot password?") or `invite` (7 days, accounts created by a bulk import or a staff invite; link `/invite/<token>`; an unused one means "invite pending"). Both are confirmed by `POST /password-reset/confirm` |
 
-### waitlist_signups *(planned, task 3.13)*
+### waitlist_signups *(task 3.13)*
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
 | id | uuid | ✓ | uuid4 | PK |
 | email | text | ✓ | | Stored lower-cased and trimmed; **unique** |
-| source | text | | | e.g. `landing-hero`, `landing-footer` (which call to action) |
-| locale | text | | | Browser language, for the launch email language |
+| source | varchar(40) | | | Which call to action, e.g. `landing-close`, `waitlist-page`, or `?from=` on `/waitlist`; anything but letters, digits, `-` and `_` is dropped |
+| locale | varchar(20) | | | Browser language (`navigator.language`), for the launch email language |
 | created_at | timestamptz | ✓ | now | |
 | notified_at | timestamptz | | | Set when the launch email is sent (never send twice) |
 | unsubscribed_at | timestamptz | | | Set from the unsubscribe link; excluded from all sends |
 
-Not organization-scoped: it belongs to TestKori itself. Read only by a platform-admin command (`python manage_waitlist.py export|send-launch`), never by an organization's staff.
+Not organization-scoped: it belongs to TestKori itself. Read only by a platform-admin command (`python manage_waitlist.py count|export|send-launch`), never by an organization's staff; no API route returns an email from it.
+
+API: `POST /waitlist` `{email, source?, locale?, website?}` (public, 20 per 10 min per IP) always answers "You're on the list…": for a new email, one already listed, or a filled `website` honeypot (nothing stored). Joining again after unsubscribing clears `unsubscribed_at`. `POST /waitlist/unsubscribe` `{token}` sets `unsubscribed_at`; the token is a signed JWT (`purpose: waitlist-unsubscribe`, no expiry, nothing stored), which `get_current_user` refuses as a sign-in token. The plan said `GET /waitlist/unsubscribe/{token}`; it's a POST from the page instead, because mail scanners open links in advance.
+
+`send-launch` emails every row with no `notified_at` and no `unsubscribed_at`, sets `notified_at` after each successful send (so re-running only reaches the ones it missed), and refuses to run unless `EMAIL_BACKEND=smtp` (a console "send" would mark everyone as emailed). `--dry-run` lists the recipients.
 
 ### exam_questions *(existing join table; planned columns)*
 | Field | Type | Required | Default | Notes |

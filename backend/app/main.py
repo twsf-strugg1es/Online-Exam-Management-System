@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from . import jobs, models, notify  # noqa: F401  # models: ensure metadata has tables
 from .database import get_db
 from .logging_config import configure_logging, request_logging_middleware
-from .routers import admin, auth, email_verification, organizations, password_reset, profile, student, student_import
+from .routers import admin, auth, email_verification, organizations, password_reset, profile, student, student_import, waitlist
 
 configure_logging()
 notify.warn_if_not_sending()
@@ -71,4 +71,5 @@ app.include_router(email_verification.router)
 app.include_router(organizations.router)
 app.include_router(student_import.router)
 app.include_router(student.router)
+app.include_router(waitlist.router)
 app.include_router(profile.router)

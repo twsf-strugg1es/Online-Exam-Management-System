@@ -10,7 +10,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from . import crud, models
+from . import models
 from .database import get_db
 from .logging_config import bind_log_context
 
@@ -88,6 +88,7 @@ def get_current_user(
     except ValueError:
         # Tokens issued before 2026-10-26 carry the email. Accepted for one release so nobody
         # is signed out by the upgrade; a refresh swaps them for an ID token, and they expire within the hour
+        from . import crud  # imported here: crud imports this module, and this fallback is going away
         user = crud.get_user_by_email(db, subject) if "@" in subject else None
     if not user:
         raise credentials_exception

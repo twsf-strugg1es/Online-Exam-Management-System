@@ -11,6 +11,8 @@ import OrgSignupPage from './pages/OrgSignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import WaitlistPage from './pages/WaitlistPage';
+import WaitlistUnsubscribePage from './pages/WaitlistUnsubscribePage';
 import OrganizationsPage from './pages/OrganizationsPage';
 import AdminQuestionsPage from './pages/AdminQuestionsPage';
 import QuestionEditorPage from './pages/QuestionEditorPage';
@@ -68,6 +70,8 @@ function App() {
       <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       <Route path="/invite/:token" element={<ResetPasswordPage invite />} />
       <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+      <Route path="/waitlist" element={<WaitlistPage />} />
+      <Route path="/waitlist/unsubscribe/:token" element={<WaitlistUnsubscribePage />} />
       <Route path="/organizations" element={user ? <OrganizationsPage /> : <Navigate to="/login" replace />} />
       <Route path="/profile" element={only(currentMembership, <StudentProfilePage />)} />
 

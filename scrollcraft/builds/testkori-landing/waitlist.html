@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="testkori-api" content="http://localhost:8000">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Join the waitlist · TestKori</title>
 <meta name="description" content="Get one email when TestKori, fair online exams in any browser, opens.">
@@ -54,19 +55,15 @@
       <button type="submit">Join the waitlist</button>
       <p class="msg" id="msg" aria-live="polite"></p>
     </form>
-    <p class="fine">One email when we launch, nothing else. Unsubscribe from that email any time. <span class="label" style="display:block;margin-top:0.5rem">Prototype: this form doesn't save yet</span></p>
+    <p class="fine">One email when we launch, nothing else. Unsubscribe from that email any time.</p>
   </main>
 
   <footer class="bottom"><span>TestKori</span><a href="index.html">See how it works</a></footer>
 
+<script src="waitlist.js"></script>
 <script>
-  document.getElementById('form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value.trim(), msg = document.getElementById('msg');
-    if (document.getElementById('website').value) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { msg.className = 'msg err'; msg.textContent = 'That email doesn\'t look right. Check it and try again.'; document.getElementById('email').focus(); return; }
-    msg.className = 'msg ok'; msg.textContent = 'You\'re on the list. We\'ll email you once, when TestKori opens.';
-  });
+  const $ = (id) => document.getElementById(id);
+  window.wireWaitlist({ form: $('form'), email: $('email'), website: $('website'), msg: $('msg'), source: new URLSearchParams(location.search).get('from') || 'waitlist-page' });
 </script>
 </body>
 </html>
