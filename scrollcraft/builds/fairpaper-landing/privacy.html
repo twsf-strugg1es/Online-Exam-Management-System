@@ -69,7 +69,7 @@
 
   @media (max-width: 860px) {
     .doc { grid-template-columns: 1fr; }
-    .toc { position: static; padding: 1.25rem 1.4rem; background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; }
+    .toc { display: none; } /* a phone just scrolls; the list would push the title off screen */
     footer.foot .wrap { flex-direction: column; }
   }
 </style>
@@ -227,7 +227,7 @@
 <footer class="foot">
   <div class="wrap">
     <span>© 2026 Kori.tech. All rights reserved.</span>
-    <span><a href="index.html">Fairpaper</a> · <a href="privacy.html" aria-current="page">Privacy</a></span>
+    <span><a href="index.html">Fairpaper</a> · <a href="privacy.html" aria-current="page">Privacy</a> · <a href="terms.html">Terms</a></span>
   </div>
 </footer>
 </body>
