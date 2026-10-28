@@ -1,8 +1,8 @@
-"""Launch waitlist (PRD F27): visitors leave an email and get one message when TestKori opens.
+"""Launch waitlist (PRD F27): visitors leave an email and get one message when Fairpaper opens.
 
 The API only ever accepts emails; it never returns them, and the answer is the same whether
 an address is new, already listed or caught by the honeypot. Reading and mailing the list is
-`manage_waitlist.py`, run by the TestKori team.
+`manage_waitlist.py`, run by the Fairpaper team.
 """
 import logging
 from datetime import datetime, timezone
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/waitlist", tags=["Waitlist"])
 
 PURPOSE = "waitlist-unsubscribe"
-JOINED = "You're on the list. We'll email you once, when TestKori opens."
+JOINED = "You're on the list. We'll email you once, when Fairpaper opens."
 UNSUBSCRIBED = "You're off the list. We won't email you about the launch."
 INVALID_LINK = "This unsubscribe link isn't valid. Copy the whole link from the email and try again."
 

@@ -46,11 +46,11 @@ def test_smtp_backend_uses_starttls_and_logs_in(monkeypatch):
 
     monkeypatch.setattr(notify.smtplib, "SMTP", FakeSMTP)
     for key, value in {"EMAIL_BACKEND": "smtp", "SMTP_HOST": "smtp.example.com", "SMTP_PORT": "587",
-                       "SMTP_USERNAME": "apikey", "SMTP_PASSWORD": "x", "EMAIL_FROM": "TestKori <hello@example.com>"}.items():
+                       "SMTP_USERNAME": "apikey", "SMTP_PASSWORD": "x", "EMAIL_FROM": "Fairpaper <hello@example.com>"}.items():
         monkeypatch.setenv(key, value)
     assert notify.send_email("c@example.com", "Hi", "Body")
     assert sent == {"server": ("smtp.example.com", 587), "tls": True, "login": "apikey",
-                    "to": "c@example.com", "from": "TestKori <hello@example.com>"}
+                    "to": "c@example.com", "from": "Fairpaper <hello@example.com>"}
 
 
 def test_a_failed_send_returns_false_without_leaking_the_address(monkeypatch, caplog):

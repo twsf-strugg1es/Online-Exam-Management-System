@@ -1,4 +1,4 @@
-# 5. Backend Schema: TestKori
+# 5. Backend Schema: Fairpaper
 
 Purpose: define stored data, relationships, and access rules.
 Status: living document · Last updated 2026-10-12 · Source of truth: `backend/app/models.py` and `backend/migrations/versions/`. Database: PostgreSQL. All primary keys are UUID v4 (`id`, generated in the app).
@@ -170,7 +170,7 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | notified_at | timestamptz | | | Set when the launch email is sent (never send twice) |
 | unsubscribed_at | timestamptz | | | Set from the unsubscribe link; excluded from all sends |
 
-Not organization-scoped: it belongs to TestKori itself. Read only by a platform-admin command (`python manage_waitlist.py count|export|send-launch`), never by an organization's staff; no API route returns an email from it.
+Not organization-scoped: it belongs to Fairpaper itself. Read only by a platform-admin command (`python manage_waitlist.py count|export|send-launch`), never by an organization's staff; no API route returns an email from it.
 
 API: `POST /waitlist` `{email, source?, locale?, website?}` (public, 20 per 10 min per IP) always answers "You're on the list…": for a new email, one already listed, or a filled `website` honeypot (nothing stored). Joining again after unsubscribing clears `unsubscribed_at`. `POST /waitlist/unsubscribe` `{token}` sets `unsubscribed_at`; the token is a signed JWT (`purpose: waitlist-unsubscribe`, no expiry, nothing stored), which `get_current_user` refuses as a sign-in token. The plan said `GET /waitlist/unsubscribe/{token}`; it's a POST from the page instead, because mail scanners open links in advance.
 

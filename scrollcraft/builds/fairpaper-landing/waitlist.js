@@ -1,7 +1,7 @@
-/* Sends a waitlist signup to the TestKori API (POST /waitlist). The API's address comes from
-   <meta name="testkori-api">; change it there when the API is hosted. */
+/* Sends a waitlist signup to the Fairpaper API (POST /waitlist). The API's address comes from
+   <meta name="fairpaper-api">; change it there when the API is hosted. */
 (() => {
-  const api = (document.querySelector('meta[name="testkori-api"]')?.content || '').replace(/\/$/, '');
+  const api = (document.querySelector('meta[name="fairpaper-api"]')?.content || '').replace(/\/$/, '');
   const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   const BAD_EMAIL = 'That email doesn\'t look right. Check it and try again.';
 
@@ -24,7 +24,7 @@
         if (res.ok) say('ok', data.message);
         else say('err', res.status === 422 ? BAD_EMAIL : typeof data.detail === 'string' ? data.detail : 'Something went wrong. Try again in a minute.');
       } catch {
-        say('err', 'We couldn\'t reach TestKori. Check your connection and try again.');
+        say('err', 'We couldn\'t reach Fairpaper. Check your connection and try again.');
       } finally {
         button.disabled = false;
       }

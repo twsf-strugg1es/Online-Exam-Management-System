@@ -1,4 +1,4 @@
-"""Invite people who don't have a TestKori account yet, and tell people who do.
+"""Invite people who don't have a Fairpaper account yet, and tell people who do.
 
 Used by the bulk student import and by adding staff. An invited account gets an unusable random
 password and a one-time link to `/invite/<token>`, confirmed by `POST /password-reset/confirm`.
@@ -69,9 +69,9 @@ def reissue_invite(db: Session, user: models.User, now: datetime) -> str:
 def invite_email(org_name: str, user: models.User, link: str, role: str) -> tuple[str, str, str]:
     """(to, subject, text) for someone whose account was just created."""
     name = user.full_name or user.email
-    return user.email, f"{org_name} invited you to TestKori", (
+    return user.email, f"{org_name} invited you to Fairpaper", (
         f"Hi {name},\n\n"
-        f"{org_name} has added you as {ROLE_PHRASES[role]} on TestKori, where they run their exams. "
+        f"{org_name} has added you as {ROLE_PHRASES[role]} on Fairpaper, where they run their exams. "
         f"{WHAT_THEY_CAN_DO[role]}\n\n"
         f"Set a password to finish your account. The link works once, for 7 days:\n{link}\n\n"
         f"Then sign in with this email address ({user.email}).\n"
@@ -81,7 +81,7 @@ def invite_email(org_name: str, user: models.User, link: str, role: str) -> tupl
 def added_email(org_name: str, user: models.User, role: str) -> tuple[str, str, str]:
     """(to, subject, text) for someone who already has an account."""
     name = user.full_name or user.email
-    return user.email, f"You've been added to {org_name} on TestKori", (
+    return user.email, f"You've been added to {org_name} on Fairpaper", (
         f"Hi {name},\n\n"
         f"{org_name} has added you as {ROLE_PHRASES[role]}. {WHAT_THEY_CAN_DO[role]}\n\n"
         f"Sign in with your usual password: {_app_url()}/login\n"

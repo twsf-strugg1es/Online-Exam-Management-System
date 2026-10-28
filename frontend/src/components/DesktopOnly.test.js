@@ -42,7 +42,7 @@ test('on a phone, login and signup still work', () => {
 test('on a phone, the app asks for a computer', () => {
   setWidth(false);
   renderAt('/admin-exams');
-  expect(screen.getByRole('dialog', { name: 'TestKori works on a computer' })).toBeInTheDocument();
+  expect(screen.getByRole('dialog', { name: 'Fairpaper works on a computer' })).toBeInTheDocument();
 });
 
 test('a running exam stays mounted under the notice so its timer keeps going', () => {

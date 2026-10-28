@@ -229,7 +229,7 @@
   "Confirm your email address": {},
   "Continue": {},
   "Continue exam": {},
-  "Continue to TestKori": {},
+  "Continue to Fairpaper": {},
   "Continue where you left off": {},
   "Copied": {},
   "Copy and paste blocked": {},
@@ -334,7 +334,7 @@
   "Examiner": {},
   "Examiners manage questions, exams and grading. Admins can also manage students, groups and staff. Only owners can manage other owners.": {},
   "Exams": {},
-  "Exams need a full desktop browser for their timer and protections. Open TestKori on a laptop or desktop and sign in there.": {},
+  "Exams need a full desktop browser for their timer and protections. Open Fairpaper on a laptop or desktop and sign in there.": {},
   "Exams taken": {},
   "Excel 2007 or newer": {},
   "Excel file is empty": {
@@ -343,6 +343,8 @@
   "Exited fullscreen": {},
   "Fair exams in any browser": {},
   "Fair, timed exams in any browser, for schools, coaching centers and hiring teams. Leave your email and we'll send one message at launch.": {},
+  "Fairpaper home": {},
+  "Fairpaper works on a computer": {},
   "Feedback for the student (optional)": {},
   "Female": {},
   "File name is required": {
@@ -381,7 +383,7 @@
   },
   "Groups": {},
   "Hard": {},
-  "Hear when TestKori opens": {},
+  "Hear when Fairpaper opens": {},
   "Hello, {{name}}": {},
   "If an account exists for that email, we've sent a link to reset the password.": {},
   "If students have started it, it is archived instead: hidden from lists and closed, with their results and integrity records kept.": {},
@@ -666,7 +668,7 @@
   "Started": {},
   "Started {{date}}": {},
   "Status": {},
-  "Stop TestKori emails": {},
+  "Stop Fairpaper emails": {},
   "Student": {},
   "Student not found": {
     "source": "server"
@@ -712,8 +714,6 @@
   "Tag": {},
   "Tags": {},
   "Template": {},
-  "TestKori home": {},
-  "TestKori works on a computer": {},
   "That email doesn't look right. Check it and try again.": {},
   "That image is larger than 2 MB. Take a smaller photo or crop it.": {},
   "The correct answer must be one of the options.": {
@@ -825,12 +825,12 @@
   "Violations": {},
   "Violations are recorded and shown to your examiner.": {},
   "We sent a link to {{email}}. Confirming it lets you reset your password by email if you forget it.": {},
-  "We'll email {{email}} once, when TestKori opens.": {},
+  "We'll email {{email}} once, when Fairpaper opens.": {},
   "We've sent this person 3 invites in the last hour. Try again later.": {
     "source": "server"
   },
   "Website": {},
-  "Welcome to TestKori": {},
+  "Welcome to Fairpaper": {},
   "What the exam page enforces and records.": {},
   "When {{org}} publishes an exam for you, it appears here.": {},
   "Who can take it": {},
@@ -859,14 +859,14 @@
   "You have already submitted this exam": {
     "source": "server"
   },
-  "You joined the TestKori launch waitlist. Unsubscribe and we won't email you about the launch.": {},
+  "You joined the Fairpaper launch waitlist. Unsubscribe and we won't email you about the launch.": {},
   "You left the exam": {},
   "You're off the list": {},
   "You're off the list. We won't email you about the launch.": {
     "source": "server"
   },
   "You're on the list": {},
-  "You're on the list. We'll email you once, when TestKori opens.": {
+  "You're on the list. We'll email you once, when Fairpaper opens.": {
     "source": "server"
   },
   "You're signed in but not part of an organization yet. Enter the join code your school, coaching center or employer gave you.": {},

@@ -28,7 +28,7 @@ Before implementing, flag any contradiction between these documents and the code
 7. **Don't push or deploy** unless the owner asks. Commit locally on a branch named `milestone-<N>`.
 
 ## What this is
-TestKori: a multi-tenant online exam platform for coaching centers, schools and hiring teams. Built for a global audience, launching in Bangladesh first. It has a FastAPI + PostgreSQL backend in `backend/` and a React (CRA + Tailwind) frontend in `frontend/`.
+Fairpaper: a multi-tenant online exam platform for coaching centers, schools and hiring teams. Built for a global audience, launching in Bangladesh first. It has a FastAPI + PostgreSQL backend in `backend/` and a React (CRA + Tailwind) frontend in `frontend/`.
 
 ## Commands
 ```bash

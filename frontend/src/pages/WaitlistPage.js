@@ -38,14 +38,14 @@ function WaitlistPage() {
 
   return (
     <AuthLayout
-      title={joined ? t("You're on the list") : t('Hear when TestKori opens')}
+      title={joined ? t("You're on the list") : t('Hear when Fairpaper opens')}
       label="Launching soon"
       subtitle={joined ? null : t("Fair, timed exams in any browser, for schools, coaching centers and hiring teams. Leave your email and we'll send one message at launch.")}
       footer={<p>{t('One email when we launch, nothing else. Every email has an unsubscribe link.')}</p>}
     >
       {joined ? (
         <div className="space-y-4 text-sm leading-relaxed">
-          <Alert tone="success">{t("We'll email {{email}} once, when TestKori opens.", { email: email.trim() })}</Alert>
+          <Alert tone="success">{t("We'll email {{email}} once, when Fairpaper opens.", { email: email.trim() })}</Alert>
           <p className="text-muted">{t('Already running exams? You can start now.')} <Link to="/signup/organization" className="link">{t('Create an organization')}</Link></p>
         </div>
       ) : (

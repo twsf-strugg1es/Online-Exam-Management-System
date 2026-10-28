@@ -1,4 +1,6 @@
-# 1. Product Requirements Document (PRD): TestKori
+# 1. Product Requirements Document (PRD): Fairpaper
+
+> Renamed from TestKori to Fairpaper on 2026-10-28.
 
 Purpose: define what the product must do and how success will be measured.
 Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) · [App Flow](03-APP-FLOW.md) · [UI/UX Brief](04-UI-UX-BRIEF.md) · [Backend Schema](05-BACKEND-SCHEMA.md) · [Implementation Plan](06-IMPLEMENTATION-PLAN.md)
@@ -7,7 +9,7 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 
 ## Product name and one-sentence idea
 
-**TestKori** is an online exam platform where schools, coaching centers and hiring teams anywhere in the world run their own fair, auto-graded exams, without an invigilator in the room.
+**Fairpaper** is an online exam platform where schools, coaching centers and hiring teams anywhere in the world run their own fair, auto-graded exams, without an invigilator in the room.
 
 ## Target users
 
@@ -34,7 +36,7 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 
 ## Goal and success measure
 
-**Goal (version one):** one real institution runs its regular exams on TestKori without developer help, and pays for it.
+**Goal (version one):** one real institution runs its regular exams on Fairpaper without developer help, and pays for it.
 
 | Signal | Target |
 |---|---|
@@ -70,8 +72,8 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 | F20 | Sections, extra time per candidate, offline-tolerant saving, grade-by-question, analytics | Serious exam operations | P1 | Planned |
 | F21 | Internationalization: translation-ready UI (English default, Bengali first translation), locale-aware dates and numbers, per-organization language/timezone/currency, right-to-left support | One codebase serves Bangladesh and global customers | P0 (framework) / P1 (languages) | Planned |
 | F25 | Clipboard protection during exams: clipboard cleared when the exam starts and each time the candidate returns; every paste route blocked (keys, menu, drag-and-drop, middle-click); attempts flagged | Text copied before or outside the exam can't be pasted in | P0 | Built (3.11) |
-| F26 | Public landing page: product story, features, pricing placeholder, sign-up calls to action; responsive and phone-friendly; restrained scroll effects | Explains TestKori to institutions; the only phone experience in v1 | P0 | Planned |
-| F27 | Launch waitlist: a public `/waitlist` page (linked from the landing page) where visitors leave their email and get one email when TestKori launches | Builds an audience before launch | P0 | Built (3.13); the landing page itself is still a prototype (3.12) |
+| F26 | Public landing page: product story, features, pricing placeholder, sign-up calls to action; responsive and phone-friendly; restrained scroll effects | Explains Fairpaper to institutions; the only phone experience in v1 | P0 | Planned |
+| F27 | Launch waitlist: a public `/waitlist` page (linked from the landing page) where visitors leave their email and get one email when Fairpaper launches | Builds an audience before launch | P0 | Built (3.13); the landing page itself is still a prototype (3.12) |
 | F28 | Product video on the landing page: YouTube embed (privacy-enhanced, loads only when played); a styled "video coming soon" placeholder until the owner sets the link | Shows the product in action without slowing the page | P0 | Planned |
 | F29 | Per-question time limits: an exam's timing mode is either **whole exam** (today: one duration for the test) or **per question** (each question has its own limit that the teacher sets; MCQ and short answer alike). Per-question mode shows one question at a time, moves on automatically when its time ends, and doesn't allow going back | Matches timed quiz and rapid-fire formats; stops students spending all their time on one question or looking answers up | P1 | Planned |
 | F24 | Global readiness: Stripe/Paddle card payments, GDPR tools (data export, deletion, data processing agreement, cookie consent), global SMS (Twilio), optional EU data hosting | Sell outside Bangladesh legally | P3 | Planned |
@@ -86,14 +88,14 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 |---|---|---|
 | Landing page (public) | Yes | Yes, fully responsive |
 | Login, signup, join | Yes | Yes, so people can sign up from a link on their phone |
-| Everything else: staff screens, candidate dashboard, **taking exams**, results | Yes | No: "Open TestKori on a computer" screen |
+| Everything else: staff screens, candidate dashboard, **taking exams**, results | Yes | No: "Open Fairpaper on a computer" screen |
 
-- The "use a computer" screen says what to do next ("Open TestKori on a laptop or desktop and sign in"), keeps the user signed in, and is never a dead end.
+- The "use a computer" screen says what to do next ("Open Fairpaper on a laptop or desktop and sign in"), keeps the user signed in, and is never a dead end.
 - Window width decides, not device sniffing: a 1024 px tablet in landscape counts as a computer.
 - **Why:** integrity features (fullscreen, focus tracking, clipboard control, later Safe Exam Browser) work fully only in desktop browsers, and one well-designed layout ships faster than two.
 - **Tradeoff, accepted for now:** many Bangladeshi students only own a phone. Pilot customers need computer access (labs, centers, hiring teams). Revisit after the pilot; a mobile candidate experience is planned work, not a non-goal.
 
-**Acceptance:** AC19. Given a browser window 1024 px or wider, every journey in the App Flow works without horizontal scrolling. AC20. Given a phone at 390 px, the landing page, login and signup work fully, and any other route shows the "Open TestKori on a computer" screen with a working sign-out.
+**Acceptance:** AC19. Given a browser window 1024 px or wider, every journey in the App Flow works without horizontal scrolling. AC20. Given a phone at 390 px, the landing page, login and signup work fully, and any other route shows the "Open Fairpaper on a computer" screen with a working sign-out.
 
 ## Out of scope for version one
 
@@ -101,7 +103,7 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 - Live human video proctoring.
 - LMS features: courses, lessons, assignments, attendance.
 - Webcam/AI proctoring (P2), billing (P3). The pilot is free or invoiced manually.
-- Any claim that cheating is *impossible*. TestKori detects, deters and records.
+- Any claim that cheating is *impossible*. Fairpaper detects, deters and records.
 - Selling outside Bangladesh before the pilot is paid. The code must be global-ready (F21 framework); global sales, payments and compliance (F24) come after.
 
 ## User stories
@@ -171,10 +173,10 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 1. **Pricing:** per active candidate per month, per attempt, or flat tiers per institution?
 2. **SMS gateway:** SSL Wireless, BulkSMSBD or Alpha SMS? Who owns the sender ID?
 3. **Pilot partner:** which institution, and which exams will they run first?
-4. **Paid mock tests (F23):** do coaching centers want students to pay per test inside TestKori?
+4. **Paid mock tests (F23):** do coaching centers want students to pay per test inside Fairpaper?
 5. **Hosting region:** is a server outside Bangladesh acceptable to schools (latency, data residency)? When do EU customers justify an EU region?
 8. **First global market:** which country or segment comes after Bangladesh (India coaching, Middle East schools, global hiring teams)?
 10. **Waitlist email:** sender name and address, and whether waitlisted people also get a pilot invite before public launch.
 9. **Global pricing:** USD pricing per region, or one global price with a lower BDT price?
-6. **Brand:** new logo mark for TestKori. The current mark is the Bengali letter "প" from the old name, see the [UI/UX Brief](04-UI-UX-BRIEF.md).
+6. **Brand:** new logo mark for Fairpaper. The current mark is the Bengali letter "প" from the old name, see the [UI/UX Brief](04-UI-UX-BRIEF.md).
 7. **Retakes:** should examiners be able to allow a second attempt? This changes the one-attempt-per-exam rule.

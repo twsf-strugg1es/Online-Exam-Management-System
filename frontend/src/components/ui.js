@@ -25,7 +25,7 @@ export function Logo({ compact = false, size = 28, className }) {
   return (
     <span className={cx('inline-flex items-center gap-2.5', className)}>
       <LogoMark size={size} />
-      {!compact && <span className="text-[17px] font-semibold tracking-[-0.015em] text-ink">TestKori</span>}
+      {!compact && <span className="text-[17px] font-semibold tracking-[-0.015em] text-ink">Fairpaper</span>}
     </span>
   );
 }

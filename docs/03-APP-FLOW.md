@@ -1,4 +1,4 @@
-# 3. App Flow: TestKori
+# 3. App Flow: Fairpaper
 
 Purpose: show each screen, user path, and the result of each tap or click.
 Status: living document · Last updated 2026-10-12 · Routes are defined in `frontend/src/App.js` (source of truth). *(planned)* marks screens that don't exist yet.
@@ -7,15 +7,15 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 
 | Entry | URL | Who |
 |---|---|---|
-| *(planned)* Landing page | `/` (signed out) | Institutions evaluating TestKori; anyone on a phone |
-| Waitlist | `/waitlist` (linked from every landing-page call to action until launch; `?from=<label>` records which one, e.g. `?from=instagram`) | Anyone who wants to hear when TestKori launches |
+| *(planned)* Landing page | `/` (signed out) | Institutions evaluating Fairpaper; anyone on a phone |
+| Waitlist | `/waitlist` (linked from every landing-page call to action until launch; `?from=<label>` records which one, e.g. `?from=instagram`) | Anyone who wants to hear when Fairpaper launches |
 | Direct visit / bookmark | `/` → redirects by state (see Navigation rules) | Everyone |
 | Login | `/login` | Returning users |
 | Student signup link with code | `/signup?code=K7M2QX9P` (code prefilled, upper-cased) | Candidates invited by an institution |
 | Organization signup | `/signup/organization` | New institutions |
 | Password reset email | `/reset-password/:token` → set a new password → `/login` with a notice | Anyone who asked for a reset |
 | Confirmation email | `/verify-email/:token` → "confirmed" → continue (signed in) or log in | New accounts |
-| Invite email link | `/invite/:token` → "Welcome to TestKori", set a password → `/login` with a notice → the organization's dashboard | Bulk-imported candidates and invited staff (phone-friendly) |
+| Invite email link | `/invite/:token` → "Welcome to Fairpaper", set a password → `/login` with a notice → the organization's dashboard | Bulk-imported candidates and invited staff (phone-friendly) |
 | *(planned)* Password reset link | `/reset-password/:token` | Anyone who forgot their password |
 | *(planned)* Notification links | `/exam/:id` from email/SMS | Candidates |
 
@@ -65,7 +65,7 @@ Policy: see PRD "Platform: desktop web app".
 |---|---|
 | `/` landing page *(planned)* | Fully responsive |
 | `/login`, `/signup`, `/signup/organization`, `/waitlist`, `/forgot-password`, `/reset-password/:token`, `/verify-email/:token`, `/invite/:token`, `/waitlist/unsubscribe/:token` | Work (phone-friendly; emailed links are often opened on a phone) |
-| Every other route | `DesktopOnly` screen: logo, "TestKori works on a computer", one line on why (exams need a full browser), what to open, and **Sign out** |
+| Every other route | `DesktopOnly` screen: logo, "Fairpaper works on a computer", one line on why (exams need a full browser), what to open, and **Sign out** |
 
 - A `matchMedia("(min-width: 1024px)")` check, re-evaluated on resize, so widening a window or rotating a tablet lets the user straight in.
 - A running exam is never interrupted by a resize: the attempt keeps running and the screen asks to widen the window. Leaving fullscreen is already recorded.

@@ -1,7 +1,7 @@
 """Bulk student import: preview a CSV/XLSX list, then enroll everyone in it.
 
 New addresses get an account and an invite to set their password; people who already have a
-TestKori account are added and told by email. The confirm step reads the file again, so
+Fairpaper account are added and told by email. The confirm step reads the file again, so
 nothing from the preview is trusted.
 """
 from datetime import datetime, timezone

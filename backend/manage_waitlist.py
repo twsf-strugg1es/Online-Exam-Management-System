@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""The launch waitlist, for the TestKori team (not organizations).
+"""The launch waitlist, for the Fairpaper team (not organizations).
 
 Usage:
   python manage_waitlist.py count
@@ -25,14 +25,14 @@ FIELDS = ("email", "source", "locale", "created_at", "notified_at", "unsubscribe
 
 def launch_email(signup: models.WaitlistSignup) -> tuple[str, str, str]:
     """(to, subject, text). Placeholder copy until the owner approves the launch wording."""
-    return signup.email, "TestKori is open", (
+    return signup.email, "Fairpaper is open", (
         "Hi,\n\n"
-        "You asked us to tell you when TestKori opens. It's open now.\n\n"
+        "You asked us to tell you when Fairpaper opens. It's open now.\n\n"
         "Teachers set short, timed tests; students take them on a locked-down page, and every tab "
         "switch is on the record. Start your organization here:\n"
         f"{_app_url()}/signup/organization\n\n"
         "This is the only launch email we'll send you.\n"
-        f"Don't want emails from TestKori? Unsubscribe: {unsubscribe_link(signup)}\n"
+        f"Don't want emails from Fairpaper? Unsubscribe: {unsubscribe_link(signup)}\n"
     )
 
 

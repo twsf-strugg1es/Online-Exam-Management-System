@@ -1,4 +1,4 @@
-# TestKori landing page: brief
+# Fairpaper landing page: brief
 
 **Self-authored under explicit creative delegation.** The owner said "use your judgement" (2026-10-26) and gave this direction in their words:
 

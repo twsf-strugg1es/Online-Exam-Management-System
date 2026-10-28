@@ -31,11 +31,11 @@ def _reset_email(user: models.User, link: str) -> tuple[str, str]:
     name = user.full_name or user.email
     text = (
         f"Hi {name},\n\n"
-        f"Someone asked to reset the password for your TestKori account ({user.email}).\n\n"
+        f"Someone asked to reset the password for your Fairpaper account ({user.email}).\n\n"
         f"Set a new password here. The link works once, for the next 30 minutes:\n{link}\n\n"
         "If you didn't ask for this, ignore this email. Your password stays the same.\n"
     )
-    return "Reset your TestKori password", text
+    return "Reset your Fairpaper password", text
 
 
 @router.post("/request", dependencies=[Depends(per_ip("reset-request", rate_limit.RESET_REQUEST_PER_IP))])

@@ -41,12 +41,12 @@ export default function DesktopOnly({ children }) {
             <div className="my-auto max-w-sm py-12">
               <p className="eyebrow">{inExam ? t('Your exam is still running') : t('Use a computer')}</p>
               <h1 id="desktop-only-title" className="mt-3 text-[1.7rem] font-semibold leading-tight tracking-[-0.02em]">
-                {inExam ? t('Make this window wider to keep going') : t('TestKori works on a computer')}
+                {inExam ? t('Make this window wider to keep going') : t('Fairpaper works on a computer')}
               </h1>
               <p className="mt-3 text-[15px] leading-relaxed text-muted">
                 {inExam
                   ? t('The timer has not stopped. Widen the window (at least 1024 pixels) or rotate your tablet and your exam comes back exactly as you left it.')
-                  : t('Exams need a full desktop browser for their timer and protections. Open TestKori on a laptop or desktop and sign in there.')}
+                  : t('Exams need a full desktop browser for their timer and protections. Open Fairpaper on a laptop or desktop and sign in there.')}
               </p>
               {user && !inExam && (
                 <Button variant="secondary" className="mt-8" onClick={() => { logout(); navigate('/login'); }}>{t('Sign out')}</Button>

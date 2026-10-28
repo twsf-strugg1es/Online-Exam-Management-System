@@ -13,7 +13,7 @@ export default function AuthLayout({ title, subtitle, children, footer, label = 
   return (
     <div className="grid min-h-screen grid-rows-[auto_1fr_auto] bg-paper px-5 py-6 sm:px-12 sm:py-8">
       <div className="flex items-center justify-between">
-        <Link to="/login" aria-label={t('TestKori home')}><Logo /></Link>
+        <Link to="/login" aria-label={t('Fairpaper home')}><Logo /></Link>
         <button
           type="button"
           onClick={toggleTheme}
@@ -35,7 +35,7 @@ export default function AuthLayout({ title, subtitle, children, footer, label = 
       </main>
 
       <div className="flex justify-between font-mono text-xs text-faint">
-        <span>TestKori</span>
+        <span>Fairpaper</span>
         <span>{t('Fair exams in any browser')}</span>
       </div>
     </div>

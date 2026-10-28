@@ -28,7 +28,7 @@ function VerifyEmailPage() {
   return (
     <AuthLayout
       title={t('Confirm email')}
-      footer={<p><Link to={user ? '/' : '/login'} className="link">{user ? t('Continue to TestKori') : t('Log in')}</Link></p>}
+      footer={<p><Link to={user ? '/' : '/login'} className="link">{user ? t('Continue to Fairpaper') : t('Log in')}</Link></p>}
     >
       {!result ? <PageLoader /> : <Alert tone={result.ok ? 'success' : 'danger'}>{result.text}</Alert>}
     </AuthLayout>

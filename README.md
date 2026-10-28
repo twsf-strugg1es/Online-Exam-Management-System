@@ -1,4 +1,4 @@
-# TestKori
+# Fairpaper
 
 [![CI](https://github.com/twsf-strugg1es/Online-Exam-Management-System/actions/workflows/ci.yml/badge.svg)](https://github.com/twsf-strugg1es/Online-Exam-Management-System/actions/workflows/ci.yml)
 
@@ -33,7 +33,7 @@ FastAPI + PostgreSQL backend, React + Tailwind frontend.
 - Choice questions graded on submit; written and image answers graded by staff
 - Results for staff (per exam) and for students (correct answers shown only after the exam closes)
 
-A browser can't physically stop someone from using another device. TestKori detects, deters and records; it doesn't promise that cheating is impossible.
+A browser can't physically stop someone from using another device. Fairpaper detects, deters and records; it doesn't promise that cheating is impossible.
 
 ## Requirements
 

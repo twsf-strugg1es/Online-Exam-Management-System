@@ -40,7 +40,7 @@ function ResetPasswordPage({ invite = false }) {
 
   return (
     <AuthLayout
-      title={invite ? t('Welcome to TestKori') : t('Set a new password')}
+      title={invite ? t('Welcome to Fairpaper') : t('Set a new password')}
       subtitle={invite ? t('Choose a password to finish setting up your account.') : t('Choose a password you haven’t used here before.')}
       footer={<p>{invite && `${t('Link expired?')} `}<Link to="/forgot-password" className="link">{t('Ask for a new link')}</Link></p>}
     >

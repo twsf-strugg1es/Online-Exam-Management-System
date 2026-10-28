@@ -1,4 +1,4 @@
-# 2. Technical Requirements Document (TRD): TestKori
+# 2. Technical Requirements Document (TRD): Fairpaper
 
 Purpose: make technical choices explicit so the build does not rely on guesses.
 Status: living document · Last updated 2026-10-12 · Describes the system **as built**; *(planned)* items are scheduled in the [Implementation Plan](06-IMPLEMENTATION-PLAN.md).
@@ -58,7 +58,7 @@ Backend environment (`backend/.env`):
 | `RATE_LIMITS` | no | `on` (default) / `off`. Off only for load tests |
 | `APP_URL` | prod: yes | The frontend's public URL, used in emailed links (default `http://localhost:3000`) |
 | `EMAIL_BACKEND` | prod: yes | `console` (default: writes `.eml` files to `EMAIL_OUTBOX_DIR`, sends nothing), `smtp`, `memory` (tests) |
-| `EMAIL_FROM` | with smtp | Sender, e.g. `TestKori <no-reply@testkori.com>` (owner decision) |
+| `EMAIL_FROM` | with smtp | Sender, e.g. `Fairpaper <no-reply@fairpaper.app>` (owner decision) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` | with smtp | Any provider's SMTP relay. Port 587 uses STARTTLS, 465 uses TLS |
 
 ## Authentication and roles

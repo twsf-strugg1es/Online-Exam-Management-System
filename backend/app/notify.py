@@ -38,7 +38,7 @@ def _backend() -> str:
 
 
 def _sender() -> str:
-    return os.getenv("EMAIL_FROM", "TestKori <no-reply@localhost>")
+    return os.getenv("EMAIL_FROM", "Fairpaper <no-reply@localhost>")
 
 
 def _message(email: Email) -> EmailMessage:

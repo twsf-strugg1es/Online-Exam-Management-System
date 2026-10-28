@@ -315,7 +315,7 @@ class PasswordResetToken(Base):
 
 
 class WaitlistSignup(Base):
-    """Someone who wants one email when TestKori launches. Belongs to TestKori itself, not to
+    """Someone who wants one email when Fairpaper launches. Belongs to Fairpaper itself, not to
     an organization; read only by `manage_waitlist.py`, never through the API."""
 
     __tablename__ = "waitlist_signups"

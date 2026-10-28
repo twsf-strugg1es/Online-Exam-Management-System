@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="testkori-api" content="http://localhost:8000">
-<title>TestKori · Fair exams in any browser</title>
+<meta name="fairpaper-api" content="http://localhost:8000">
+<title>Fairpaper · Fair exams in any browser</title>
 <meta name="description" content="Teachers set short, timed tests. Students take them on a locked-down page. Every tab switch is on the record. Join the waitlist.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -299,7 +299,7 @@
 
 <!-- The exam paper's header strip IS the navigation: brand, question map, the live proctor record, the clock, and the paper's "hand in" button. -->
 <header class="paperbar">
-  <a class="paperbar__brand" href="#q1" aria-label="TestKori, back to the top"><svg class="mark" aria-hidden="true"><use href="#mark"/></svg>TestKori<small>Demo paper</small></a>
+  <a class="paperbar__brand" href="#q1" aria-label="Fairpaper, back to the top"><svg class="mark" aria-hidden="true"><use href="#mark"/></svg>Fairpaper<small>Demo paper</small></a>
   <nav class="qmap" aria-label="Questions on this page">
     <a href="#q1" data-q="1" aria-label="Question 1">1</a><a href="#q2" data-q="2" aria-label="Question 2">2</a><a href="#q3" data-q="3" aria-label="Question 3">3</a><a href="#q4" data-q="4" aria-label="Question 4">4</a><a href="#q5" data-q="5" aria-label="Question 5">5</a><a href="#q6" data-q="6" aria-label="Question 6">6</a><a href="#q7" data-q="7" aria-label="Question 7">7</a><a href="#q8" data-q="8" aria-label="Question 8">8</a><a href="#q9" data-q="9" aria-label="Question 9">9</a>
   </nav>
@@ -310,7 +310,7 @@
 
 <aside class="log" id="log" aria-label="What this page has recorded">
   <h2>This page is watching, like an exam does</h2>
-  <p>Leaving the tab and copying are recorded here, the way TestKori records them during a real exam. Nothing leaves your browser.</p>
+  <p>Leaving the tab and copying are recorded here, the way Fairpaper records them during a real exam. Nothing leaves your browser.</p>
   <ol id="logList"></ol>
   <div class="empty" id="logEmpty">Nothing recorded yet.</div>
 </aside>
@@ -521,7 +521,7 @@
   <section id="q9" class="close sc-wrap" data-q-section="9">
     <div class="sheet">
       <div class="qhead"><span class="qno">09</span><span class="qmeta label">Last question</span></div>
-      <h2 style="font-size:var(--sc-t-2xl);line-height:1.04;letter-spacing:var(--sc-track-snug);margin:1.25rem 0 0.6rem;text-wrap:balance">Where should we tell you when TestKori opens?</h2>
+      <h2 style="font-size:var(--sc-t-2xl);line-height:1.04;letter-spacing:var(--sc-track-snug);margin:1.25rem 0 0.6rem;text-wrap:balance">Where should we tell you when Fairpaper opens?</h2>
       <p class="lede">One email when we launch. Unsubscribe any time.</p>
       <form class="wl" id="wlForm" novalidate>
         <label for="wlEmail">Your email</label>
@@ -532,7 +532,7 @@
       </form>
     </div>
     <footer class="foot">
-      <span>TestKori · fair exams in any browser</span>
+      <span>Fairpaper · fair exams in any browser</span>
       <span><a href="waitlist.html">Waitlist</a> · <a href="#q1">Back to question 1</a></span>
     </footer>
   </section>
@@ -583,7 +583,7 @@
     log('violation', `Left this page for ${secs} s`);
     const inDemo = demoInView();
     demoAway(false, secs);
-    if (!inDemo) toast(`You left this page for <b>${secs} s</b>. During a TestKori exam that's a recorded violation, and the questions are hidden until you're back.`);
+    if (!inDemo) toast(`You left this page for <b>${secs} s</b>. During a Fairpaper exam that's a recorded violation, and the questions are hidden until you're back.`);
   }
   document.addEventListener('visibilitychange', () => (document.hidden ? markLeft() : markBack()));
   window.addEventListener('blur', () => { if (!document.hidden && !filePicker) markLeft(); });
@@ -594,7 +594,7 @@
   document.addEventListener('copy', (e) => {
     if ($('demo').contains(e.target)) return;
     log('flag', 'Copied text');
-    toast('Copied. On a TestKori exam page, copying is <b>blocked and flagged</b>.');
+    toast('Copied. On a Fairpaper exam page, copying is <b>blocked and flagged</b>.');
   });
 
   $('proctorBtn').addEventListener('click', () => {
@@ -608,7 +608,7 @@
   const clockTick = setInterval(() => {
     left -= 1;
     $('clockVal').textContent = clockFmt(Math.max(0, left));
-    if (left <= 0) { clearInterval(clockTick); $('clock').classList.add('out'); $('clockVal').textContent = "Time's up"; toast("Time's up on the demo paper. On TestKori, the exam would hand itself in now. Keep reading, though.", 6000); }
+    if (left <= 0) { clearInterval(clockTick); $('clock').classList.add('out'); $('clockVal').textContent = "Time's up"; toast("Time's up on the demo paper. On Fairpaper, the exam would hand itself in now. Keep reading, though.", 6000); }
   }, 1000);
 
   /* ---------- question map: fills as each question is passed ---------- */
@@ -630,9 +630,9 @@
 
   /* ---------- Q1: the answer changes what the page says ---------- */
   const notes = {
-    paper: 'Fair, but slow. <em>TestKori scores the multiple-choice part the moment students hand in</em>, and you mark written answers in one queue.',
-    forms: 'Quick to set up, and easy to cheat: nothing notices a second tab. <em>TestKori notices, hides the questions, and keeps the record.</em>',
-    chat: 'The answers travel faster than the PDF. <em>TestKori gives every student a differently ordered paper.</em>',
+    paper: 'Fair, but slow. <em>Fairpaper scores the multiple-choice part the moment students hand in</em>, and you mark written answers in one queue.',
+    forms: 'Quick to set up, and easy to cheat: nothing notices a second tab. <em>Fairpaper notices, hides the questions, and keeps the record.</em>',
+    chat: 'The answers travel faster than the PDF. <em>Fairpaper gives every student a differently ordered paper.</em>',
     none: 'Then start with one short quiz. <em>Set it, share a join code, and the results arrive marked.</em>',
   };
   const q2Lede = {
@@ -792,9 +792,9 @@
   const url = video.dataset.videoUrl;
   const id = url && (url.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/) || [])[1];
   if (id) {
-    video.innerHTML = `<button class="video__facade" type="button" aria-label="Play the TestKori product video"><img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy"><span class="play" aria-hidden="true"></span></button>`;
+    video.innerHTML = `<button class="video__facade" type="button" aria-label="Play the Fairpaper product video"><img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy"><span class="play" aria-hidden="true"></span></button>`;
     video.querySelector('button').addEventListener('click', () => {
-      video.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="TestKori product video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      video.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="Fairpaper product video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
     }, { once: true });
   }
 

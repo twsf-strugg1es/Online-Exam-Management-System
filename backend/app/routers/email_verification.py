@@ -33,9 +33,9 @@ def send_verification(user: models.User, background: BackgroundTasks) -> None:
         f"Hi {name},\n\n"
         f"Confirm that {user.email} is your email address:\n{link}\n\n"
         "The link works for 7 days. Confirming lets you reset your password by email if you forget it.\n\n"
-        "If you didn't create a TestKori account, ignore this email.\n"
+        "If you didn't create a Fairpaper account, ignore this email.\n"
     )
-    background.add_task(notify.send_email, user.email, "Confirm your email for TestKori", text)
+    background.add_task(notify.send_email, user.email, "Confirm your email for Fairpaper", text)
 
 
 @router.post("")

@@ -30,9 +30,9 @@ function WaitlistUnsubscribePage() {
 
   return (
     <AuthLayout
-      title={done ? t("You're off the list") : t('Stop TestKori emails')}
+      title={done ? t("You're off the list") : t('Stop Fairpaper emails')}
       label="Waitlist"
-      subtitle={done ? null : t("You joined the TestKori launch waitlist. Unsubscribe and we won't email you about the launch.")}
+      subtitle={done ? null : t("You joined the Fairpaper launch waitlist. Unsubscribe and we won't email you about the launch.")}
       footer={<p><Link to="/waitlist" className="link">{t('Changed your mind? Join again')}</Link></p>}
     >
       {done ? (

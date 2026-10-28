@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="testkori-api" content="http://localhost:8000">
-<title>TestKori · Fair exams in any browser</title>
+<meta name="fairpaper-api" content="http://localhost:8000">
+<title>Fairpaper · Fair exams in any browser</title>
 <meta name="description" content="Set a test in minutes. Every student gets their own shuffled paper, answers are marked for you, and tab switches are flagged. Join the waitlist.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -201,9 +201,9 @@
 
 <header class="nav" id="nav">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="TestKori, back to top">
+    <a class="brand" href="#top" aria-label="Fairpaper, back to top">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B6E4F"/><circle cx="6.5" cy="16" r="2.45" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="12.83" cy="16" r="2.45" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="19.17" cy="16" r="3.1" fill="#fff"/><circle cx="25.5" cy="16" r="2.45" fill="none" stroke="#fff" stroke-width="1.7"/></svg>
-      TestKori
+      Fairpaper
     </a>
     <a class="btn btn--sm" href="#join">Join the waitlist</a>
   </div>
@@ -228,7 +228,7 @@
         </form>
       </div>
 
-      <div class="stage rise" style="--i:2" id="stage" aria-label="Preview of TestKori: a student answering a question, and the teacher's results" role="img">
+      <div class="stage rise" style="--i:2" id="stage" aria-label="Preview of Fairpaper: a student answering a question, and the teacher's results" role="img">
         <div class="plane plane--back" data-depth="0.4">
           <div class="card results">
             <header><b>Physics quiz · Results</b><span class="eyebrow">24 students</span></header>
@@ -309,7 +309,7 @@
   <section class="closing" id="join" aria-labelledby="join-title">
     <div class="wrap reveal">
       <span class="eyebrow rise">Early access</span>
-      <h2 id="join-title" class="rise" style="--i:1">Be first in line when TestKori opens.</h2>
+      <h2 id="join-title" class="rise" style="--i:1">Be first in line when Fairpaper opens.</h2>
       <p class="lead rise" style="--i:2">Leave your email and we'll write once, on launch day.</p>
       <form class="join-form rise" style="--i:3" id="joinForm" novalidate>
         <label class="visually-hidden" for="joinEmail">Your email</label>
@@ -327,8 +327,8 @@
 
 <footer class="foot">
   <div class="wrap">
-    <span>TestKori · Fair exams in any browser</span>
-    <span>© 2026 TestKori</span>
+    <span>Fairpaper · Fair exams in any browser</span>
+    <span>© 2026 Fairpaper</span>
   </div>
 </footer>
 
@@ -371,9 +371,9 @@
   const video = $('video');
   const id = (video.dataset.videoUrl.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/) || [])[1];
   if (id) {
-    video.innerHTML = '<button class="video__facade" type="button" aria-label="Play the TestKori product video"><span class="play" aria-hidden="true"></span><b>Watch the tour</b></button>';
+    video.innerHTML = '<button class="video__facade" type="button" aria-label="Play the Fairpaper product video"><span class="play" aria-hidden="true"></span><b>Watch the tour</b></button>';
     video.querySelector('button').addEventListener('click', () => {
-      video.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="TestKori product video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      video.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="Fairpaper product video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
     }, { once: true });
   }
 })();
