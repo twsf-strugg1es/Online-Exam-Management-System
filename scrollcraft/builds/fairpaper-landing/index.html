@@ -167,7 +167,14 @@
   .closing :focus-visible { outline-color: var(--hall-marker); }
 
   footer.foot { background: var(--hall); color: var(--hall-soft); border-top: 1px solid rgb(238 242 238 / 0.1); }
-  footer.foot .wrap { display: flex; justify-content: space-between; gap: 1rem; padding-block: 1.75rem; font-size: 0.86rem; }
+  footer.foot .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; padding-block: 3rem 2.25rem; }
+  footer.foot .brand { color: var(--hall-ink); }
+  footer.foot .tagline { margin: 0.75rem 0 0; font-size: 0.92rem; }
+  footer.foot .maker { text-align: right; font-size: 0.86rem; }
+  footer.foot .maker b { display: block; margin-top: 0.35rem; color: var(--hall-ink); font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; }
+  footer.foot .legal { display: flex; justify-content: space-between; gap: 1rem; padding-block: 1.4rem 1.75rem; border-top: 1px solid rgb(238 242 238 / 0.1); font-size: 0.84rem; }
+  footer.foot a { color: var(--hall-ink); text-decoration: none; }
+  @media (hover: hover) { footer.foot a:hover { text-decoration: underline; text-underline-offset: 3px; } }
 
   /* ---------- entrance and reveal (motion only when allowed) ---------- */
   @media (prefers-reduced-motion: no-preference) {
@@ -192,7 +199,8 @@
     .plane { position: relative; inset: auto; }
     .plane--back, .plane--chip-a { display: none; }
     .plane--chip-b { position: absolute; inset: auto 0.75rem -1.1rem auto; }
-    footer.foot .wrap { flex-direction: column; }
+    footer.foot .top, footer.foot .legal { flex-direction: column; }
+    footer.foot .maker { text-align: left; }
   }
 </style>
 <noscript><style>.rise { opacity: 1 !important; translate: none !important; filter: none !important; }</style></noscript>
@@ -327,8 +335,20 @@
 
 <footer class="foot">
   <div class="wrap">
-    <span>Fairpaper · Fair exams in any browser</span>
-    <span>© 2026 Fairpaper</span>
+    <div class="top">
+      <div>
+        <a class="brand" href="#top" aria-label="Fairpaper, back to top">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0B6E4F"/><circle cx="6.5" cy="16" r="2.45" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="12.83" cy="16" r="2.45" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="19.17" cy="16" r="3.1" fill="#fff"/><circle cx="25.5" cy="16" r="2.45" fill="none" stroke="#fff" stroke-width="1.7"/></svg>
+          Fairpaper
+        </a>
+        <p class="tagline">Fair exams in any browser.</p>
+      </div>
+      <p class="maker">A product of<b>Kori.tech</b></p>
+    </div>
+    <div class="legal">
+      <span>© 2026 Kori.tech. All rights reserved.</span>
+      <a href="#join">Join the waitlist</a>
+    </div>
   </div>
 </footer>
 
