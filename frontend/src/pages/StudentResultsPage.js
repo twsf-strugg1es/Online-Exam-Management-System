@@ -39,6 +39,12 @@ function StudentResultsPage() {
       <h1 className="text-2xl font-semibold tracking-tight">{result.exam_title}</h1>
       <p className="mt-1 text-sm text-muted">{t('Submitted {{date}}', { date: formatDateTime(result.submitted_at) })}</p>
 
+      {result.results_released === false ? (
+        <Card className="mt-6 p-6">
+          <p className="font-semibold">{t('Results aren’t released yet')}</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted">{t('Your answers are saved. Your score will appear here once your examiner releases it.')}</p>
+        </Card>
+      ) : (<>
       <Card className="mt-6 flex items-end justify-between gap-6 p-6">
         <div>
           <p className="text-sm text-muted">{t('Score')}</p>
@@ -83,6 +89,7 @@ function StudentResultsPage() {
           );
         })}
       </div>
+      </>)}
     </AppShell>
   );
 }

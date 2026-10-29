@@ -24,8 +24,10 @@ function StudentExamsPage() {
       });
   }, []);
 
-  const average = exams?.length ? Math.round(exams.reduce((sum, e) => sum + (e.percentage || 0), 0) / exams.length) : null;
-  const best = exams?.length ? Math.max(...exams.map((e) => e.percentage || 0)) : null;
+  // Averages count only the exams whose results have been released
+  const scored = (exams || []).filter((e) => e.results_released !== false);
+  const average = scored.length ? Math.round(scored.reduce((sum, e) => sum + (e.percentage || 0), 0) / scored.length) : null;
+  const best = scored.length ? Math.max(...scored.map((e) => e.percentage || 0)) : null;
 
   return (
     <AppShell>
@@ -42,8 +44,8 @@ function StudentExamsPage() {
         <>
           <Card className="mb-6 grid grid-cols-3 gap-6 p-5">
             <Stat label={t('Exams taken')} value={exams.length} />
-            <Stat label={t('Average')} value={`${average}%`} />
-            <Stat label={t('Best')} value={`${Math.round(best)}%`} tone="brand" />
+            <Stat label={t('Average')} value={average === null ? '—' : `${average}%`} />
+            <Stat label={t('Best')} value={best === null ? '—' : `${Math.round(best)}%`} tone="brand" />
           </Card>
           <Card className="divide-y divide-line overflow-hidden">
             {exams.map((exam) => (
@@ -56,10 +58,14 @@ function StudentExamsPage() {
                   <p className="truncate font-medium">{exam.exam_title}</p>
                   <p className="mt-0.5 text-xs text-muted">{formatDate(exam.end_time)}</p>
                 </div>
-                <div className="text-end">
-                  <p className={cx('tabular text-lg font-semibold', scoreTone(exam.percentage))}>{Math.round(exam.percentage)}%</p>
-                  <p className="tabular text-xs text-muted">{exam.score} / {exam.total_possible_score}</p>
-                </div>
+                {exam.results_released === false ? (
+                  <span className="text-sm text-muted">{t('Results not released yet')}</span>
+                ) : (
+                  <div className="text-end">
+                    <p className={cx('tabular text-lg font-semibold', scoreTone(exam.percentage))}>{Math.round(exam.percentage)}%</p>
+                    <p className="tabular text-xs text-muted">{exam.score} / {exam.total_possible_score}</p>
+                  </div>
+                )}
                 <LuArrowRight className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
               </Link>
             ))}

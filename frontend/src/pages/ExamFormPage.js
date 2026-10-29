@@ -31,6 +31,7 @@ function ExamFormPage() {
     require_fullscreen: true,
     block_copy_paste: true,
     max_violations: '3',
+    results_release: 'immediate',
   });
   const [questions, setQuestions] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -59,6 +60,7 @@ function ExamFormPage() {
           require_fullscreen: data.require_fullscreen,
           block_copy_paste: data.block_copy_paste,
           max_violations: data.max_violations ? String(data.max_violations) : '',
+          results_release: data.results_release || 'immediate',
         });
         setSelectedQuestions(new Set(data.questions.map((q) => q.id)));
         setMarks(Object.fromEntries(data.questions.filter((q) => q.max_score !== q.bank_max_score).map((q) => [q.id, String(q.max_score)])));
@@ -114,6 +116,7 @@ function ExamFormPage() {
         require_fullscreen: settings.require_fullscreen,
         block_copy_paste: settings.block_copy_paste,
         max_violations: settings.max_violations ? parseInt(settings.max_violations, 10) : null,
+        results_release: settings.results_release,
     };
     try {
       if (editing) {
@@ -292,6 +295,17 @@ function ExamFormPage() {
                 <Select id="maxViolations" value={settings.max_violations} onChange={(e) => setSettings({ ...settings, max_violations: e.target.value })}>
                   <option value="">{t('Never (only record violations)')}</option>
                   {[1, 2, 3, 5, 10].map((n) => <option key={n} value={n}>{tn(n, '{{count}} violation', '{{count}} violations')}</option>)}
+                </Select>
+              </Field>
+              <Field
+                label={t('Students see their results')}
+                htmlFor="resultsRelease"
+                hint={t('Until then, students see that their exam was submitted, but not their score or the correct answers.')}
+              >
+                <Select id="resultsRelease" value={settings.results_release} onChange={(e) => setSettings({ ...settings, results_release: e.target.value })}>
+                  <option value="immediate">{t('Right after they submit')}</option>
+                  <option value="on_close">{t('When the exam closes')}</option>
+                  <option value="manual">{t('When I release them')}</option>
                 </Select>
               </Field>
             </div>

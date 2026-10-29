@@ -307,6 +307,12 @@ function ResultsScreen({ results, submitReason }) {
 
         {reason && <Alert tone={reason.tone} title={t(reason.title)} className="mt-6">{t(reason.text)}</Alert>}
 
+        {attempt.results_released === false ? (
+          <Card className="mt-6 p-6">
+            <p className="font-semibold">{t('Results aren’t released yet')}</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted">{t('Your answers are saved. Your score will appear under Results once your examiner releases it.')}</p>
+          </Card>
+        ) : (
         <Card className="mt-6 flex flex-wrap items-center justify-between gap-6 p-6">
           <div>
             <p className="text-sm text-muted">{manual ? t('Score so far') : t('Your score')}</p>
@@ -325,6 +331,7 @@ function ResultsScreen({ results, submitReason }) {
               : t('All questions were graded automatically.')}
           </p>
         </Card>
+        )}
 
         <h2 className="mb-3 mt-10 text-[15px] font-semibold">{t('Your answers')}</h2>
         {exam.answers_revealed === false && (

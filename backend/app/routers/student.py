@@ -15,6 +15,22 @@ router = APIRouter(prefix="/student", tags=["Student"])
 logger = logging.getLogger(__name__)
 
 
+def _hide_scores(payload: dict) -> dict:
+    """Scores stay on the server until the exam's results are released."""
+    for key in ("score", "total_possible_score", "percentage"):
+        if key in payload:
+            payload[key] = None
+    payload["results_released"] = False
+    return payload
+
+
+def _with_release(payload: dict, exam: models.Exam) -> dict:
+    if not crud.results_visible(exam):
+        return _hide_scores(payload)
+    payload["results_released"] = True
+    return payload
+
+
 def _attempt_payload(attempt: models.ExamAttempt) -> dict:
     return {
         "id": str(attempt.id),
@@ -266,7 +282,7 @@ def resume_exam(
         crud.calculate_and_save_score(db, attempt, reason=models.SUBMIT_TIME_UP, ended_at=deadline)
         return {
             "exam": {"id": str(exam.id), "title": exam.title, "auto_submitted": True},
-            "attempt": _attempt_payload(attempt),
+            "attempt": _with_release(_attempt_payload(attempt), exam),
         }
 
     return _exam_session(db, exam, attempt, now)
@@ -371,7 +387,7 @@ def submit_exam(
         total = updated_attempt.total_possible_score
 
         # Return manually built response instead of using response_model
-        return {
+        return _with_release({
             "id": attempt_id,
             "exam_id": exam_id,
             "student_id": student_id,
@@ -380,7 +396,7 @@ def submit_exam(
             "score": score,
             "total_possible_score": total,
             "submit_reason": updated_attempt.submit_reason,
-        }
+        }, exam)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -447,7 +463,8 @@ def get_attempt_results(
         raise HTTPException(status_code=404, detail="Exam not found")
 
     # Withhold the answer key while others may still be writing the exam
-    answers_revealed = datetime.now(timezone.utc) > crud.as_utc(exam.end_time)
+    released = crud.results_visible(exam)
+    answers_revealed = released and datetime.now(timezone.utc) > crud.as_utc(exam.end_time)
 
     # Fetch student's answers for this attempt
     answers = (
@@ -460,6 +477,7 @@ def get_attempt_results(
     attempt_payload["answers"] = [
         schemas.Answer.model_validate(a).model_dump() for a in answers
     ]
+    attempt_payload = _with_release(attempt_payload, exam)
 
     # Get publisher email if published
     publisher_email = None
@@ -541,7 +559,7 @@ def list_completed_exams(
             if attempt.total_possible_score and attempt.total_possible_score > 0:
                 percentage = (final_score / attempt.total_possible_score) * 100
 
-            result.append({
+            result.append(_with_release({
                 "id": str(attempt.id),
                 "exam_id": str(attempt.exam_id),
                 "exam_title": exam.title,
@@ -549,7 +567,7 @@ def list_completed_exams(
                 "total_possible_score": attempt.total_possible_score,
                 "percentage": round(percentage, 2),
                 "end_time": attempt.end_time.isoformat(),
-            })
+            }, exam))
 
     return result
 
@@ -579,6 +597,13 @@ def get_evaluated_results(
     exam = crud.get_exam_by_id(db, attempt.exam_id)
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
+
+    if not crud.results_visible(exam):
+        # Nothing about the marking until the results are released
+        return _hide_scores({
+            "exam_title": exam.title, "score": None, "total_possible_score": None, "percentage": None,
+            "submitted_at": attempt.end_time.isoformat(), "answers_with_evaluations": [],
+        })
 
     # Get student's answers
     answers = (
@@ -640,4 +665,5 @@ def get_evaluated_results(
         "submitted_at": attempt.end_time.isoformat(),
         "published_by": publisher_email,
         "answers_with_evaluations": answers_with_eval,
+        "results_released": True,
     }

@@ -219,8 +219,16 @@ class ExamCreate(BaseModel):
     require_fullscreen: bool = True
     block_copy_paste: bool = True
     max_violations: Optional[int] = Field(default=None, ge=1, le=100)  # None: never auto-submit
+    results_release: str = "immediate"  # immediate | on_close | manual
     # Marks per question for this exam only; questions left out use their own max_score
     question_marks: dict[UUID, int] = {}
+
+    @field_validator("results_release")
+    @classmethod
+    def _release(cls, v: str) -> str:
+        if v not in models.RESULTS_RELEASES:
+            raise ValueError("Choose when students see their results.")
+        return v
 
     @field_validator("question_marks")
     @classmethod

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { LuArrowLeft, LuCalendar, LuClock, LuUsers, LuSearch, LuShieldAlert, LuPencil, LuInbox } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import { Alert, Badge, Card, EmptyState, Input, PageLoader, Stat, Tabs } from '../components/ui';
+import { Alert, Badge, Button, Card, EmptyState, Input, PageLoader, Stat, Tabs } from '../components/ui';
 import { ProtectionIcons, StatusBadge } from './AdminExamsPage';
 import { errorMessage, formatDateTime, formatDuration, formatExamTime, percent } from '../utils';
 import { useI18n } from '../i18n';
@@ -25,6 +25,45 @@ export function RiskBadge({ integrity }) {
   if (!integrity) return null;
   const risk = RISK[integrity.risk] || RISK.clean;
   return <Badge tone={risk.tone}>{t(risk.label)}</Badge>;
+}
+
+// Whether students can see their scores yet, and the button to release (or take back) them
+function ResultsRelease({ exam, onChange, onError }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const mode = exam.results_release || 'immediate';
+  if (mode === 'immediate') return null;
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      const res = await (exam.results_released_at ? api.delete : api.post)(`/admin/exams/${exam.id}/results/release`);
+      onChange({ ...exam, ...res.data });
+    } catch (err) {
+      onError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const visible = exam.results_visible;
+  return (
+    <Card className="mb-6 flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+      <div className="flex items-center gap-3">
+        <Badge tone={visible ? 'brand' : 'warn'}>{visible ? t('Results released') : t('Results hidden')}</Badge>
+        <p className="text-sm text-muted">
+          {visible
+            ? t('Students can see their scores and, once the exam has closed, the correct answers.')
+            : mode === 'on_close'
+              ? t('Students see their scores when the exam closes. Release them now to show them sooner.')
+              : t('Students see that their exam was submitted, but not their score, until you release the results.')}
+        </p>
+      </div>
+      {(exam.results_released_at || !visible) && (
+        <Button size="sm" variant={exam.results_released_at ? 'secondary' : 'primary'} loading={busy} onClick={toggle}>
+          {exam.results_released_at ? t('Hide results again') : t('Release results')}
+        </Button>
+      )}
+    </Card>
+  );
 }
 
 function ExamResultsPage() {
@@ -94,6 +133,8 @@ function ExamResultsPage() {
           </div>
         </div>
       )}
+
+      {exam && <ResultsRelease exam={exam} onChange={setExam} onError={setError} />}
 
       <Card className="mb-6 grid grid-cols-2 gap-6 p-5 sm:grid-cols-4">
         <Stat label={t('Started')} value={stats.started} />

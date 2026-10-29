@@ -159,6 +159,15 @@ def create_question(db: Session, question: schemas.QuestionBase, organization_id
     return db_q
 
 
+def results_visible(exam: models.Exam, now: datetime | None = None) -> bool:
+    """Whether students may see their scores (and later the answer key) for this exam yet."""
+    if exam.results_release == models.RESULTS_IMMEDIATE or exam.results_released_at is not None:
+        return True
+    if exam.results_release == models.RESULTS_ON_CLOSE:
+        return (now or datetime.now(timezone.utc)) > as_utc(exam.end_time)
+    return False
+
+
 def exam_marks(exam: models.Exam) -> dict[uuid.UUID, int]:
     """What each question is worth in this exam: its per-exam override, else its own max_score."""
     db = object_session(exam)
@@ -196,6 +205,7 @@ def create_exam(db: Session, exam: schemas.ExamCreate, organization_id: uuid.UUI
         require_fullscreen=exam.require_fullscreen,
         block_copy_paste=exam.block_copy_paste,
         max_violations=exam.max_violations,
+        results_release=exam.results_release,
     )
     if exam.group_ids:
         db_exam.groups = db.query(models.Group).filter(models.Group.id.in_(exam.group_ids)).all()
@@ -235,7 +245,7 @@ def exam_edit_blocker(db: Session, exam: models.Exam, now: datetime | None = Non
 def update_exam(db: Session, exam: models.Exam, data: schemas.ExamCreate) -> models.Exam:
     """Replace an exam's details, questions and groups (callers check exam_edit_blocker first)."""
     for field in ("title", "start_time", "end_time", "duration_minutes", "shuffle_questions",
-                  "shuffle_options", "require_fullscreen", "block_copy_paste", "max_violations"):
+                  "shuffle_options", "require_fullscreen", "block_copy_paste", "max_violations", "results_release"):
         setattr(exam, field, getattr(data, field))
     exam.questions = db.query(models.Question).filter(models.Question.id.in_(data.question_ids)).all()
     exam.groups = db.query(models.Group).filter(models.Group.id.in_(data.group_ids)).all() if data.group_ids else []

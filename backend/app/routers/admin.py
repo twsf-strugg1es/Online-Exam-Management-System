@@ -626,6 +626,9 @@ def _exam_payload(db: Session, exam: models.Exam) -> dict:
             for q in (exam.questions or [])
         ],
         "total_marks": sum(marks.values()),
+        "results_release": exam.results_release,
+        "results_released_at": exam.results_released_at.isoformat() if exam.results_released_at else None,
+        "results_visible": crud.results_visible(exam),
     }
 
 
@@ -667,6 +670,32 @@ def list_exams(
 ):
     """List all exams with publisher information."""
     return [_exam_payload(db, exam) for exam in crud.get_exams(db, membership.organization_id)]
+
+
+@router.post("/exams/{exam_id}/results/release")
+def release_results(
+    exam_id: UUID,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """Let students see their scores now, whatever the exam's release setting."""
+    exam = _get_org_exam(db, exam_id, membership)
+    exam.results_released_at = datetime.now(timezone.utc)
+    db.commit()
+    return _exam_payload(db, exam)
+
+
+@router.delete("/exams/{exam_id}/results/release")
+def withdraw_results(
+    exam_id: UUID,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """Hide released results again (e.g. released by mistake). Only manual exams hide them."""
+    exam = _get_org_exam(db, exam_id, membership)
+    exam.results_released_at = None
+    db.commit()
+    return _exam_payload(db, exam)
 
 
 @router.post("/exams/{exam_id}/publish")

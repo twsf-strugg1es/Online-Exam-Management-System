@@ -74,7 +74,7 @@ The product already exists (see "Completed"). Milestones 1–6 take it to a **pa
 |---|---|---|---|---|---|---|---|
 | [ ] | 4.1 | Negative marking | agent | PRD AC16 | `exams.negative_mark` (float, default 0); grading; shown on the rules screen and results | **AC16** passes; negative totals follow the owner's decision (allow, or floor at 0) | — |
 | [x] | 4.2 | Per-exam marks | agent | — | `exam_questions.marks` (nullable override) | Totals use the override; test | — |
-| [ ] | 4.3 | Result publishing control | agent | — | `exams.results_release` = `on_close` / `manual`; Publish results button | Candidates see nothing until released; test | — |
+| [x] | 4.3 | Result publishing control | agent | — | `exams.results_release` = `on_close` / `manual`; Publish results button | Candidates see nothing until released; test | — |
 | [ ] | 4.4 | Merit list / rank | agent | PRD AC17 | Ranked tab on Exam results; optional candidate-visible rank | **AC17** passes | 4.3 |
 | [ ] | 4.5 | Export XLSX + PDF result cards | agent | — | `GET /admin/exams/{id}/export.xlsx`, per-candidate PDF | Opens in Excel with Bengali names intact | 4.4 |
 | [ ] | 4.6 | Random question pools | agent | PRD AC18 | `exam_pool_rules`; drawn question IDs stored per attempt (`attempt_questions`) | **AC18** passes; grading uses the stored questions | 3.4 |

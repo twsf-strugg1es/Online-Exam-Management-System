@@ -59,6 +59,11 @@ exam_groups = Table(
 )
 
 # Membership roles, from most to least privileged
+RESULTS_IMMEDIATE = "immediate"  # students see their score as soon as they submit
+RESULTS_ON_CLOSE = "on_close"    # ...once the exam window has closed
+RESULTS_MANUAL = "manual"        # ...only after staff press Release results
+RESULTS_RELEASES = (RESULTS_IMMEDIATE, RESULTS_ON_CLOSE, RESULTS_MANUAL)
+
 ROLE_OWNER = "owner"
 ROLE_ADMIN = "admin"
 ROLE_EXAMINER = "examiner"
@@ -201,6 +206,9 @@ class Exam(Base):
     block_copy_paste = Column(Boolean, nullable=False, default=True, server_default=sa_true())
     # Submit the attempt automatically once this many violations are recorded; None = never
     max_violations = Column(Integer, nullable=True)
+    # When students see their score: right after submitting, when the exam closes, or when staff release it
+    results_release = Column(String, nullable=False, default="immediate", server_default="immediate")
+    results_released_at = Column(DateTime(timezone=True), nullable=True)  # set by "Release results"
     # Set instead of deleting once anyone has started it; archived exams are hidden and can't be started
     archived_at = Column(DateTime(timezone=True), nullable=True)
 
