@@ -111,6 +111,7 @@
  }
 ]
 </script>
+<script>try{if(!localStorage.getItem('fp-visited')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('first-visit')}catch(e){}</script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
@@ -575,10 +576,92 @@
     .band__box, .finale__card { border-radius: 24px; }
     .finale .field { border-radius: 18px; }
   }
+
+  /* ===================== Motion: scroll effects, loader, cursor ===================== */
+  /* Everything below only moves when the visitor allows motion; otherwise the page is shown finished. */
+  @media (prefers-reduced-motion: no-preference) {
+    /* 1. Hero: the product window starts tilted back and straightens as you scroll */
+    .hero3__stage { perspective: 1600px; }
+    .js-motion .window { transform-origin: 50% 0%; transform: rotateX(var(--tilt, 0deg)) scale(var(--lift, 1)); will-change: transform; }
+    .js-motion .ghost-word { translate: calc(-50% + var(--drift, 0px)) -56%; }
+
+    /* 3. How it works: the previews come alive once the cards are in */
+    .js-motion .how__grid .mini-bar i { width: 0 !important; transition: width 1100ms var(--ease) 500ms; }
+    .js-motion .how__grid.is-in .mini-bar i { width: 100% !important; }
+    .js-motion .how__grid .mini-row--ok { opacity: 0; translate: 0 6px; transition: opacity 400ms var(--ease) 1500ms, translate 400ms var(--ease) 1500ms; }
+    .js-motion .how__grid.is-in .mini-row--ok { opacity: 1; translate: 0 0; }
+    .js-motion .how__grid .mini-bars i { transform: scaleY(0); transform-origin: 50% 100%; transition: transform 700ms var(--ease); transition-delay: calc(900ms + var(--b, 0) * 90ms); }
+    .js-motion .how__grid.is-in .mini-bars i { transform: scaleY(1); }
+    .code .caret { display: inline-block; width: 2px; height: 0.9em; margin-left: 2px; vertical-align: -0.08em; background: var(--marker); animation: caret 900ms steps(1) infinite; }
+    @keyframes caret { 50% { opacity: 0; } }
+
+    /* 4. Fair by design: the report's timeline fills in row by row, violations slide in */
+    .js-motion .split__art .timeline li { opacity: 0; translate: 0 8px; transition: opacity 450ms var(--ease), translate 450ms var(--ease); transition-delay: calc(400ms + var(--r, 0) * 260ms); }
+    .js-motion .split__art .timeline li.warn { translate: -18px 0; }
+    .js-motion .split__art.is-in .timeline li { opacity: 1; translate: 0 0; }
+
+    /* 5. Headings reveal word by word; the green phrase arrives last */
+    .js-motion .words .w { display: inline-block; opacity: 0; translate: 0 0.35em; filter: blur(6px); transition: opacity 600ms var(--ease), translate 600ms var(--ease), filter 600ms var(--ease); transition-delay: calc(var(--w, 0) * 70ms); }
+    .js-motion .is-in .words .w, .js-motion .words.is-in .w { opacity: 1; translate: 0 0; filter: blur(0); }
+
+    /* 6. Dark band and closing card open from inset corners to full width */
+    .js-motion .band__box, .js-motion .finale__card { clip-path: inset(var(--inset, 0%) calc(var(--inset, 0%) * 1.4) round 32px); }
+
+    /* 7. Pricing cards fan in from the centre; the "coming soon" dot breathes */
+    .js-motion .plans .plan { transition: opacity 700ms var(--ease), transform 900ms var(--ease); transition-delay: calc(var(--i, 0) * 80ms); }
+    .js-motion .plans:not(.is-in) .plan:nth-child(1) { opacity: 0; transform: translateX(38%) rotate(-5deg) scale(0.94); }
+    .js-motion .plans:not(.is-in) .plan:nth-child(2) { opacity: 0; transform: translateY(40px) scale(0.94); }
+    .js-motion .plans:not(.is-in) .plan:nth-child(3) { opacity: 0; transform: translateX(-38%) rotate(5deg) scale(0.94); }
+    .js-motion .plans .plan.rise { filter: none; translate: none; }
+    .soon::before { animation: breathe 2.4s ease-in-out infinite; }
+    @keyframes breathe { 50% { box-shadow: 0 0 0 5px rgb(11 110 79 / 0.15); } }
+    .plan--featured .soon::before { animation-name: breathe-dark; }
+    @keyframes breathe-dark { 50% { box-shadow: 0 0 0 5px rgb(111 209 166 / 0.18); } }
+  }
+
+  /* ---------- First-visit loader: the four answer bubbles fill, one is chosen ---------- */
+  .loader { display: none; }
+  .first-visit .loader { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--paper); transition: opacity 500ms var(--ease), visibility 0s 500ms; }
+  .first-visit .loader.is-done { opacity: 0; visibility: hidden; }
+  .loader__inner { display: grid; justify-items: center; gap: 1.4rem; }
+  .loader__bubbles { display: flex; gap: 14px; }
+  .loader__bubbles i { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid var(--marker); opacity: 0; scale: 0.6; animation: bubble-in 420ms var(--ease) forwards; animation-delay: calc(var(--n) * 110ms); }
+  .loader__bubbles i:nth-child(3) { animation: bubble-in 420ms var(--ease) forwards, bubble-pick 360ms var(--ease) forwards; animation-delay: calc(var(--n) * 110ms), 820ms; }
+  @keyframes bubble-in { to { opacity: 1; scale: 1; } }
+  @keyframes bubble-pick { to { background: var(--marker); scale: 1.12; } }
+  .loader__word { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.03em; opacity: 0; translate: 0 8px; animation: word-in 500ms var(--ease) 950ms forwards; }
+  @keyframes word-in { to { opacity: 1; translate: 0 0; } }
+  .loader__line { width: 140px; height: 2px; border-radius: 1px; background: var(--rule); overflow: hidden; }
+  .loader__line b { display: block; height: 100%; width: 0; background: var(--marker); animation: line-fill 1300ms var(--ease) 200ms forwards; }
+  @keyframes line-fill { to { width: 100%; } }
+  .first-visit body { overflow: hidden; }
+  .first-visit.loaded body { overflow: auto; }
+
+  /* ---------- Cursor: a dot that follows exactly, a ring that trails and reacts ---------- */
+  .cursor-dot, .cursor-ring { display: none; }
+  .has-cursor, .has-cursor a, .has-cursor button, .has-cursor summary, .has-cursor label { cursor: none; }
+  .has-cursor input, .has-cursor textarea { cursor: text; }
+  .has-cursor .cursor-dot, .has-cursor .cursor-ring { display: block; position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; border-radius: 50%; translate: var(--x, -100px) var(--y, -100px); }
+  .has-cursor .cursor-dot { width: 8px; height: 8px; margin: -4px 0 0 -4px; background: var(--marker); transition: opacity 200ms, scale 200ms var(--ease); }
+  .has-cursor .cursor-ring { width: 38px; height: 38px; margin: -19px 0 0 -19px; border: 1.5px solid rgb(11 110 79 / 0.45); translate: var(--rx, -100px) var(--ry, -100px); transition: width 250ms var(--ease), height 250ms var(--ease), margin 250ms var(--ease), background-color 250ms var(--ease), border-color 250ms var(--ease), opacity 200ms; }
+  .has-cursor.cursor-hover .cursor-ring { width: 62px; height: 62px; margin: -31px 0 0 -31px; background: rgb(11 110 79 / 0.10); border-color: rgb(11 110 79 / 0.6); }
+  .has-cursor.cursor-hover .cursor-dot { scale: 0.5; }
+  .has-cursor.cursor-down .cursor-ring { width: 30px; height: 30px; margin: -15px 0 0 -15px; }
+  .has-cursor.cursor-dark .cursor-dot { background: var(--hall-marker); }
+  .has-cursor.cursor-dark .cursor-ring { border-color: rgb(111 209 166 / 0.55); }
+  .has-cursor.cursor-dark.cursor-hover .cursor-ring { background: rgb(111 209 166 / 0.14); }
+  .has-cursor.cursor-text .cursor-dot, .has-cursor.cursor-text .cursor-ring, .has-cursor.cursor-out .cursor-dot, .has-cursor.cursor-out .cursor-ring { opacity: 0; }
 </style>
 <noscript><style>.rise { opacity: 1 !important; translate: none !important; filter: none !important; }</style></noscript>
 </head>
 <body>
+<div class="loader" id="loader" aria-hidden="true">
+  <div class="loader__inner">
+    <div class="loader__bubbles"><i style="--n:0"></i><i style="--n:1"></i><i style="--n:2"></i><i style="--n:3"></i></div>
+    <span class="loader__word">Fairpaper</span>
+    <span class="loader__line"><b></b></span>
+  </div>
+</div>
 
 <header class="pillnav" id="nav">
   <div class="pillnav__bar">
@@ -647,10 +730,10 @@
   <!-- ============ FACTS ============ -->
   <section class="facts" aria-label="Fairpaper in four numbers">
     <div class="wrap facts__row reveal">
-      <div class="fact rise"><b>0</b><span>apps to install. Students use the browser they already have.</span></div>
-      <div class="fact rise" style="--i:1"><b>1</b><span>code per class. Share it and students join in seconds.</span></div>
-      <div class="fact rise" style="--i:2"><b>4</b><span>question types: single and multiple choice, written, image.</span></div>
-      <div class="fact rise" style="--i:3"><b>100<small>%</small></b><span>of choice answers marked the moment a student submits.</span></div>
+      <div class="fact rise"><b><span data-count="0">0</span></b><span>apps to install. Students use the browser they already have.</span></div>
+      <div class="fact rise" style="--i:1"><b><span data-count="1">1</span></b><span>code per class. Share it and students join in seconds.</span></div>
+      <div class="fact rise" style="--i:2"><b><span data-count="4">4</span></b><span>question types: single and multiple choice, written, image.</span></div>
+      <div class="fact rise" style="--i:3"><b><span data-count="100">100</span><small>%</small></b><span>of choice answers marked the moment a student submits.</span></div>
     </div>
   </section>
 
@@ -681,7 +764,7 @@
           <div class="step__art step__art--paper" aria-hidden="true">
             <div class="mini-card mini-card--center">
               <small class="mono">JOIN CODE · CLASS 9</small>
-              <div class="code">K7M2 <span>QX9P</span></div>
+              <div class="code" data-type="K7M2 QX9P">K7M2 <span>QX9P</span></div>
               <span class="mini-btn">Copy invite link</span>
             </div>
           </div>
@@ -929,7 +1012,11 @@
   onScroll();
 
   /* Entrance for the hero, reveal-once for the rest */
-  requestAnimationFrame(() => document.querySelector('.hero3').classList.add('is-in'));
+  const startHero = () => requestAnimationFrame(() => document.querySelector('.hero3').classList.add('is-in'));
+  if (document.documentElement.classList.contains('first-visit')) new MutationObserver((m, obs) => {
+    if (document.documentElement.classList.contains('loaded')) { obs.disconnect(); startHero(); }
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  else startHero();
   const io = new IntersectionObserver((entries) => entries.forEach((e) => {
     if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
   }), { rootMargin: '0px 0px -12% 0px' });
@@ -991,6 +1078,148 @@
     video.querySelector('button').addEventListener('click', () => {
       video.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="Fairpaper product video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
     }, { once: true });
+  }
+
+  /* ===================== Motion (all of it off under "reduce motion") ===================== */
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* First-visit loader: shown once per browser, gone within ~1.8 s */
+  const root = document.documentElement;
+  if (root.classList.contains('first-visit')) {
+    const loader = $('loader');
+    const done = () => {
+      loader.classList.add('is-done');
+      root.classList.add('loaded');
+      try { localStorage.setItem('fp-visited', '1'); } catch { /* shows again next time */ }
+    };
+    const minimum = new Promise((r) => setTimeout(r, 1700));
+    const loaded = document.readyState === 'complete' ? Promise.resolve() : new Promise((r) => addEventListener('load', r, { once: true }));
+    Promise.all([minimum, loaded]).then(done);
+    setTimeout(done, 3000); // never hold the page longer than this
+  }
+
+  if (!calm) {
+    root.classList.add('js-motion');
+
+    /* 5. Split section headings into words; the accent phrase keeps its colour */
+    let w = 0;
+    const splitInto = (node, out) => {
+      node.childNodes.forEach((child) => {
+        if (child.nodeType === Node.TEXT_NODE) {
+          child.textContent.split(/(\s+)/).forEach((part) => {
+            if (!part) return;
+            if (/^\s+$/.test(part)) { out.appendChild(document.createTextNode(part)); return; }
+            const span = document.createElement('span');
+            span.className = 'w';
+            span.style.setProperty('--w', w++);
+            span.textContent = part;
+            out.appendChild(span);
+          });
+        } else {
+          const copy = child.cloneNode(false);
+          splitInto(child, copy);
+          out.appendChild(copy);
+        }
+      });
+    };
+    document.querySelectorAll('.center-head h2, .split__copy h2, .finale__card h2').forEach((h) => {
+      w = 0;
+      const label = h.textContent;
+      const frag = document.createElement(h.tagName);
+      splitInto(h, frag);
+      h.replaceChildren(...frag.childNodes);
+      h.classList.remove('rise');
+      h.classList.add('words');
+      h.setAttribute('aria-label', label); // read as one heading, not word by word
+    });
+
+    /* 2. Facts count up from zero when they come into view */
+    const countUp = (el) => {
+      const target = Number(el.dataset.count);
+      const start = performance.now();
+      const tick = (now) => {
+        const t = Math.min(1, (now - start) / 1300);
+        el.textContent = Math.round(target * (1 - Math.pow(1 - t, 3)));
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      el.textContent = '0';
+      requestAnimationFrame(tick);
+    };
+    /* 3. The join code types itself out */
+    const typeCode = (el) => {
+      const text = el.dataset.type;
+      el.innerHTML = '<span class="typed"></span><span class="caret" aria-hidden="true"></span>';
+      const typed = el.querySelector('.typed');
+      [...text].forEach((ch, i) => setTimeout(() => {
+        typed.innerHTML = text.slice(0, i + 1).replace(/ (.*)$/, ' <span>$1</span>');
+      }, 700 + i * 110));
+    };
+    document.querySelectorAll('.mini-bars i').forEach((bar, i) => bar.style.setProperty('--b', i));
+    document.querySelectorAll('.timeline li').forEach((li, i) => li.style.setProperty('--r', i));
+    const once = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      once.unobserve(e.target);
+      if (e.target.dataset.count) countUp(e.target);
+      if (e.target.dataset.type) typeCode(e.target);
+    }), { threshold: 0.6 });
+    document.querySelectorAll('[data-count], [data-type]').forEach((el) => once.observe(el));
+
+    /* 1 + 6. Scroll-linked: hero window straightens, ghost word drifts, dark cards open up */
+    const win = document.querySelector('.window');
+    const ghost = document.querySelector('.ghost-word');
+    const opening = [...document.querySelectorAll('.band__box, .finale__card')];
+    let queued = false;
+    const frame = () => {
+      queued = false;
+      const vh = innerHeight;
+      const r = win.getBoundingClientRect();
+      const p = Math.min(1, Math.max(0, (vh - r.top) / (vh * 0.9))); // 0 when it enters, 1 most of the way up
+      win.style.setProperty('--tilt', `${(1 - p) * 22}deg`);
+      win.style.setProperty('--lift', (0.92 + 0.08 * p).toFixed(4));
+      ghost.style.setProperty('--drift', `${(-scrollY * 0.25).toFixed(1)}px`);
+      opening.forEach((el) => {
+        const b = el.getBoundingClientRect();
+        const q = Math.min(1, Math.max(0, (vh - b.top) / (vh * 0.75)));
+        el.style.setProperty('--inset', `${((1 - q) * 6).toFixed(2)}%`);
+      });
+    };
+    const onFrame = () => { if (!queued) { queued = true; requestAnimationFrame(frame); } };
+    addEventListener('scroll', onFrame, { passive: true });
+    addEventListener('resize', onFrame);
+    frame();
+
+    /* Cursor: fine pointers only. The dot follows exactly; the ring trails and reacts to what's under it */
+    if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      root.classList.add('has-cursor');
+      const dot = document.createElement('div'); dot.className = 'cursor-dot';
+      const ring = document.createElement('div'); ring.className = 'cursor-ring';
+      document.body.append(dot, ring);
+      let x = -100, y = -100, rx = -100, ry = -100, moving = false;
+      // What's under the pointer decides the ring: bigger over things you can press, light on dark sections
+      const classify = (t) => {
+        if (!t || !t.closest) return;
+        root.classList.toggle('cursor-hover', Boolean(t.closest('a, button, summary, .qa__icon, [role="button"]')));
+        root.classList.toggle('cursor-text', Boolean(t.closest('input, textarea')));
+        root.classList.toggle('cursor-dark', Boolean(t.closest('.band__box, .finale__card, .plan--featured, footer.foot')));
+      };
+      // Scrolling moves the page under a still pointer, so look again
+      addEventListener('scroll', () => classify(document.elementFromPoint(x, y)), { passive: true });
+      const follow = () => {
+        rx += (x - rx) * 0.2; ry += (y - ry) * 0.2;
+        root.style.setProperty('--rx', `${rx.toFixed(1)}px`); root.style.setProperty('--ry', `${ry.toFixed(1)}px`);
+        if (Math.abs(x - rx) > 0.3 || Math.abs(y - ry) > 0.3) requestAnimationFrame(follow); else moving = false;
+      };
+      addEventListener('pointermove', (e) => {
+        x = e.clientX; y = e.clientY;
+        root.style.setProperty('--x', `${x}px`); root.style.setProperty('--y', `${y}px`);
+        classify(e.target);
+        root.classList.remove('cursor-out');
+        if (!moving) { moving = true; requestAnimationFrame(follow); }
+      }, { passive: true });
+      addEventListener('pointerdown', () => root.classList.add('cursor-down'));
+      addEventListener('pointerup', () => root.classList.remove('cursor-down'));
+      document.addEventListener('pointerleave', () => root.classList.add('cursor-out'));
+    }
   }
 })();
 </script>
