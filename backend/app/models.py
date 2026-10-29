@@ -32,6 +32,8 @@ exam_questions = Table(
         ForeignKey("questions.id", ondelete="CASCADE"),
         primary_key=True,
     ),
+    # Marks this question is worth in this exam; null means the question's own max_score
+    Column("marks", Integer, nullable=True),
 )
 
 

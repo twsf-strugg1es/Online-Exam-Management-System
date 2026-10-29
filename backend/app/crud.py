@@ -1,6 +1,6 @@
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, object_session
 import random
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -159,6 +159,29 @@ def create_question(db: Session, question: schemas.QuestionBase, organization_id
     return db_q
 
 
+def exam_marks(exam: models.Exam) -> dict[uuid.UUID, int]:
+    """What each question is worth in this exam: its per-exam override, else its own max_score."""
+    db = object_session(exam)
+    overrides = dict(
+        db.query(models.exam_questions.c.question_id, models.exam_questions.c.marks)
+        .filter(models.exam_questions.c.exam_id == exam.id, models.exam_questions.c.marks.isnot(None))
+        .all()
+    ) if db is not None else {}
+    return {q.id: overrides.get(q.id, q.max_score) for q in exam.questions}
+
+
+def _apply_question_marks(db: Session, exam: models.Exam, marks: dict[uuid.UUID, int]) -> None:
+    """Store the per-exam marks (after the exam's questions are attached and flushed)."""
+    db.flush()
+    for question in exam.questions:
+        override = marks.get(question.id)
+        db.execute(
+            models.exam_questions.update()
+            .where(models.exam_questions.c.exam_id == exam.id, models.exam_questions.c.question_id == question.id)
+            .values(marks=override if override != question.max_score else None)
+        )
+
+
 def create_exam(db: Session, exam: schemas.ExamCreate, organization_id: uuid.UUID) -> models.Exam:
     """Create a new exam with associated questions and target groups."""
     db_exam = models.Exam(
@@ -184,6 +207,7 @@ def create_exam(db: Session, exam: schemas.ExamCreate, organization_id: uuid.UUI
             db_exam.questions.append(question)
     
     db.add(db_exam)
+    _apply_question_marks(db, db_exam, exam.question_marks)
     db.commit()
     db.refresh(db_exam)
     return db_exam
@@ -215,6 +239,7 @@ def update_exam(db: Session, exam: models.Exam, data: schemas.ExamCreate) -> mod
         setattr(exam, field, getattr(data, field))
     exam.questions = db.query(models.Question).filter(models.Question.id.in_(data.question_ids)).all()
     exam.groups = db.query(models.Group).filter(models.Group.id.in_(data.group_ids)).all() if data.group_ids else []
+    _apply_question_marks(db, exam, data.question_marks)
     db.commit()
     db.refresh(exam)
     return exam
@@ -453,12 +478,9 @@ def finish_attempt(
     # Calculate scores
     total_score = 0.0
     total_possible = 0.0
+    marks = exam_marks(exam)
     for question in exam.questions:
-        # Sum total possible across all questions
-        try:
-            total_possible += float(question.max_score or 0)
-        except Exception:
-            total_possible += 0.0
+        total_possible += float(marks[question.id] or 0)
 
         # Auto-grade for supported types
         if question.type in ("single_choice", "multi_choice"):
@@ -476,7 +498,7 @@ def finish_attempt(
                     student_norm = [str(student_answer)]
 
                 if correct_norm == student_norm:
-                    total_score += float(question.max_score or 0)
+                    total_score += float(marks[question.id] or 0)
 
     attempt.score = float(total_score)  # type: ignore
     attempt.total_possible_score = float(total_possible)  # type: ignore
@@ -560,6 +582,7 @@ def questions_for_attempt(exam: models.Exam, attempt: models.ExamAttempt) -> lis
         questions.sort(key=lambda q: str(q.id))  # a fixed starting point, so the seed alone decides the order
         random.Random(f"{attempt.id}:questions").shuffle(questions)
 
+    marks = exam_marks(exam)
     result = []
     for q in questions:
         options = list(q.options) if isinstance(q.options, list) else q.options
@@ -571,7 +594,7 @@ def questions_for_attempt(exam: models.Exam, attempt: models.ExamAttempt) -> lis
             "title": q.title,
             "type": q.type,
             "complexity": q.complexity,
-            "max_score": q.max_score,
+            "max_score": marks[q.id],
             "options": options,
         })
     return result

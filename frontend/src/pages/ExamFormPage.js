@@ -35,6 +35,7 @@ function ExamFormPage() {
   const [questions, setQuestions] = useState([]);
   const [groups, setGroups] = useState([]);
   const [selectedQuestions, setSelectedQuestions] = useState(new Set());
+  const [marks, setMarks] = useState({}); // questionId -> marks in this exam, when it differs from the bank
   const [selectedGroups, setSelectedGroups] = useState(new Set());
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
@@ -60,6 +61,7 @@ function ExamFormPage() {
           max_violations: data.max_violations ? String(data.max_violations) : '',
         });
         setSelectedQuestions(new Set(data.questions.map((q) => q.id)));
+        setMarks(Object.fromEntries(data.questions.filter((q) => q.max_score !== q.bank_max_score).map((q) => [q.id, String(q.max_score)])));
         setSelectedGroups(new Set(data.groups.map((g) => g.id)));
       })
       .catch((err) => { setExisting({ edit_blocked: errorMessage(err, 'Exam not found') }); });
@@ -73,7 +75,11 @@ function ExamFormPage() {
   };
 
   const visibleQuestions = questions.filter((q) => !search || q.title.toLowerCase().includes(search.toLowerCase()));
-  const totalPoints = questions.filter((q) => selectedQuestions.has(q.id)).reduce((sum, q) => sum + q.max_score, 0);
+  const marksFor = (q) => {
+    const n = Number(marks[q.id]);
+    return Number.isInteger(n) && n >= 1 && n <= 100 ? n : q.max_score;
+  };
+  const totalPoints = questions.filter((q) => selectedQuestions.has(q.id)).reduce((sum, q) => sum + marksFor(q), 0);
 
   const windowMinutes = (fromZonedInput(form.end) - fromZonedInput(form.start)) / 60000;
   const scheduleProblem =
@@ -89,6 +95,8 @@ function ExamFormPage() {
     if (!(Number(form.duration) > 0)) return setError(t('Set a duration in minutes.'));
     if (windowMinutes <= 0) return setError(t('The exam must close after it opens.'));
     if (selectedQuestions.size === 0) return setError(t('Pick at least one question.'));
+    const badMarks = questions.find((q) => selectedQuestions.has(q.id) && marks[q.id] !== undefined && marks[q.id] !== '' && marksFor(q) !== Number(marks[q.id]));
+    if (badMarks) return setError(t('Marks for “{{title}}” must be a whole number from 1 to 100.', { title: badMarks.title }));
 
     setSaving(editing ? 'save' : publish ? 'publish' : 'draft');
     const payload = {
@@ -98,6 +106,8 @@ function ExamFormPage() {
         end_time: fromZonedInput(form.end).toISOString(),
         duration_minutes: parseInt(form.duration, 10),
         question_ids: [...selectedQuestions],
+        // Only the questions whose marks differ from the question bank
+        question_marks: Object.fromEntries(questions.filter((q) => selectedQuestions.has(q.id) && marksFor(q) !== q.max_score).map((q) => [q.id, marksFor(q)])),
         group_ids: [...selectedGroups],
         shuffle_questions: settings.shuffle_questions,
         shuffle_options: settings.shuffle_options,
@@ -193,6 +203,23 @@ function ExamFormPage() {
                           {t(QUESTION_TYPE_LABELS[q.type] || '')} · {t(q.complexity)} · {tn(q.max_score, '{{count}} pt', '{{count}} pts')}
                         </span>
                       </span>
+                      {selectedQuestions.has(q.id) && (
+                        <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={100}
+                            step={1}
+                            inputMode="numeric"
+                            value={marks[q.id] ?? String(q.max_score)}
+                            onChange={(e) => setMarks({ ...marks, [q.id]: e.target.value })}
+                            onBlur={() => { if (marks[q.id] === String(q.max_score)) setMarks((m) => { const next = { ...m }; delete next[q.id]; return next; }); }}
+                            aria-label={t('Marks for “{{title}}” in this exam', { title: q.title })}
+                            className={cx('h-8 w-16 text-end tabular-nums', marksFor(q) !== q.max_score && 'border-brand')}
+                          />
+                          {t('pts')}
+                        </span>
+                      )}
                     </label>
                   ))}
                 </div>

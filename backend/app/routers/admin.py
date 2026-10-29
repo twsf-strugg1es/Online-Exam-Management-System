@@ -571,15 +571,15 @@ def download_questions_template(_: models.Membership = Depends(require_staff)):
     )
 
 
-@router.post("/exams/", response_model=schemas.Exam)
+@router.post("/exams/")
 def create_exam(
     exam: schemas.ExamCreate,
     db: Session = Depends(get_db),
     membership: models.Membership = Depends(require_staff),
 ):
-    """Create a new exam with associated questions."""
+    """Create a new exam with associated questions (same payload as GET /admin/exams/{id})."""
     _check_exam_references(db, exam, membership)
-    return crud.create_exam(db, exam, membership.organization_id)
+    return _exam_payload(db, crud.create_exam(db, exam, membership.organization_id))
 
 
 def _check_exam_references(db: Session, exam: schemas.ExamCreate, membership: models.Membership) -> None:
@@ -594,6 +594,7 @@ def _check_exam_references(db: Session, exam: schemas.ExamCreate, membership: mo
 
 
 def _exam_payload(db: Session, exam: models.Exam) -> dict:
+    marks = crud.exam_marks(exam)
     publisher_email = None
     if exam.published_by:
         publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
@@ -618,11 +619,13 @@ def _exam_payload(db: Session, exam: models.Exam) -> dict:
                 "type": q.type,
                 "options": q.options,
                 "correct_answers": q.correct_answers,
-                "max_score": q.max_score,
+                "max_score": marks[q.id],  # in this exam
+                "bank_max_score": q.max_score,
                 "tags": q.tags,
             }
             for q in (exam.questions or [])
         ],
+        "total_marks": sum(marks.values()),
     }
 
 
@@ -683,6 +686,7 @@ def publish_exam(
     # Get publisher email
     publisher_email = membership.user.email
 
+    marks = crud.exam_marks(exam)
     # Manually build response
     return {
         "id": str(exam.id),
@@ -701,7 +705,7 @@ def publish_exam(
                 "type": q.type,
                 "options": q.options,
                 "correct_answers": q.correct_answers,
-                "max_score": q.max_score,
+                "max_score": marks[q.id],
                 "tags": q.tags,
             }
             for q in (exam.questions or [])
@@ -728,6 +732,7 @@ def unpublish_exam(
         publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
         publisher_email = publisher.email if publisher else "Unknown"
 
+    marks = crud.exam_marks(exam)
     # Manually build response
     return {
         "id": str(exam.id),
@@ -746,7 +751,7 @@ def unpublish_exam(
                 "type": q.type,
                 "options": q.options,
                 "correct_answers": q.correct_answers,
-                "max_score": q.max_score,
+                "max_score": marks[q.id],
                 "tags": q.tags,
             }
             for q in (exam.questions or [])
@@ -942,6 +947,7 @@ def get_attempt_results_admin(
         publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
         publisher_email = publisher.email if publisher else "Unknown"
 
+    marks = crud.exam_marks(exam)
     # Manually build exam dict to avoid Pydantic validation issues with published_by
     exam_payload = {
         "id": str(exam.id),
@@ -960,7 +966,7 @@ def get_attempt_results_admin(
                 "type": q.type,
                 "options": q.options,
                 "correct_answers": q.correct_answers,
-                "max_score": q.max_score,
+                "max_score": marks[q.id],
                 "tags": q.tags,
             }
             for q in (exam.questions or [])
@@ -1290,7 +1296,7 @@ def get_attempt_for_evaluation(
             "exam": {
                 "id": str(exam.id) if exam else None,
                 "title": exam.title if exam else None,
-                "total_marks": sum([q.max_score for q in exam.questions]) if exam and exam.questions else 0,
+                "total_marks": sum(crud.exam_marks(exam).values()) if exam and exam.questions else 0,
             },
             "submitted_at": attempt.end_time.isoformat() if attempt.end_time else None,
             "answers": []
@@ -1300,6 +1306,8 @@ def get_attempt_for_evaluation(
         answers = db.query(models.Answer).filter(
             models.Answer.attempt_id == attempt_id
         ).all()
+
+        marks = crud.exam_marks(exam) if exam else {}
 
         # Process each answer
         for answer in answers:
@@ -1338,7 +1346,7 @@ def get_attempt_for_evaluation(
                 "question_id": str(question.id),
                 "question_title": question.title,
                 "question_type": question.type,
-                "question_max_score": question.max_score,
+                "question_max_score": marks.get(question.id, question.max_score),
                 "answer_text": answer_text,
                 "uploaded_file_path": uploaded_file_path,
                 "uploaded_file_name": uploaded_file_name,
@@ -1396,7 +1404,10 @@ def submit_answer_evaluation(
             raise HTTPException(status_code=400, detail="Comment must be 100 characters or less")
 
         # Calculate score: full marks if correct, 0 if incorrect
-        score_awarded = question.max_score if is_correct else 0
+        attempt = db.get(models.ExamAttempt, answer.attempt_id)
+        exam = db.get(models.Exam, attempt.exam_id) if attempt else None
+        full_marks = crud.exam_marks(exam).get(question.id, question.max_score) if exam else question.max_score
+        score_awarded = full_marks if is_correct else 0
 
         # Get or create evaluation
         evaluation = db.query(models.Evaluation).filter(

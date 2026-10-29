@@ -466,6 +466,14 @@
   "Make this window wider to keep going": {},
   "Male": {},
   "Mark the correct answer.": {},
+  "Marks for “{{title}}” in this exam": {},
+  "Marks for “{{title}}” must be a whole number from 1 to 100.": {},
+  "Marks for a question must be between 1 and 100.": {
+    "source": "server"
+  },
+  "Marks were given for a question that isn't in this exam.": {
+    "source": "server"
+  },
   "Medium": {},
   "Member": {},
   "Member not found": {
@@ -586,6 +594,7 @@
   "Previous": {},
   "Problem": {},
   "Protections": {},
+  "pts": {},
   "Publish": {},
   "Publish “{{title}}”?": {},
   "Put students into groups so they see the right exams.": {},

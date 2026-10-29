@@ -467,6 +467,7 @@ def get_attempt_results(
         publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
         publisher_email = publisher.email if publisher else "Unknown"
 
+    marks = crud.exam_marks(exam)
     # Manually build exam dict to avoid Pydantic validation issues with published_by
     exam_payload = {
         "id": str(exam.id),
@@ -485,7 +486,7 @@ def get_attempt_results(
                 "type": q.type,
                 "options": q.options,
                 "correct_answers": q.correct_answers if answers_revealed else None,
-                "max_score": q.max_score,
+                "max_score": marks[q.id],
                 "tags": q.tags,
             }
             for q in (exam.questions or [])

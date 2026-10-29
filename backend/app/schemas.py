@@ -219,6 +219,21 @@ class ExamCreate(BaseModel):
     require_fullscreen: bool = True
     block_copy_paste: bool = True
     max_violations: Optional[int] = Field(default=None, ge=1, le=100)  # None: never auto-submit
+    # Marks per question for this exam only; questions left out use their own max_score
+    question_marks: dict[UUID, int] = {}
+
+    @field_validator("question_marks")
+    @classmethod
+    def _marks(cls, v: dict[UUID, int]) -> dict[UUID, int]:
+        if any(not 1 <= m <= 100 for m in v.values()):
+            raise ValueError("Marks for a question must be between 1 and 100.")
+        return v
+
+    @model_validator(mode="after")
+    def _marks_for_chosen_questions(self):
+        if set(self.question_marks) - set(self.question_ids):
+            raise ValueError("Marks were given for a question that isn't in this exam.")
+        return self
 
     @field_validator("title")
     @classmethod

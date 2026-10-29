@@ -177,10 +177,11 @@ API: `POST /waitlist` `{email, source?, locale?, website?}` (public, 20 per 10 m
 
 `send-launch` emails every row with no `notified_at` and no `unsubscribed_at`, sets `notified_at` after each successful send (so re-running only reaches the ones it missed), and refuses to run unless `EMAIL_BACKEND=smtp` (a console "send" would mark everyone as emailed). `--dry-run` lists the recipients.
 
-### exam_questions *(existing join table; planned columns)*
+### exam_questions *(join table)*
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
-| position | int | | null | Teacher's order (shuffling still applies per candidate if on) |
+| marks | int | | null | **Built (4.2).** What the question is worth in this exam, 1–100; null = the question's `max_score`. Set through `question_marks` on create/edit (only values that differ from the bank are stored). Every exam-scoped read uses `crud.exam_marks(exam)`: auto-grading totals, the candidate's question payload, results, the grading view and `score_awarded` for written answers |
+| position | int | | null | *(planned)* Teacher's order (shuffling still applies per candidate if on) |
 | time_limit_seconds | int | | null | Per-question mode only; overrides the question's default; null = exam default, then no limit |
 
 ### attempt_question_timings *(planned, per-question mode only)*
