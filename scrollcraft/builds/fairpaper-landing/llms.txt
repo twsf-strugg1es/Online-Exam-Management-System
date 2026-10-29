@@ -13,5 +13,3 @@
 ## Pages
 
 - [Home](https://fairpaper.app/): what Fairpaper does and the waitlist
-- [Privacy Policy](https://fairpaper.app/privacy.html)
-- [Terms of Use](https://fairpaper.app/terms.html)

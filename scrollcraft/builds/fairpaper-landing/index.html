@@ -443,7 +443,7 @@
   .fact + .fact { border-left: 1px solid var(--rule); }
   .fact b { font-size: clamp(2.8rem, 2rem + 2.2vw, 4rem); line-height: 1; font-weight: 400; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
   .fact b small { font-size: 0.5em; letter-spacing: 0; margin-left: 0.1em; color: var(--marker); }
-  .fact span { font-size: 0.92rem; line-height: 1.5; color: var(--ink-soft); max-width: 22ch; }
+  .fact > span { font-size: 0.92rem; line-height: 1.5; color: var(--ink-soft); max-width: 22ch; }
 
   /* How it works: step cards with a small product preview on top */
   .how { padding-block: var(--section); }
@@ -1055,7 +1055,7 @@
             <button class="btn" type="submit">Join the waitlist</button>
           </div>
           <span class="hp" aria-hidden="true"><label for="joinWebsite">Leave this empty</label><input id="joinWebsite" name="website" tabindex="-1" autocomplete="off"></span>
-          <p class="fine">No spam. Every email has an unsubscribe link. <a href="privacy.html">Privacy Policy</a></p>
+          <p class="fine">No spam. Every email has an unsubscribe link.</p>
           <p class="msg" id="joinMsg" aria-live="polite"></p>
         </form>
       </div>
@@ -1077,7 +1077,7 @@
     </div>
     <div class="legal">
       <span class="foot-paige-line"><img class="foot-paige" src="paige/sleeping.svg" alt="" width="46" height="46" loading="lazy">© 2026 Kori.tech. All rights reserved.</span>
-      <span class="links"><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Use</a> · <a href="#join">Join the waitlist</a></span>
+      <span class="links"><a href="#join">Join the waitlist</a></span>
     </div>
   </div>
 </footer>
