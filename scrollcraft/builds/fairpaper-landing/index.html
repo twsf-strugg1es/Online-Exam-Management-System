@@ -595,10 +595,31 @@
     .code .caret { display: inline-block; width: 2px; height: 0.9em; margin-left: 2px; vertical-align: -0.08em; background: var(--marker); animation: caret 900ms steps(1) infinite; }
     @keyframes caret { 50% { opacity: 0; } }
 
-    /* 4. Fair by design: the report's timeline fills in row by row, violations slide in */
-    .js-motion .split__art .timeline li { opacity: 0; translate: 0 8px; transition: opacity 450ms var(--ease), translate 450ms var(--ease); transition-delay: calc(400ms + var(--r, 0) * 260ms); }
+    /* 4. Fair by design, scrubbed by scroll: the report straightens, its rows arrive one by one,
+          violations flash red, and the list on the left ticks off point by point */
+    .js-motion .split__art .report { transform: perspective(1400px) translateY(calc(var(--rt, 0) * 46px)) rotateY(calc(var(--rt, 0) * -18deg)) rotateX(calc(var(--rt, 0) * 8deg)); transform-origin: 30% 50%; will-change: transform; }
+    .js-motion .split__art .timeline { position: relative; }
+    .js-motion .split__art .timeline::before { content: ""; position: absolute; left: -0.75rem; top: 0.9rem; bottom: 0.9rem; width: 2px; border-radius: 2px; background: var(--marker); transform-origin: 50% 0; transform: scaleY(var(--tl, 0)); }
+    .js-motion .split__art .timeline li { opacity: 0.12; translate: 0 8px; transition: opacity 350ms var(--ease), translate 350ms var(--ease); }
     .js-motion .split__art .timeline li.warn { translate: -18px 0; }
-    .js-motion .split__art.is-in .timeline li { opacity: 1; translate: 0 0; }
+    .js-motion .split__art .timeline li.is-shown { opacity: 1; translate: 0 0; }
+    .js-motion .split__art .timeline li.warn.is-shown { animation: flag-flash 1100ms var(--ease); }
+    @keyframes flag-flash { 0%, 30% { background: var(--redpen-soft); } 100% { background: transparent; } }
+    .js-motion .split__art .chip--red { scale: 0.6; opacity: 0; transition: scale 420ms cubic-bezier(.2,1.5,.4,1), opacity 250ms var(--ease); }
+    .js-motion .split__art .chip--red.is-shown { scale: 1; opacity: 1; }
+    .js-motion .ticks li { position: relative; opacity: 0.38; transition: opacity 400ms var(--ease); }
+    .js-motion .ticks li.is-on { opacity: 1; }
+    .js-motion .ticks .tick { position: relative; z-index: 1; background: var(--sheet); transition: background-color 300ms var(--ease), color 300ms var(--ease), scale 420ms cubic-bezier(.2,1.5,.4,1); }
+    .js-motion .ticks li.is-on .tick { background: var(--marker); color: #fff; scale: 1.08; }
+    .js-motion .ticks li:not(:last-child)::before, .js-motion .ticks li:not(:last-child)::after { content: ""; position: absolute; left: 16.25px; top: 34px; height: calc(100% - 34px + 1.25rem); width: 1.5px; background: var(--rule-strong); transform-origin: 50% 0; }
+    .js-motion .ticks li:not(:last-child)::after { background: var(--marker); transform: scaleY(var(--seg, 0)); }
+
+    /* 3b. How it works, scrubbed by scroll: the cards tip up into place one after another,
+           their previews drift a little slower than the cards, and Paige walks across the top */
+    .js-motion .how__grid { position: relative; }
+    .js-motion .how__grid .step { transform: perspective(1200px) translateY(calc(var(--sp, 0) * 90px)) rotateX(calc(var(--sp, 0) * 18deg)); transform-origin: 50% 100%; transition-property: opacity, translate, filter, border-color, box-shadow; will-change: transform; }
+    .js-motion .how__grid .step.is-here { border-color: var(--marker); box-shadow: 0 0 0 4px rgb(11 110 79 / 0.1), 0 26px 50px -24px rgb(11 110 79 / 0.35); }
+    .js-motion .how__grid .mini-card { translate: 0 calc(var(--par, 0) * 1px); }
 
     /* 5. Headings reveal word by word; the green phrase arrives last */
     .js-motion .words .w { display: inline-block; opacity: 0; translate: 0 0.35em; filter: blur(6px); transition: opacity 600ms var(--ease), translate 600ms var(--ease), filter 600ms var(--ease); transition-delay: calc(var(--w, 0) * 70ms); }
@@ -674,7 +695,8 @@
   .paige-point { position: absolute; left: calc(100% + 10px); top: 34px; width: 120px; }
   .paige-think { position: absolute; right: calc(100% + 6px); top: 18px; width: 116px; }
   .split__art { position: relative; }
-  .paige-careful { position: absolute; z-index: 2; left: -58px; bottom: -46px; width: 124px; }
+  .paige-careful { position: absolute; z-index: 2; left: -84px; bottom: -52px; width: 142px; }
+  .paige-walk { display: none; }
   .faq__paige { width: 130px; margin-top: 1.6rem; }
   .finale .wrap { position: relative; }
   .finale-paige { position: absolute; z-index: 2; left: clamp(1rem, 5vw, 4.5rem); top: -78px; width: 150px; }
@@ -687,21 +709,22 @@
   @media (prefers-reduced-motion: no-preference) {
     .js-motion .say { opacity: 0; scale: 0.8; transform-origin: 100% 100%; transition: opacity 300ms var(--ease), scale 360ms cubic-bezier(.2,1.4,.4,1); }
     .js-motion .say.is-on { opacity: 1; scale: 1; }
-    .js-motion .paige-careful { opacity: 0; translate: 24px 18px; rotate: 8deg; transition: opacity 500ms var(--ease) 1500ms, translate 600ms cubic-bezier(.2,1.3,.4,1) 1500ms, rotate 600ms cubic-bezier(.2,1.3,.4,1) 1500ms; }
-    .js-motion .split__art.is-in .paige-careful { opacity: 1; translate: 0 0; rotate: 0deg; }
-    .js-motion .paige-point, .js-motion .paige-think { opacity: 0; scale: 0.6; transition: opacity 400ms var(--ease) 500ms, scale 600ms cubic-bezier(.2,1.4,.4,1) 500ms; }
-    .js-motion .is-in .paige-point, .js-motion .is-in .paige-think { opacity: 1; scale: 1; }
+    .js-motion .paige-careful { opacity: var(--pc, 0); translate: calc((1 - var(--pc, 0)) * 30px) calc((1 - var(--pc, 0)) * 80px); rotate: calc((1 - var(--pc, 0)) * 14deg); }
+    .js-motion .paige-think { opacity: 0; scale: 0.6; transition: opacity 400ms var(--ease) 500ms, scale 600ms cubic-bezier(.2,1.4,.4,1) 500ms; }
+    .js-motion .is-in .paige-think { opacity: 1; scale: 1; }
+    .js-motion .paige-walk { display: block; position: absolute; z-index: 3; left: 0; top: -86px; width: 104px; opacity: var(--wo, 0); translate: var(--wx, 0px) var(--wy, 0px); rotate: var(--wr, 0deg); scale: var(--wf, 1) 1; transition: scale 240ms var(--ease); }
     .js-motion .finale-paige { translate: 0 30px; opacity: 0; transition: translate 700ms cubic-bezier(.2,1.3,.4,1) 300ms, opacity 400ms var(--ease) 300ms; }
     .js-motion .finale-paige.is-in { translate: 0 0; opacity: 1; }
   }
-  @media (max-width: 1180px) { .paige-point, .paige-think { display: none; } }
+  @media (max-width: 1180px) { .paige-think { display: none; } }
+  @media (max-width: 960px) { .js-motion .paige-walk { display: none; } }
   @media (max-width: 960px) and (prefers-reduced-motion: no-preference) {
     .js-motion .plans:not(.is-in) .plan:nth-child(1), .js-motion .plans:not(.is-in) .plan:nth-child(3) { transform: translateY(40px) scale(0.96); }
   }
   @media (max-width: 960px) {
     .hero-paige { width: 122px; top: -86px; right: 4%; }
     .say { max-width: 180px; font-size: 0.82rem; }
-    .paige-careful { width: 96px; left: -8px; bottom: -26px; }
+    .paige-careful { width: 88px; left: auto; right: -6px; bottom: -44px; }
     .finale-paige { width: 112px; top: -56px; }
   }
   @media (max-width: 560px) {
@@ -806,10 +829,10 @@
       <div class="center-head reveal">
         <span class="tag rise">How it works</span>
         <h2 id="how-title" class="rise" style="--i:1">From question bank to results <em>in three steps.</em></h2>
-        <span class="paige-spot paige-point" aria-hidden="true"><img src="paige/pointing.svg" alt="" width="120" height="120" loading="lazy"></span>
         <p class="rise" style="--i:2">No training day, no installs. If you can make a spreadsheet, you can run an exam.</p>
       </div>
       <div class="how__grid reveal">
+        <span class="paige-spot paige-walk" aria-hidden="true"><img src="paige/pointing.svg" alt="" width="104" height="104"></span>
         <article class="step rise">
           <div class="step__art step__art--mint" aria-hidden="true">
             <div class="mini-card">
@@ -1237,6 +1260,18 @@
     const win = document.querySelector('.window');
     const ghost = document.querySelector('.ghost-word');
     const opening = [...document.querySelectorAll('.band__box, .finale__card')];
+    const clamp01 = (v) => Math.min(1, Math.max(0, v));
+    const howGrid = document.querySelector('.how__grid');
+    const stepCards = [...howGrid.querySelectorAll('.step')];
+    const previews = [...howGrid.querySelectorAll('.mini-card')];
+    const walker = howGrid.querySelector('.paige-walk');
+    const tickList = document.querySelector('.ticks');
+    const tickItems = [...tickList.querySelectorAll('li')];
+    const art = document.querySelector('.split__art');
+    const report = art.querySelector('.report');
+    const rows = [...report.querySelectorAll('.timeline li')];
+    const reviewChip = report.querySelector('.chip--red');
+    let lastY = scrollY, facing = 1;
     let queued = false;
     const frame = () => {
       queued = false;
@@ -1251,6 +1286,43 @@
         const q = Math.min(1, Math.max(0, (vh - b.top) / (vh * 0.75)));
         el.style.setProperty('--inset', `${((1 - q) * 6).toFixed(2)}%`);
       });
+
+      // How it works: cards tip up in turn; Paige walks from step 1 to step 3 and lights up the one she is on
+      const g = howGrid.getBoundingClientRect();
+      const tipped = stepCards.map((card, i) => {
+        const sp = 1 - clamp01((vh - g.top) / (vh * 0.5) - i * 0.22);
+        card.style.setProperty('--sp', sp.toFixed(3));
+        return sp;
+      });
+      previews.forEach((el) => el.style.setProperty('--par', ((g.top + g.height / 2 - vh / 2) * -0.06).toFixed(1)));
+      if (scrollY !== lastY) { facing = scrollY > lastY ? 1 : -1; lastY = scrollY; }
+      const walk = clamp01((vh * 0.72 - g.top) / (vh * 0.5));
+      const centre = g.width / 6 + walk * (g.width * 2 / 3);
+      const under = Math.min(2, Math.floor(centre / (g.width / 3)));
+      const stride = Math.sin(walk * Math.PI * 14);
+      walker.style.setProperty('--wx', `${(centre - walker.offsetWidth / 2).toFixed(1)}px`);
+      walker.style.setProperty('--wy', `${(tipped[under] * 90 - Math.abs(stride) * 7).toFixed(1)}px`); // stand on the card below
+      walker.style.setProperty('--wr', `${(stride * 6).toFixed(1)}deg`);
+      walker.style.setProperty('--wf', facing);
+      walker.style.setProperty('--wo', clamp01((vh - g.top) / (vh * 0.3)).toFixed(3));
+      const here = g.top < vh * 0.85 ? Math.round(walk * 2) : -1;
+      stepCards.forEach((card, i) => card.classList.toggle('is-here', i === here));
+
+      // Fair by design: the list ticks off point by point; the report straightens and fills row by row
+      const l = tickList.getBoundingClientRect();
+      const ticked = clamp01((vh * 0.85 - l.top) / Math.max(1, l.height * 0.6)) * (tickItems.length - 1);
+      const started = l.top < vh * 0.85;
+      tickItems.forEach((li, i) => {
+        li.classList.toggle('is-on', started && ticked >= i - 0.02);
+        li.style.setProperty('--seg', clamp01(ticked - i).toFixed(3));
+      });
+      const a = art.getBoundingClientRect();
+      report.style.setProperty('--rt', (1 - clamp01((vh - a.top) / (vh * 0.7))).toFixed(3));
+      art.style.setProperty('--pc', clamp01((vh * 0.9 - a.top) / (vh * 0.5)).toFixed(3));
+      const filled = clamp01((vh * 0.82 - a.top) / Math.max(1, a.height * 0.9));
+      report.style.setProperty('--tl', filled.toFixed(3));
+      rows.forEach((li, i) => li.classList.toggle('is-shown', filled * rows.length > i + 0.2));
+      reviewChip.classList.toggle('is-shown', rows[3].classList.contains('is-shown'));
     };
     const onFrame = () => { if (!queued) { queued = true; requestAnimationFrame(frame); } };
     addEventListener('scroll', onFrame, { passive: true });

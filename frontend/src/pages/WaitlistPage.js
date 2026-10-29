@@ -40,7 +40,7 @@ function WaitlistPage() {
     <AuthLayout
       title={joined ? t("You're on the list") : t('Hear when Fairpaper opens')}
       label="Launching soon"
-      subtitle={joined ? null : t("Fair, timed exams in any browser, for schools, coaching centers and hiring teams. Leave your email and we'll send one message at launch.")}
+      subtitle={joined ? null : t("Fair, timed exams in any browser. Leave your email and we'll send one message at launch.")}
       footer={<p>{t('One email when we launch, nothing else. Every email has an unsubscribe link.')}</p>}
     >
       <Paige pose={joined ? 'submitted' : 'join'} className="mx-auto -mt-3 mb-5 h-28 w-28" />
