@@ -4,6 +4,7 @@ import { LuPlus, LuClipboardList, LuEllipsis, LuTrash2, LuEyeOff, LuSend, LuPenc
 import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Button, Card, EmptyState, PageHeader, PageLoader, useConfirm } from '../components/ui';
+import GetStarted from '../components/GetStarted';
 import { errorMessage, formatExamTime, formatShortDate, getTimeZone, isSameDay, timeZoneLabel } from '../utils';
 import { useI18n } from '../i18n';
 
@@ -123,6 +124,7 @@ function AdminExamsPage() {
   const [exams, setExams] = useState(null);
   const [message, setMessage] = useState(null);
   const [confirmDialog, confirm] = useConfirm();
+  const [checklist, setChecklist] = useState(false); // the Get started card is showing
 
   const fetchExams = async () => {
     try {
@@ -186,9 +188,11 @@ function AdminExamsPage() {
 
       {message && <Alert tone={message.tone} className="mb-6" onClose={() => setMessage(null)}>{message.text}</Alert>}
 
+      <GetStarted onVisible={setChecklist} />
+
       {exams === null ? (
         <PageLoader />
-      ) : exams.length === 0 ? (
+      ) : exams.length === 0 ? (checklist ? null : (
         <Card>
           <EmptyState
             icon={LuClipboardList}
@@ -198,7 +202,7 @@ function AdminExamsPage() {
             {t('An exam picks questions from your question bank and runs in a time window you choose.')}
           </EmptyState>
         </Card>
-      ) : (
+      )) : (
         <div className="overflow-x-auto">
           <table className="table min-w-[56rem] table-fixed">
             <colgroup>

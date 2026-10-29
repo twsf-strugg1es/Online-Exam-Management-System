@@ -238,6 +238,9 @@ Added in `0007_indexes_unique_answers`: unique `answers (attempt_id, question_id
 ### Bulk student import (task 3.6)
 `POST /org/students/import/preview` and `POST /org/students/import` (managers only; multipart `file`, plus `group_ids` comma-separated on confirm). CSV (UTF-8) or XLSX, first non-empty row is the header: an `email` column (required) and a name column (optional), ≤ 1000 rows, ≤ 2 MB. Each row is `new` (account created with an unusable random password + an invite link), `existing` (account elsewhere: candidate membership added + an "added to" email), `member` (already a student: only groups change), or skipped with a reason (no email, invalid, repeated in the file, staff in this organization). Confirm re-reads the file; nothing from the preview is trusted. Emails go out after the commit.
 
+### Get started checklist (task 3.10)
+`GET /org/setup` (staff): `{steps: {students, groups, questions, exams}, counts, done}`. A step is done once the organization has at least one candidate, group, question (archived included) or exam (archived included). Counted per organization; no table of its own.
+
 ## Authorization rules
 
 O = owner, A = admin, E = examiner, C = candidate (in the same organization). Other organizations: no access (403/404).

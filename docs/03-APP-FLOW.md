@@ -164,6 +164,6 @@ Sidebar **Results** → `/student-exams` → click an exam → `/exam-results/:a
 
 ## First-use journey
 
-- **New institution:** organization signup → empty Exams page → Organization page (copy code, create groups) → Question bank (download template, import) → New exam. *(planned)* a 4-step "Get started" checklist on the empty Exams page: Invite students · Create groups · Import questions · Create first exam.
+- **New institution:** organization signup → empty Exams page → Organization page (copy code, create groups) → Question bank (download template, import) → New exam. The Exams page shows a **Get started** checklist (3.10) until all four steps are done: Invite your students · Put them in groups · Add questions · Create your first exam. Each open step has a button to the right page (the next one is highlighted); examiners see "An admin does this" for the two manager steps. It replaces the "No exams yet" card while it shows, and **×** hides it in that browser for that organization. Data: `GET /org/setup` (staff).
 - **New candidate:** signup with code → dashboard. Before their first exam, the **Rules** screen explains each protection in plain words and how violations work, before anything is recorded.
 - **New staff member:** an owner/admin adds an existing account by email on Organization → Staff. *(planned)* email invitations for people without an account.

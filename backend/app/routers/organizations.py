@@ -63,6 +63,25 @@ def get_current_organization(membership: models.Membership = Depends(get_current
     return result
 
 
+@router.get("/org/setup")
+def setup_progress(
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """The four "Get started" steps for a new organization, and whether each is done."""
+    org_id = membership.organization_id
+    counts = {
+        "students": db.query(models.Membership).filter(
+            models.Membership.organization_id == org_id, models.Membership.role == models.ROLE_CANDIDATE
+        ).count(),
+        "groups": db.query(models.Group).filter(models.Group.organization_id == org_id).count(),
+        "questions": db.query(models.Question).filter(models.Question.organization_id == org_id).count(),
+        "exams": db.query(models.Exam).filter(models.Exam.organization_id == org_id).count(),
+    }
+    steps = {name: count > 0 for name, count in counts.items()}
+    return {"steps": steps, "counts": counts, "done": all(steps.values())}
+
+
 @router.patch("/org")
 def update_organization(
     data: schemas.OrganizationUpdate,
