@@ -28,8 +28,8 @@
  {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "@id": "https://fairpaper.app/#kori-tech",
-  "name": "Kori.tech",
+  "@id": "https://fairpaper.app/#kori",
+  "name": "Kori",
   "brand": {
    "@type": "Brand",
    "name": "Fairpaper",
@@ -44,7 +44,7 @@
   "name": "Fairpaper",
   "description": "Fair online exams in any browser.",
   "publisher": {
-   "@id": "https://fairpaper.app/#kori-tech"
+   "@id": "https://fairpaper.app/#kori"
   },
   "inLanguage": "en"
  },
@@ -105,7 +105,7 @@
     "name": "Who makes Fairpaper?",
     "acceptedAnswer": {
      "@type": "Answer",
-     "text": "Fairpaper is a product of Kori.tech."
+     "text": "Fairpaper is a product of Kori."
     }
    }
   ]
@@ -317,8 +317,8 @@
   footer.foot .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; padding-block: 3rem 2.25rem; }
   footer.foot .brand { color: var(--hall-ink); }
   footer.foot .tagline { margin: 0.75rem 0 0; font-size: 0.92rem; }
-  footer.foot .maker { text-align: right; font-size: 0.86rem; }
-  footer.foot .maker b { display: block; margin-top: 0.35rem; color: var(--hall-ink); font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; }
+  footer.foot .copy { line-height: 1.55; }
+  footer.foot .copy span { display: block; }
   footer.foot .legal { display: flex; justify-content: space-between; gap: 1rem; padding-block: 1.4rem 1.75rem; border-top: 1px solid rgb(238 242 238 / 0.1); font-size: 0.84rem; }
   footer.foot a { color: var(--hall-ink); text-decoration: none; }
   @media (hover: hover) { footer.foot a:hover { text-decoration: underline; text-underline-offset: 3px; } }
@@ -355,7 +355,6 @@
     .plane--back, .plane--chip-a { display: none; }
     .plane--chip-b { position: absolute; inset: auto 0.75rem -1.1rem auto; }
     footer.foot .top, footer.foot .legal { flex-direction: column; }
-    footer.foot .maker { text-align: left; }
   }
 </style>
 <noscript><style>.rise { opacity: 1 !important; translate: none !important; filter: none !important; }</style></noscript>
@@ -498,7 +497,7 @@
           </details>
           <details class="qa">
             <summary><h3>Who makes Fairpaper?</h3><span class="qa__icon" aria-hidden="true"></span></summary>
-            <p>Fairpaper is a product of Kori.tech.</p>
+            <p>Fairpaper is a product of Kori.</p>
           </details>
       </div>
     </div>
@@ -516,7 +515,7 @@
           <button class="btn" type="submit">Join the waitlist</button>
         </div>
         <span class="hp" aria-hidden="true"><label for="joinWebsite">Leave this empty</label><input id="joinWebsite" name="website" tabindex="-1" autocomplete="off"></span>
-        <p class="fine">No spam. Every email has an unsubscribe link. <a href="privacy.html">Privacy Policy</a></p>
+        <p class="fine">No spam. Every email has an unsubscribe link.</p>
         <p class="msg" id="joinMsg" aria-live="polite"></p>
       </form>
     </div>
@@ -533,11 +532,10 @@
         </a>
         <p class="tagline">Fair exams in any browser.</p>
       </div>
-      <p class="maker">A product of<b>Kori.tech</b></p>
     </div>
     <div class="legal">
-      <span>© 2026 Kori.tech. All rights reserved.</span>
-      <span class="links"><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Use</a> · <a href="#join">Join the waitlist</a></span>
+      <span class="copy">© 2026 Kori. All rights reserved.<span>Fairpaper is a product of Kori.</span></span>
+      <span class="links"><a href="#join">Join the waitlist</a></span>
     </div>
   </div>
 </footer>
