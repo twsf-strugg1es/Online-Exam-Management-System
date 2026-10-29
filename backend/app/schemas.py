@@ -220,6 +220,7 @@ class ExamCreate(BaseModel):
     block_copy_paste: bool = True
     max_violations: Optional[int] = Field(default=None, ge=1, le=100)  # None: never auto-submit
     results_release: str = "immediate"  # immediate | on_close | manual
+    show_rank: bool = False  # candidates see their place on the merit list
     # Marks per question for this exam only; questions left out use their own max_score
     question_marks: dict[UUID, int] = {}
 

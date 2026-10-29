@@ -32,6 +32,7 @@ function ExamFormPage() {
     block_copy_paste: true,
     max_violations: '3',
     results_release: 'immediate',
+    show_rank: false,
   });
   const [questions, setQuestions] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -61,6 +62,7 @@ function ExamFormPage() {
           block_copy_paste: data.block_copy_paste,
           max_violations: data.max_violations ? String(data.max_violations) : '',
           results_release: data.results_release || 'immediate',
+          show_rank: Boolean(data.show_rank),
         });
         setSelectedQuestions(new Set(data.questions.map((q) => q.id)));
         setMarks(Object.fromEntries(data.questions.filter((q) => q.max_score !== q.bank_max_score).map((q) => [q.id, String(q.max_score)])));
@@ -117,6 +119,7 @@ function ExamFormPage() {
         block_copy_paste: settings.block_copy_paste,
         max_violations: settings.max_violations ? parseInt(settings.max_violations, 10) : null,
         results_release: settings.results_release,
+        show_rank: settings.show_rank,
     };
     try {
       if (editing) {
@@ -308,6 +311,12 @@ function ExamFormPage() {
                   <option value="manual">{t('When I release them')}</option>
                 </Select>
               </Field>
+              <Switch
+                label={t('Show students their rank')}
+                description={t('With their results, students see their place on the merit list, e.g. 3rd of 40.')}
+                checked={settings.show_rank}
+                onChange={(v) => setSettings({ ...settings, show_rank: v })}
+              />
             </div>
           </Card>
         </div>

@@ -16,7 +16,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSON
-from sqlalchemy import true as sa_true
+from sqlalchemy import false as sa_false, true as sa_true
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -209,6 +209,8 @@ class Exam(Base):
     # When students see their score: right after submitting, when the exam closes, or when staff release it
     results_release = Column(String, nullable=False, default="immediate", server_default="immediate")
     results_released_at = Column(DateTime(timezone=True), nullable=True)  # set by "Release results"
+    # Candidates also see their place on the merit list (once results are visible)
+    show_rank = Column(Boolean, nullable=False, default=False, server_default=sa_false())
     # Set instead of deleting once anyone has started it; archived exams are hidden and can't be started
     archived_at = Column(DateTime(timezone=True), nullable=True)
 

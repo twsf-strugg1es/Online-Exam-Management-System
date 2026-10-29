@@ -103,6 +103,7 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | block_copy_paste | bool | ✓ | true | |
 | max_violations | int | | null | 1–100; null = never auto-submit |
 | results_release | text | ✓ | `immediate` | **4.3.** When candidates see their score: `immediate` (right after submitting; what every exam did before), `on_close` (once `end_time` passes), `manual` (only after staff release). Until then every candidate endpoint returns `score`, `total_possible_score` and `percentage` as null with `results_released: false`, the answer key stays hidden, and `evaluated-results` returns no grades. Rule in `crud.results_visible(exam)`; staff always see scores |
+| show_rank | bool | ✓ | false | **4.4.** Candidates see their place on the merit list (`rank: {position, of, tied}` in `evaluated-results`), only once results are visible |
 | results_released_at | timestamptz | | null | Set by `POST /admin/exams/{id}/results/release` (works for any mode, e.g. to show `on_close` results early); `DELETE` the same path clears it |
 | archived_at | timestamptz | | null | Set (and the exam unpublished) instead of deleting once anyone has started it; hidden from staff and candidate lists, results stay reachable (migration 0005) |
 | *(planned)* timing_mode | text | ✓ | `exam` | `exam` (one duration, free navigation) or `per_question` (one question at a time, forward only) |
@@ -240,6 +241,9 @@ Added in `0007_indexes_unique_answers`: unique `answers (attempt_id, question_id
 
 ### Bulk student import (task 3.6)
 `POST /org/students/import/preview` and `POST /org/students/import` (managers only; multipart `file`, plus `group_ids` comma-separated on confirm). CSV (UTF-8) or XLSX, first non-empty row is the header: an `email` column (required) and a name column (optional), ≤ 1000 rows, ≤ 2 MB. Each row is `new` (account created with an unusable random password + an invite link), `existing` (account elsewhere: candidate membership added + an "added to" email), `member` (already a student: only groups change), or skipped with a reason (no email, invalid, repeated in the file, staff in this organization). Confirm re-reads the file; nothing from the preview is trusted. Emails go out after the commit.
+
+### Merit list (task 4.4, PRD AC17)
+`GET /admin/exams/{id}/merit` (staff): `{closed, rows: [{rank, tied, attempt_id, student, score, total_possible_score, percentage, time_taken_seconds, submit_reason}]}`. Submitted attempts only, ranked by final score (`crud.final_score`: auto-graded + marks awarded to written/image answers, capped at the total), then time taken (`end_time − start_time`, shorter first). Level on both = same rank, and the next rank skips (1, 2, 2, 4). `closed: false` means provisional.
 
 ### Get started checklist (task 3.10)
 `GET /org/setup` (staff): `{steps: {students, groups, questions, exams}, counts, done}`. A step is done once the organization has at least one candidate, group, question (archived included) or exam (archived included). Counted per organization; no table of its own.

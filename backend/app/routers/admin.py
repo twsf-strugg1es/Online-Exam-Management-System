@@ -629,6 +629,7 @@ def _exam_payload(db: Session, exam: models.Exam) -> dict:
         "results_release": exam.results_release,
         "results_released_at": exam.results_released_at.isoformat() if exam.results_released_at else None,
         "results_visible": crud.results_visible(exam),
+        "show_rank": exam.show_rank,
     }
 
 
@@ -799,6 +800,38 @@ def delete_exam(
     outcome = crud.remove_exam(db, exam)
     message = "Exam deleted" if outcome == "deleted" else "Exam archived: students took it, so their results are kept"
     return {"status": outcome, "message": message}
+
+
+@router.get("/exams/{exam_id}/merit")
+def get_merit_list(
+    exam_id: UUID,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """The exam's merit list (PRD AC17). Provisional until the exam closes."""
+    exam = _get_org_exam(db, exam_id, membership)
+    rows = crud.merit_list(db, exam)
+    return {
+        "closed": datetime.now(timezone.utc) > crud.as_utc(exam.end_time),
+        "rows": [
+            {
+                "rank": r["rank"],
+                "tied": r["tied"],
+                "attempt_id": str(r["attempt"].id),
+                "student": {
+                    "id": str(r["attempt"].student_id),
+                    "email": r["attempt"].student.email if r["attempt"].student else None,
+                    "full_name": r["attempt"].student.full_name if r["attempt"].student else None,
+                },
+                "score": r["score"],
+                "total_possible_score": r["attempt"].total_possible_score,
+                "percentage": round(100 * r["score"] / r["attempt"].total_possible_score, 2) if r["attempt"].total_possible_score else 0,
+                "time_taken_seconds": r["seconds"],
+                "submit_reason": r["attempt"].submit_reason,
+            }
+            for r in rows
+        ],
+    }
 
 
 @router.get("/exams/{exam_id}/attempts")

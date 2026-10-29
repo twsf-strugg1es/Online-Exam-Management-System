@@ -55,7 +55,8 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | *(planned)* Question editor | `/admin-questions/new`, `/admin-questions/:id` | Create or edit one question | question | Staff |
 | *(planned)* Edit exam | `/admin-exams/:examId/edit` | Change an exam before it opens | exam | Staff |
 | Bulk import students | Organization → Students → **Import students** (dialog) | Choose a CSV/XLSX and optional groups → **Check the list** (counts: new / with an account / already here; skipped rows with reasons) → **Add N students** → report | `/org/students/import/preview`, `/org/students/import` | Managers |
-| *(planned)* Merit list / export | tab on Exam results | Ranked list, XLSX/PDF export | attempts | Staff |
+| Merit list | card under the attempts on Exam results | Rank ("=" when tied), student, score with %, time taken; "Provisional" while the exam is open. Exam form: **Show students their rank** puts "Rank 3 of 40" (or "Joint 3 of 40") on the student's result page | `/admin/exams/:id/merit` | Staff |
+| *(planned)* Export | Exam results | XLSX/PDF export | attempts | Staff |
 
 ## Desktop only (version one)
 

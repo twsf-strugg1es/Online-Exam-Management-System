@@ -52,7 +52,16 @@ function StudentResultsPage() {
             {result.score}<span className="text-xl font-normal text-muted"> / {result.total_possible_score}</span>
           </p>
         </div>
-        <p className="tabular text-3xl font-semibold text-brand">{Math.round(result.percentage)}%</p>
+        <div className="text-end">
+          <p className="tabular text-3xl font-semibold text-brand">{Math.round(result.percentage)}%</p>
+          {result.rank && (
+            <p className="mt-1 text-sm text-muted">
+              {result.rank.tied
+                ? t('Joint {{n}} of {{total}}', { n: result.rank.position, total: result.rank.of })
+                : t('Rank {{n}} of {{total}}', { n: result.rank.position, total: result.rank.of })}
+            </p>
+          )}
+        </div>
       </Card>
 
       <h2 className="mb-3 mt-10 text-[15px] font-semibold">{t('Answers')}</h2>

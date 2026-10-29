@@ -66,6 +66,48 @@ function ResultsRelease({ exam, onChange, onError }) {
   );
 }
 
+// Ranked by score, then time taken; candidates level on both share a rank (PRD AC17)
+function MeritList({ examId }) {
+  const { t } = useI18n();
+  const [merit, setMerit] = useState(null);
+  useEffect(() => {
+    api.get(`/admin/exams/${examId}/merit`).then((res) => setMerit(res.data)).catch(() => setMerit({ rows: [] }));
+  }, [examId]);
+  if (!merit || merit.rows.length === 0) return null;
+  return (
+    <Card className="mt-6 overflow-hidden">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pb-3 pt-4">
+        <h2 className="text-[15px] font-semibold">{t('Merit list')}</h2>
+        <p className="text-xs text-muted">
+          {merit.closed ? t('Ranked by score, then by time taken.') : t('Provisional: the exam is still open.')}
+        </p>
+      </div>
+      <div className="overflow-x-auto border-t border-line">
+        <table className="table">
+          <thead>
+            <tr><th className="w-20">{t('Rank')}</th><th>{t('Student')}</th><th className="text-end">{t('Score')}</th><th className="text-end">{t('Time taken')}</th></tr>
+          </thead>
+          <tbody>
+            {merit.rows.map((r) => (
+              <tr key={r.attempt_id}>
+                <td className="font-mono font-semibold tabular-nums">
+                  {r.rank}{r.tied && <span className="ms-1 text-xs font-normal text-muted" title={t('Tied')}>=</span>}
+                </td>
+                <td>
+                  <p className="font-medium">{r.student.full_name || r.student.email}</p>
+                  {r.student.full_name && <p className="text-xs text-muted">{r.student.email}</p>}
+                </td>
+                <td className="text-end tabular-nums">{r.score} / {r.total_possible_score} <span className="ms-1 text-xs text-muted">{Math.round(r.percentage)}%</span></td>
+                <td className="text-end tabular-nums text-muted">{formatDuration(r.time_taken_seconds)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
 function ExamResultsPage() {
   const { examId } = useParams();
   const { t, tn } = useI18n();
@@ -236,6 +278,8 @@ function ExamResultsPage() {
           </div>
         )}
       </Card>
+
+      <MeritList examId={examId} />
     </AppShell>
   );
 }

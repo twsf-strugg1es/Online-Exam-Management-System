@@ -159,6 +159,43 @@ def create_question(db: Session, question: schemas.QuestionBase, organization_id
     return db_q
 
 
+def final_score(db: Session, attempt: models.ExamAttempt) -> float:
+    """Auto-graded score plus the marks staff awarded to written and image answers, capped at the total."""
+    manual = (
+        db.query(func.coalesce(func.sum(models.Evaluation.score_awarded), 0))
+        .join(models.Answer, models.Answer.id == models.Evaluation.answer_id)
+        .join(models.Question, models.Question.id == models.Answer.question_id)
+        .filter(models.Answer.attempt_id == attempt.id, models.Question.type.in_(("text", "image_upload")))
+        .scalar()
+    )
+    return min(float(attempt.score or 0) + float(manual or 0), float(attempt.total_possible_score or 0))
+
+
+def merit_list(db: Session, exam: models.Exam) -> list[dict]:
+    """Submitted attempts ranked by final score (higher first), then time taken (shorter first).
+    Candidates level on both share a rank, and the next rank skips (1, 2, 2, 4)."""
+    attempts = (
+        db.query(models.ExamAttempt)
+        .options(joinedload(models.ExamAttempt.student))
+        .filter(models.ExamAttempt.exam_id == exam.id, models.ExamAttempt.end_time.isnot(None))
+        .all()
+    )
+    rows = []
+    for attempt in attempts:
+        seconds = int((as_utc(attempt.end_time) - as_utc(attempt.start_time)).total_seconds())
+        rows.append({"attempt": attempt, "score": final_score(db, attempt), "seconds": max(0, seconds)})
+    rows.sort(key=lambda r: (-r["score"], r["seconds"]))
+    ranked, previous = [], None
+    for i, row in enumerate(rows):
+        key = (row["score"], row["seconds"])
+        rank = ranked[-1]["rank"] if previous == key else i + 1
+        ranked.append({**row, "rank": rank})
+        previous = key
+    for row in ranked:
+        row["tied"] = sum(r["rank"] == row["rank"] for r in ranked) > 1
+    return ranked
+
+
 def results_visible(exam: models.Exam, now: datetime | None = None) -> bool:
     """Whether students may see their scores (and later the answer key) for this exam yet."""
     if exam.results_release == models.RESULTS_IMMEDIATE or exam.results_released_at is not None:
@@ -206,6 +243,7 @@ def create_exam(db: Session, exam: schemas.ExamCreate, organization_id: uuid.UUI
         block_copy_paste=exam.block_copy_paste,
         max_violations=exam.max_violations,
         results_release=exam.results_release,
+        show_rank=exam.show_rank,
     )
     if exam.group_ids:
         db_exam.groups = db.query(models.Group).filter(models.Group.id.in_(exam.group_ids)).all()
@@ -245,7 +283,7 @@ def exam_edit_blocker(db: Session, exam: models.Exam, now: datetime | None = Non
 def update_exam(db: Session, exam: models.Exam, data: schemas.ExamCreate) -> models.Exam:
     """Replace an exam's details, questions and groups (callers check exam_edit_blocker first)."""
     for field in ("title", "start_time", "end_time", "duration_minutes", "shuffle_questions",
-                  "shuffle_options", "require_fullscreen", "block_copy_paste", "max_violations", "results_release"):
+                  "shuffle_options", "require_fullscreen", "block_copy_paste", "max_violations", "results_release", "show_rank"):
         setattr(exam, field, getattr(data, field))
     exam.questions = db.query(models.Question).filter(models.Question.id.in_(data.question_ids)).all()
     exam.groups = db.query(models.Group).filter(models.Group.id.in_(data.group_ids)).all() if data.group_ids else []

@@ -666,4 +666,14 @@ def get_evaluated_results(
         "published_by": publisher_email,
         "answers_with_evaluations": answers_with_eval,
         "results_released": True,
+        "rank": _rank_for(db, exam, attempt),
     }
+
+
+def _rank_for(db: Session, exam: models.Exam, attempt: models.ExamAttempt) -> dict | None:
+    """{position, of, tied} on the merit list, only when the exam is set to show it."""
+    if not exam.show_rank:
+        return None
+    rows = crud.merit_list(db, exam)
+    mine = next((r for r in rows if r["attempt"].id == attempt.id), None)
+    return {"position": mine["rank"], "of": len(rows), "tied": mine["tied"]} if mine else None
