@@ -38,7 +38,7 @@ function StudentExamsPage() {
         <PageLoader />
       ) : exams.length === 0 ? (
         <Card>
-          <EmptyState icon={LuAward} title={t('No results yet')}>{t('Your scores appear here after you submit an exam.')}</EmptyState>
+          <EmptyState icon={LuAward} paige="thinking" title={t('No results yet')}>{t('Your scores appear here after you submit an exam.')}</EmptyState>
         </Card>
       ) : (
         <>

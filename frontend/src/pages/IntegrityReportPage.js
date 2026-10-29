@@ -111,7 +111,7 @@ function IntegrityReportPage() {
           }
         />
         {events.length === 0 ? (
-          <EmptyState icon={LuShieldCheck} title={t('No events recorded')}>
+          <EmptyState icon={LuShieldCheck} paige="careful" title={t('No events recorded')}>
             {t('The student stayed in the exam, in fullscreen, the whole time.')}
           </EmptyState>
         ) : (

@@ -165,7 +165,7 @@ function AdminEvaluateAnswersPage() {
 
       {data.answers.length === 0 ? (
         <Card>
-          <EmptyState icon={LuCircleCheck} title={t('Nothing to grade')}>
+          <EmptyState icon={LuCircleCheck} paige="sleeping" title={t('Nothing to grade')}>
             {t('This attempt has no written or image answers. Multiple-choice questions were graded automatically.')}
           </EmptyState>
         </Card>

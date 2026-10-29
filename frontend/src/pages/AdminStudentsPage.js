@@ -93,6 +93,7 @@ function AdminStudentsPage() {
         <Card>
           <EmptyState
             icon={LuUsers}
+            paige="hello"
             title={t('No students yet')}
             action={isManager && <Link to="/admin-organization" className="btn btn-primary"><LuLink className="h-4 w-4" />{t('Get a join link')}</Link>}
           >

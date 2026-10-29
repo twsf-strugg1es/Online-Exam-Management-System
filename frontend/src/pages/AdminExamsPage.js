@@ -196,6 +196,7 @@ function AdminExamsPage() {
         <Card>
           <EmptyState
             icon={LuClipboardList}
+            paige="pointing"
             title={t('No exams yet')}
             action={<Button icon={LuPlus} onClick={() => navigate('/admin-exams/new')}>{t('Create your first exam')}</Button>}
           >

@@ -204,7 +204,7 @@ function ExamResultsPage() {
         </div>
 
         {attempts.length === 0 ? (
-          <EmptyState icon={LuInbox} title={t('No attempts yet')} className="border-t border-line">
+          <EmptyState icon={LuInbox} paige="sleeping" title={t('No attempts yet')} className="border-t border-line">
             {t("Students' attempts appear here as soon as they start the exam.")}
           </EmptyState>
         ) : (

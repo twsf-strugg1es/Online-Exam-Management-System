@@ -280,6 +280,7 @@ function AdminQuestionsPage() {
         <Card>
           <EmptyState
             icon={LuFileQuestion}
+            paige="thinking"
             title={t('No questions yet')}
             action={
               <div className="flex flex-wrap justify-center gap-2">

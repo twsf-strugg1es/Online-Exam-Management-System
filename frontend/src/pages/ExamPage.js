@@ -4,7 +4,7 @@ import { LuArrowLeft, LuImage, LuCircleAlert } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import useExamIntegrity, { clearClipboard, enterFullscreen, exitFullscreen, fullscreenSupported } from '../hooks/useExamIntegrity';
-import { Alert, Badge, Button, Card, Logo, LogoMark, Modal, PageLoader, Textarea, cx } from '../components/ui';
+import { Alert, Badge, Button, Card, Logo, LogoMark, Modal, PageLoader, Paige, Textarea, cx } from '../components/ui';
 import { errorMessage, formatClock, formatExamTime } from '../utils';
 import { useI18n } from '../i18n';
 import { createAnswerQueue, openStorage } from '../answerQueue';
@@ -287,6 +287,7 @@ function ResultsScreen({ results, submitReason }) {
   const objectivePoints = objective.reduce((sum, q) => sum + (q.max_score || 0), 0);
   const manual = (exam.questions || []).some((q) => q.type === 'text' || q.type === 'image_upload');
   const reason = SUBMIT_MESSAGES[submitReason || attempt.submit_reason];
+  const pose = (submitReason || attempt.submit_reason) === 'violations' ? 'careful' : attempt.results_released === false ? 'thinking' : 'submitted';
 
   const fmt = (v) => (Array.isArray(v) ? v.join(', ') : v && typeof v === 'object' ? v.name || t('Image uploaded') : v ?? '—');
   const isCorrect = (q) => {
@@ -302,8 +303,13 @@ function ResultsScreen({ results, submitReason }) {
         <Link to="/student-account" className="btn btn-secondary btn-sm">{t('Back to exams')}</Link>
       </header>
       <main className="mx-auto max-w-2xl px-5 pb-16 pt-6">
-        <p className="eyebrow mb-2">{t('Submitted')}</p>
-        <h1 className="text-3xl font-semibold tracking-tight">{exam.title}</h1>
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="eyebrow mb-2">{t('Submitted')}</p>
+            <h1 className="text-3xl font-semibold tracking-tight">{exam.title}</h1>
+          </div>
+          <Paige pose={pose} className="-mb-3 h-24 w-24 shrink-0 sm:h-28 sm:w-28" />
+        </div>
 
         {reason && <Alert tone={reason.tone} title={t(reason.title)} className="mt-6">{t(reason.text)}</Alert>}
 

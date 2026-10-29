@@ -287,7 +287,7 @@ function AdminOrganizationPage() {
             action={<Button size="sm" variant="secondary" icon={LuUpload} onClick={() => setImportOpen(true)}>{t('Import students')}</Button>}
           />
           {candidates.length === 0 ? (
-            <EmptyState icon={LuLink} title={t('No students yet')}>{t('Import a list of students, or share the join code from the Invite tab.')}</EmptyState>
+            <EmptyState icon={LuLink} paige="hello" title={t('No students yet')}>{t('Import a list of students, or share the join code from the Invite tab.')}</EmptyState>
           ) : (
             <div className="overflow-x-auto">
               <table className="table">

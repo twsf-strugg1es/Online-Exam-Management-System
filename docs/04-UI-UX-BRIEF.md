@@ -88,7 +88,8 @@ Use `src/components/ui.js`. Don't hand-roll alternatives, and don't add new vari
 | `Alert` | Inline, at the top of the area it concerns; dismissible unless it's blocking |
 | `Tabs` | Max 4; counts optional |
 | `Modal` / `useConfirm()` | Only for confirmation or a short focused task. No multi-step flows in modals |
-| `EmptyState` | Icon, one-line title, one sentence, one action |
+| `EmptyState` | Icon or Paige pose (`paige="sleeping"`), one-line title, one sentence, one action. Paige only on first-run empties (no exams, no students, nothing to grade); search and filter misses keep the icon |
+| `Paige` | The mascot as a decorative `<img>` (`alt=""`); the text beside her carries the meaning. Poses: hello, submitted, thinking, careful, marking, sleeping, pointing, join |
 | `PageHeader`, `Stat`, `Spinner`, `PageLoader` | Standard scaffolding |
 
 Tailwind rule: class names written literally (lookup objects like `BUTTON_VARIANTS`), never built as `` `bg-${x}` ``.
@@ -204,7 +205,7 @@ Rules that follow from the budget:
 | **Fairpaper logo mark + wordmark** | **Done (1.1, changed 2026-10-28):** a row of four answer bubbles, the third filled in, on the brand green (owner's pick from `scrollcraft/builds/fairpaper-landing/logo-explorations.html`, option 2). `LogoMark` / `Logo` in `ui.js` (inline SVG, theme tokens, works in both themes); wordmark "Fairpaper" in IBM Plex Sans semibold |
 | Favicon, PWA icons, `index.html` title, `manifest.json` | **Done (1.1):** `public/favicon.svg`, `favicon.ico` (16–64), `logo192.png`, `logo512.png`, all from the same 32-unit geometry |
 | Icons | Lucide via `react-icons/lu`, 16–18 px, stroke 1.75–2; only icons that add meaning |
-| Illustrations | None by design |
+| Illustrations | **Paige, the mascot (sketch, 2026-10-29):** a sheet of exam paper with the logo's bubbles as a badge. Single source `design/paige/paige.js` (8 poses); `node design/paige/build.mjs` writes `frontend/public/paige/*.svg` and the landing page copies. Used on the exam finish screen (submitted; careful after a violations auto-submit; thinking while results are held), first-run empty states, and the waitlist page. **Owner: an illustrator polishes the final artwork**; keep the pose names and the 160 × 160 viewBox so the art drops in without code changes |
 | Email templates | Plain HTML: logo, one heading, one paragraph, one button; works without images |
 | Marketing screenshots | After the pilot UI is final |
 

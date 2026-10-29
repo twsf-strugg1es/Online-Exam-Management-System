@@ -110,7 +110,7 @@ function StudentDashboard() {
         <PageLoader />
       ) : list.length === 0 ? (
         <Card>
-          <EmptyState icon={LuBookOpen} title={t('No exams yet')}>
+          <EmptyState icon={LuBookOpen} paige="sleeping" title={t('No exams yet')}>
             {t('When {{org}} publishes an exam for you, it appears here.', { org: currentMembership?.organization_name || t('your organization') })}
           </EmptyState>
         </Card>

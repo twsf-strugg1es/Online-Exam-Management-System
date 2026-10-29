@@ -651,14 +651,73 @@
   .has-cursor.cursor-dark .cursor-ring { border-color: rgb(111 209 166 / 0.55); }
   .has-cursor.cursor-dark.cursor-hover .cursor-ring { background: rgb(111 209 166 / 0.14); }
   .has-cursor.cursor-text .cursor-dot, .has-cursor.cursor-text .cursor-ring, .has-cursor.cursor-out .cursor-dot, .has-cursor.cursor-out .cursor-ring { opacity: 0; }
+
+  /* ===================== Paige, the mascot ===================== */
+  html, body { overflow-x: clip; }
+  .paige-spot { display: block; pointer-events: none; }
+  .paige-spot img, .paige-spot svg { display: block; width: 100%; height: auto; }
+
+  /* Loader: Paige thinks while the bubbles fill */
+  .loader__paige { width: 132px; margin-bottom: -0.4rem; }
+  .loader__hint { font-size: 0.92rem; color: var(--ink-soft); opacity: 0; animation: word-in 500ms var(--ease) 1100ms forwards; }
+
+  /* Hero: Paige sits on the product window and says hello */
+  .hero-paige { appearance: none; background: none; border: 0; padding: 0; color: inherit; font: inherit; position: absolute; z-index: 3; right: max(2%, calc(50% - 560px)); top: -118px; width: 168px; pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .hero-paige:focus-visible { outline: 2px solid var(--marker); outline-offset: 4px; border-radius: 12px; }
+  .hero-paige .paige-hop { transition: translate 260ms var(--ease); }
+  .hero-paige.is-hopping .paige-hop { translate: 0 -14px; }
+  .say { position: absolute; z-index: 4; right: calc(100% - 18px); top: 8px; width: max-content; max-width: 230px; padding: 0.7rem 0.95rem; background: var(--ink); color: var(--paper); border-radius: 16px 16px 4px 16px; font-size: 0.9rem; line-height: 1.35; font-weight: 500; box-shadow: 0 14px 30px -12px rgb(22 22 20 / 0.4); pointer-events: none; }
+  .say::after { content: ""; position: absolute; right: -6px; bottom: 6px; border: 7px solid transparent; border-left-color: var(--ink); border-right: 0; }
+
+  /* Section companions */
+  .how .center-head, .pricing .center-head { position: relative; }
+  .paige-point { position: absolute; left: calc(100% + 10px); top: 34px; width: 120px; }
+  .paige-think { position: absolute; right: calc(100% + 6px); top: 18px; width: 116px; }
+  .split__art { position: relative; }
+  .paige-careful { position: absolute; z-index: 2; left: -58px; bottom: -46px; width: 124px; }
+  .faq__paige { width: 130px; margin-top: 1.6rem; }
+  .finale .wrap { position: relative; }
+  .finale-paige { position: absolute; z-index: 2; left: clamp(1rem, 5vw, 4.5rem); top: -78px; width: 150px; }
+  .foot-paige { width: 46px; flex: none; }
+  .foot-paige-line { display: inline-flex; align-items: center; gap: 0.6rem; }
+
+  /* Paper confetti when someone joins */
+  .confetti { position: fixed; z-index: 95; left: 0; top: 0; width: 9px; height: 13px; border-radius: 2px; pointer-events: none; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .js-motion .say { opacity: 0; scale: 0.8; transform-origin: 100% 100%; transition: opacity 300ms var(--ease), scale 360ms cubic-bezier(.2,1.4,.4,1); }
+    .js-motion .say.is-on { opacity: 1; scale: 1; }
+    .js-motion .paige-careful { opacity: 0; translate: 24px 18px; rotate: 8deg; transition: opacity 500ms var(--ease) 1500ms, translate 600ms cubic-bezier(.2,1.3,.4,1) 1500ms, rotate 600ms cubic-bezier(.2,1.3,.4,1) 1500ms; }
+    .js-motion .split__art.is-in .paige-careful { opacity: 1; translate: 0 0; rotate: 0deg; }
+    .js-motion .paige-point, .js-motion .paige-think { opacity: 0; scale: 0.6; transition: opacity 400ms var(--ease) 500ms, scale 600ms cubic-bezier(.2,1.4,.4,1) 500ms; }
+    .js-motion .is-in .paige-point, .js-motion .is-in .paige-think { opacity: 1; scale: 1; }
+    .js-motion .finale-paige { translate: 0 30px; opacity: 0; transition: translate 700ms cubic-bezier(.2,1.3,.4,1) 300ms, opacity 400ms var(--ease) 300ms; }
+    .js-motion .finale-paige.is-in { translate: 0 0; opacity: 1; }
+  }
+  @media (max-width: 1180px) { .paige-point, .paige-think { display: none; } }
+  @media (max-width: 960px) and (prefers-reduced-motion: no-preference) {
+    .js-motion .plans:not(.is-in) .plan:nth-child(1), .js-motion .plans:not(.is-in) .plan:nth-child(3) { transform: translateY(40px) scale(0.96); }
+  }
+  @media (max-width: 960px) {
+    .hero-paige { width: 122px; top: -86px; right: 4%; }
+    .say { max-width: 180px; font-size: 0.82rem; }
+    .paige-careful { width: 96px; left: -8px; bottom: -26px; }
+    .finale-paige { width: 112px; top: -56px; }
+  }
+  @media (max-width: 560px) {
+    .hero-paige { width: 98px; top: -70px; }
+    .say { top: -4px; max-width: 150px; padding: 0.55rem 0.75rem; }
+  }
 </style>
 <noscript><style>.rise { opacity: 1 !important; translate: none !important; filter: none !important; }</style></noscript>
 </head>
 <body>
 <div class="loader" id="loader" aria-hidden="true">
   <div class="loader__inner">
+    <span class="paige-spot loader__paige"><img src="paige/thinking.svg" alt="" width="132" height="132"></span>
     <div class="loader__bubbles"><i style="--n:0"></i><i style="--n:1"></i><i style="--n:2"></i><i style="--n:3"></i></div>
     <span class="loader__word">Fairpaper</span>
+    <span class="loader__hint">Getting your paper ready…</span>
     <span class="loader__line"><b></b></span>
   </div>
 </div>
@@ -694,6 +753,10 @@
 
     <div class="wrap hero3__stage rise" style="--i:4">
       <span class="ghost-word" aria-hidden="true">Fairpaper</span>
+      <button class="hero-paige" id="heroPaige" type="button" aria-label="Paige, the Fairpaper mascot. Press for a tip.">
+        <span class="say" id="paigeSay" aria-live="polite">Hi, I'm Paige! I keep every exam fair.</span>
+        <span class="paige-spot paige-hop" data-paige="hello"></span>
+      </button>
       <figure class="window" aria-label="Preview of the Fairpaper results page for a teacher" role="img">
         <div class="window__bar" aria-hidden="true"><i></i><i></i><i></i><span>fairpaper.app/exams/physics-model-test</span></div>
         <div class="window__body">
@@ -743,6 +806,7 @@
       <div class="center-head reveal">
         <span class="tag rise">How it works</span>
         <h2 id="how-title" class="rise" style="--i:1">From question bank to results <em>in three steps.</em></h2>
+        <span class="paige-spot paige-point" aria-hidden="true"><img src="paige/pointing.svg" alt="" width="120" height="120" loading="lazy"></span>
         <p class="rise" style="--i:2">No training day, no installs. If you can make a spreadsheet, you can run an exam.</p>
       </div>
       <div class="how__grid reveal">
@@ -806,6 +870,7 @@
         </ul>
       </div>
       <div class="split__art reveal" aria-hidden="true">
+        <span class="paige-spot paige-careful"><img src="paige/careful.svg" alt="" width="124" height="124" loading="lazy"></span>
         <div class="report rise">
           <div class="report__head">
             <div><span class="mono">INTEGRITY REPORT</span><b>Tanvir Rahman</b></div>
@@ -878,6 +943,7 @@
       <div class="center-head reveal">
         <span class="tag rise">Pricing</span>
         <h2 id="pricing-title" class="rise" style="--i:1">Pricing is <em>launching soon.</em></h2>
+        <span class="paige-spot paige-think" aria-hidden="true"><img src="paige/thinking.svg" alt="" width="116" height="116" loading="lazy"></span>
         <p class="rise" style="--i:2">Plans for a single class up to a whole school. Join the waitlist and you'll see them first.</p>
       </div>
       <div class="plans reveal">
@@ -915,6 +981,7 @@
         <span class="tag rise">Questions</span>
         <h2 id="faq-title" class="rise" style="--i:1">Questions, answered.</h2>
         <p class="faq__more rise" style="--i:2">Something else on your mind? <a href="#join">Join the waitlist</a> and reply to our email.</p>
+        <span class="paige-spot faq__paige rise" style="--i:3" aria-hidden="true"><img src="paige/hello.svg" alt="" width="130" height="130" loading="lazy"></span>
       </div>
       <div class="faq__list reveal">
           <details class="qa" open>
@@ -953,6 +1020,7 @@
   <!-- ============ CLOSING ============ -->
   <section class="finale" id="join" aria-labelledby="join-title">
     <div class="wrap">
+      <span class="paige-spot finale-paige reveal" aria-hidden="true"><img id="finalePaige" src="paige/join.svg" alt="" width="150" height="150" loading="lazy"></span>
       <div class="finale__card reveal">
         <span class="tag tag--dark rise">Early access</span>
         <h2 id="join-title" class="rise" style="--i:1">Be first in line when <em>Fairpaper opens.</em></h2>
@@ -985,13 +1053,14 @@
       <p class="maker">A product of<b>Kori.tech</b></p>
     </div>
     <div class="legal">
-      <span>© 2026 Kori.tech. All rights reserved.</span>
+      <span class="foot-paige-line"><img class="foot-paige" src="paige/sleeping.svg" alt="" width="46" height="46" loading="lazy">© 2026 Kori.tech. All rights reserved.</span>
       <span class="links"><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Use</a> · <a href="#join">Join the waitlist</a></span>
     </div>
   </div>
 </footer>
 
 <script src="waitlist.js"></script>
+<script src="paige/paige.js"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -1221,6 +1290,70 @@
       document.addEventListener('pointerleave', () => root.classList.add('cursor-out'));
     }
   }
+
+  /* ===================== Paige ===================== */
+  document.querySelectorAll('[data-paige]').forEach((el) => { el.innerHTML = window.Paige.svg(el.dataset.paige); });
+  const heroPaige = $('heroPaige');
+  const say = $('paigeSay');
+  const LINES = [
+    "Hi, I'm Paige! I keep every exam fair.",
+    'Every student gets their own shuffled paper.',
+    "Psst… pasting doesn't work in here.",
+    'Left the tab? I write it down. Kindly.',
+    'Choice questions? Already marked.',
+    "Join the waitlist and I'll wave at you on launch day.",
+  ];
+  let line = 0;
+  if (!calm) setTimeout(() => say.classList.add('is-on'), root.classList.contains('first-visit') ? 2600 : 1200);
+  heroPaige.addEventListener('click', () => {
+    line = (line + 1) % LINES.length;
+    say.classList.remove('is-on');
+    setTimeout(() => { say.textContent = LINES[line]; say.classList.add('is-on'); }, calm ? 0 : 140);
+    if (!calm) { heroPaige.classList.add('is-hopping'); setTimeout(() => heroPaige.classList.remove('is-hopping'), 260); }
+  });
+
+  // Her eyes follow the pointer (a few pixels, inside the eye)
+  const pupils = heroPaige.querySelector('.paige-pupils');
+  if (!calm && pupils && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    let pending = false, px = 0, py = 0;
+    addEventListener('pointermove', (e) => {
+      px = e.clientX; py = e.clientY;
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => {
+        pending = false;
+        const b = heroPaige.getBoundingClientRect();
+        const dx = px - (b.left + b.width * 0.5), dy = py - (b.top + b.height * 0.44);
+        const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 260);
+        pupils.setAttribute('transform', `translate(${(dx / d * 2.6 * k).toFixed(2)} ${(dy / d * 3 * k).toFixed(2)})`);
+      });
+    }, { passive: true });
+  }
+
+  // Joining the waitlist: Paige celebrates, with a burst of paper confetti
+  const finalePaige = $('finalePaige');
+  new MutationObserver(() => {
+    if (!$('joinMsg').classList.contains('ok')) return;
+    finalePaige.src = 'paige/submitted.svg';
+    if (calm) return;
+    const b = finalePaige.getBoundingClientRect();
+    const colours = ['#0B6E4F', '#6FD1A6', '#F2B84B', '#F28B82', '#F5EFE2'];
+    for (let i = 0; i < 34; i++) {
+      const bit = document.createElement('span');
+      bit.className = 'confetti';
+      bit.style.background = colours[i % colours.length];
+      document.body.appendChild(bit);
+      const x0 = b.left + b.width / 2, y0 = b.top + b.height * 0.3;
+      const angle = (-Math.PI / 2) + (Math.random() - 0.5) * Math.PI * 1.1;
+      const dist = 140 + Math.random() * 220;
+      const x1 = x0 + Math.cos(angle) * dist, y1 = y0 + Math.sin(angle) * dist;
+      bit.animate([
+        { transform: `translate(${x0}px, ${y0}px) rotate(0deg)`, opacity: 1 },
+        { transform: `translate(${x1}px, ${y1}px) rotate(${Math.random() * 540 - 270}deg)`, opacity: 1, offset: 0.55 },
+        { transform: `translate(${x1 + (Math.random() - 0.5) * 60}px, ${y1 + 260}px) rotate(${Math.random() * 720}deg)`, opacity: 0 },
+      ], { duration: 1600 + Math.random() * 700, easing: 'cubic-bezier(.2,.7,.3,1)' }).onfinish = () => bit.remove();
+    }
+  }).observe($('joinMsg'), { attributes: true, attributeFilter: ['class'] });
 })();
 </script>
 </body>
