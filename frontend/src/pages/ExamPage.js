@@ -7,6 +7,7 @@ import useExamIntegrity, { clearClipboard, enterFullscreen, exitFullscreen, full
 import { Alert, Badge, Button, Card, Logo, LogoMark, Modal, PageLoader, Textarea, cx } from '../components/ui';
 import { errorMessage, formatClock, formatExamTime } from '../utils';
 import { useI18n } from '../i18n';
+import { createAnswerQueue, openStorage } from '../answerQueue';
 
 const TEXT_SAVE_DELAY = 700; // save written answers once the student pauses typing
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -88,13 +89,18 @@ function Timer({ seconds }) {
   );
 }
 
-function SaveStatus({ status }) {
-  const { t } = useI18n();
-  const states = { saving: [t('Saving'), 'text-faint'], saved: [t('Saved'), 'text-brand'], error: [t('Not saved'), 'text-danger'] };
+function SaveStatus({ status, waiting }) {
+  const { t, tn } = useI18n();
+  const states = {
+    saving: [t('Saving'), 'text-faint'],
+    saved: [t('Saved'), 'text-brand'],
+    offline: [tn(waiting, 'Offline · {{count}} answer waiting', 'Offline · {{count}} answers waiting'), 'text-warn'],
+    error: [t('Not saved'), 'text-danger'],
+  };
   if (!states[status]) return null;
   const [label, tone] = states[status];
   return (
-    <span className="flex items-center gap-2 font-mono text-xs text-faint" role="status">
+    <span className="flex items-center gap-2 font-mono text-xs text-faint" role="status" title={status === 'offline' ? t('Your answers are kept on this computer and sent when you reconnect.') : undefined}>
       <span className={cx('status-dot', tone, status !== 'saving' && 'bg-current')} />
       {label}
     </span>
@@ -364,6 +370,7 @@ function ExamPage() {
   const [flagged, setFlagged] = useState(new Set());
   const [secondsLeft, setSecondsLeft] = useState(null);
   const [saveStatus, setSaveStatus] = useState(null);
+  const [waiting, setWaiting] = useState(0); // answers kept on this computer, not yet on the server
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
@@ -375,6 +382,7 @@ function ExamPage() {
   const deadline = useRef(null);
   const saveTimers = useRef({}); // questionId -> { id, flush } for written answers waiting to be saved
   const finishing = useRef(false);
+  const queue = useRef(null); // offline-tolerant answer queue for this attempt (see answerQueue.js)
   const attemptId = session?.attempt?.id;
 
   // Load the exam summary (and any unfinished attempt) for the rules screen
@@ -401,6 +409,7 @@ function ExamPage() {
     if (finishing.current) return;
     finishing.current = true;
     Object.values(saveTimers.current).forEach((pending) => clearTimeout(pending.id));
+    queue.current?.clear();
     if (reason) setSubmitReason(reason);
     exitFullscreen();
     setPhase('finished');
@@ -448,8 +457,19 @@ function ExamPage() {
         return;
       }
 
-      const saved = await api.get(`/student/attempts/${res.data.attempt.id}/answers`);
-      setAnswers(Object.fromEntries(saved.data.map((a) => [a.question_id, a.answer_data])));
+      const id = res.data.attempt.id;
+      const saved = await api.get(`/student/attempts/${id}/answers`);
+      queue.current?.stop();
+      queue.current = createAnswerQueue({
+        attemptId: id,
+        storage: await openStorage(),
+        send: (row) => api.post(`/student/attempts/${id}/save-answer`, { question_id: row.questionId, answer_data: row.value, client_seq: row.seq }),
+        onChange: ({ status, waiting: n }) => { setSaveStatus(status); setWaiting(n); },
+        onClosed: () => finish(),
+      });
+      // Anything this computer kept from a previous visit is newer than the server's copy
+      const unsent = await queue.current.restore();
+      setAnswers({ ...Object.fromEntries(saved.data.map((a) => [a.question_id, a.answer_data])), ...unsent });
       try {
         setFlagged(new Set(JSON.parse(sessionStorage.getItem(`flagged:${res.data.attempt.id}`) || '[]')));
       } catch {
@@ -472,6 +492,11 @@ function ExamPage() {
     try {
       // Send any answer still waiting for its typing pause
       await Promise.all(Object.values(saveTimers.current).map((pending) => pending.flush()));
+      if (queue.current && !(await queue.current.flush())) {
+        setConfirmSubmit(false);
+        setError(t("You're offline, so your exam can't be submitted yet. Your answers are kept on this computer. Reconnect and press Submit again."));
+        return;
+      }
       const res = await api.post(`/student/attempts/${attemptId}/submit`);
       setConfirmSubmit(false);
       finish(res.data.submit_reason);
@@ -481,7 +506,7 @@ function ExamPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [attemptId, finish]);
+  }, [attemptId, finish, t]);
 
   // Countdown from the server's remaining time; submits when it reaches zero
   useEffect(() => {
@@ -505,17 +530,16 @@ function ExamPage() {
     return () => clearInterval(keepAlive);
   }, [phase, refreshSession]);
 
-  const persist = useCallback(async (questionId, value) => {
-    setSaveStatus('saving');
-    try {
-      await api.post(`/student/attempts/${attemptId}/save-answer`, { question_id: questionId, answer_data: value });
-      setSaveStatus('saved');
-    } catch (err) {
-      setSaveStatus('error');
-      const detail = err.response?.data?.detail || '';
-      if (/submitted|time is over/i.test(detail)) finish();
-    }
-  }, [attemptId, finish]);
+  const persist = useCallback((questionId, value) => queue.current?.enqueue(questionId, value), []);
+
+  // Send what's waiting as soon as the connection comes back; stop the queue when leaving
+  useEffect(() => {
+    if (phase !== 'running') return undefined;
+    const online = () => queue.current?.flush();
+    window.addEventListener('online', online);
+    return () => window.removeEventListener('online', online);
+  }, [phase]);
+  useEffect(() => () => queue.current?.stop(), []);
 
   const answer = (questionId, value, { debounce = false } = {}) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -635,10 +659,15 @@ function ExamPage() {
             {session.exam.title}
             <span className="ms-3 font-mono text-xs font-normal text-faint">{tn(questions.length, '{{count}} question', '{{count}} questions')}</span>
           </p>
-          <SaveStatus status={saveStatus} />
+          <SaveStatus status={saveStatus} waiting={waiting} />
           <ViolationChip count={integrity.violations} max={integrity.maxViolations} />
           <Timer seconds={secondsLeft ?? 0} />
         </div>
+        {saveStatus === 'offline' && (
+          <div className="border-t border-warn/25 bg-warn-soft px-4 py-2 text-center text-sm text-warn-ink" role="status">
+            {t("You're offline. Keep going: your answers are kept on this computer and sent when you reconnect.")}
+          </div>
+        )}
         {showWarning && (
           <div className="border-t border-danger/25 bg-danger-soft px-4 py-2 text-center text-sm text-danger-ink" role="alert">
             {integrity.maxViolations

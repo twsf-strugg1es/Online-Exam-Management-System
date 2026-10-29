@@ -126,7 +126,8 @@ Sidebar **Results** → `/student-exams` → click an exam → `/exam-results/:a
 | Answer choice | Click an option | Allowed only while running | Silent | Saved immediately | Save error shown (no offline queue yet; see `ExamPage.js`) | Same question |
 | Answer text | Type | — | Silent (debounced) | Saved after a pause; flushed on submit | Same as above | — |
 | Upload image answer | Choose file | Image type, ≤ 2 MB | Preview | Saved | "File too large" | — |
-| Submit exam | Confirm dialog | — | Button spinner; pending saves flushed first | Score / awaiting grading | Alert; can retry | Finished |
+| Submit exam | Confirm dialog | — | Button spinner; pending saves flushed first | Score / awaiting grading | Alert; can retry. Offline with answers waiting: the dialog closes and an alert says the exam can't be submitted until they reconnect | Finished |
+| Lose the connection mid-exam | — (automatic) | — | Header shows "Offline · N answers waiting" and a banner "You're offline. Keep going…"; answers are kept on this computer | Sent on reconnect (or on reopening the exam); header back to "Saved" | Rejected for good (e.g. after time's up): "Not saved" | Running |
 | Grade answer | Correct / Incorrect + **Save** | Comment ≤ 100 chars | Button spinner | Progress bar updates | Alert | Next answer |
 | Import Excel | **Preview**, then **Import** | `.xlsx/.xls`, required columns | Spinner | Count imported | Per-row errors in the preview | Question list |
 | Publish/unpublish/delete exam | Exam menu | Delete needs confirmation | Menu disabled | List refreshes | Alert | `/admin-exams` |

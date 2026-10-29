@@ -126,6 +126,7 @@ Types: `uuid`, `text` (SQLAlchemy `String`), `int`, `float`, `bool`, `timestampt
 | attempt_id | uuid | ✓ | | FK exam_attempts |
 | question_id | uuid | ✓ | | FK questions |
 | answer_data | json | ✓ | | Choice: the selected value(s). Text: string. Image: object with a `data:` URL preview (≤ 2 MB, client-enforced) |
+| client_seq | bigint | | null | The exam page's save number (3.8). A save whose `client_seq` isn't greater than the stored one is ignored (`{"status": "stale"}`); saves without it always apply |
 
 ### evaluations
 | Field | Type | Required | Default | Notes |

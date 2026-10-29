@@ -5,6 +5,7 @@ from sqlalchemy import (
     Column,
     String,
     Integer,
+    BigInteger,
     Boolean,
     DateTime,
     ForeignKey,
@@ -272,6 +273,8 @@ class Answer(Base):
     attempt_id = Column(UUID(as_uuid=True), ForeignKey("exam_attempts.id"), nullable=False)
     question_id = Column(UUID(as_uuid=True), ForeignKey("questions.id"), nullable=False)
     answer_data = Column(JSON, nullable=False)
+    # The exam page numbers every save; a delayed retry carrying an older number is ignored
+    client_seq = Column(BigInteger, nullable=True)
 
     attempt = relationship("ExamAttempt")
     question = relationship("Question")

@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 import random
@@ -359,8 +359,9 @@ def save_answer(
     attempt_id: uuid.UUID,
     student_id: uuid.UUID,
     answer_in: schemas.AnswerCreate,
-) -> models.Answer:
-    """Save or update a student's answer with security verification."""
+) -> bool:
+    """Save or update a student's answer with security verification. Returns False when the
+    save was older (by `client_seq`) than the answer already stored, and so was ignored."""
     # Verify the attempt belongs to the student
     attempt = (
         db.query(models.ExamAttempt)
@@ -394,23 +395,32 @@ def save_answer(
             .first()
         )
 
-    answer = existing()
-    if answer is None:
-        answer = models.Answer(attempt_id=attempt_id, question_id=answer_in.question_id, answer_data=answer_in.answer_data)
-        db.add(answer)
+    def overwrite() -> bool:
+        # One conditional UPDATE, so two saves racing can't let the older one win
+        query = db.query(models.Answer).filter(
+            models.Answer.attempt_id == attempt_id, models.Answer.question_id == answer_in.question_id
+        )
+        if answer_in.client_seq is not None:
+            query = query.filter(or_(models.Answer.client_seq.is_(None), models.Answer.client_seq < answer_in.client_seq))
+        changed = query.update(
+            {models.Answer.answer_data: answer_in.answer_data, models.Answer.client_seq: answer_in.client_seq},
+            synchronize_session=False,
+        )
+        db.commit()
+        return changed > 0
+
+    if existing() is None:
+        db.add(models.Answer(
+            attempt_id=attempt_id, question_id=answer_in.question_id,
+            answer_data=answer_in.answer_data, client_seq=answer_in.client_seq,
+        ))
         try:
             db.commit()
+            return True
         except IntegrityError:
-            # Another save (a second tab, a retried request) inserted it first: update that one
+            # Another save (a second tab, a retried request) inserted it first
             db.rollback()
-            answer = existing()
-            answer.answer_data = answer_in.answer_data
-            db.commit()
-    else:
-        answer.answer_data = answer_in.answer_data
-        db.commit()
-    db.refresh(answer)
-    return answer
+    return overwrite()
 
 
 def finish_attempt(

@@ -281,8 +281,9 @@ def save_answer(
 ):
     """Auto-save a student's answer to a question."""
     try:
-        crud.save_answer(db, attempt_id, membership.user_id, answer_in)
-        return {"status": "saved"}
+        saved = crud.save_answer(db, attempt_id, membership.user_id, answer_in)
+        # "stale": a newer answer is already stored. The page treats both as delivered
+        return {"status": "saved" if saved else "stale"}
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
 

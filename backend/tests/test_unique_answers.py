@@ -64,7 +64,8 @@ def test_a_save_that_loses_the_race_updates_the_winner(client, test_db, monkeypa
         return result
 
     monkeypatch.setattr(test_db, "query", query)
-    answer = crud.save_answer(test_db, attempt_id, student.id, schemas.AnswerCreate(question_id=q.id, answer_data="mine"))
+    saved = crud.save_answer(test_db, attempt_id, student.id, schemas.AnswerCreate(question_id=q.id, answer_data="mine"))
     monkeypatch.undo()
-    assert answer.answer_data == "mine"
+    assert saved is True
+    assert test_db.query(models.Answer).filter_by(question_id=q.id).one().answer_data == "mine"
     assert test_db.query(models.Answer).filter_by(question_id=q.id).count() == 1

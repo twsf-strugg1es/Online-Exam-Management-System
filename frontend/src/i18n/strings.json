@@ -526,6 +526,12 @@
   "Nothing here": {},
   "Nothing to grade": {},
   "Nothing was recorded during this attempt.": {},
+  "Offline · {{count}} answer waiting": {
+    "plural_of": "Offline · {{count}} answers waiting"
+  },
+  "Offline · {{count}} answers waiting": {
+    "plural": true
+  },
   "Once you start, the timer runs even if you close the page.": {},
   "One email when we launch, nothing else. Every email has an unsubscribe link.": {},
   "One more and your exam is submitted automatically.": {},
@@ -865,6 +871,8 @@
   "You're off the list. We won't email you about the launch.": {
     "source": "server"
   },
+  "You're offline, so your exam can't be submitted yet. Your answers are kept on this computer. Reconnect and press Submit again.": {},
+  "You're offline. Keep going: your answers are kept on this computer and sent when you reconnect.": {},
   "You're on the list": {},
   "You're on the list. We'll email you once, when Fairpaper opens.": {
     "source": "server"
@@ -877,6 +885,7 @@
   "Your answer": {},
   "Your answer:": {},
   "Your answers": {},
+  "Your answers are kept on this computer and sent when you reconnect.": {},
   "Your email": {},
   "Your email here": {},
   "Your email is your login and can't be changed here.": {},

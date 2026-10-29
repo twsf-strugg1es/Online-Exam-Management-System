@@ -281,7 +281,8 @@ class AnswerBase(BaseModel):
 
 
 class AnswerCreate(AnswerBase):
-    pass
+    # Increases with every save from the exam page (it survives a reload); older ones are ignored
+    client_seq: Optional[int] = Field(None, ge=0, le=2**53)
 
 
 class Answer(AnswerBase):
