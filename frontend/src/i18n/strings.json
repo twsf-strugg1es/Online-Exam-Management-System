@@ -219,6 +219,7 @@
   },
   "Clear": {},
   "Click to choose a different file": {},
+  "Clicking outside the exam, or switching to another tab, window or app, is recorded as a violation. The questions stay blurred until you click back into the exam.": {},
   "Close": {},
   "Close menu": {},
   "Closed": {},
@@ -240,7 +241,6 @@
   "Copy and paste blocked": {},
   "Copy link": {},
   "Copy this link:": {},
-  "Copy, paste and right-click are disabled. Your clipboard is emptied when you start and each time you come back.": {},
   "copy, right-click, keys": {},
   "Copy/paste blocked": {},
   "Correct": {},
@@ -574,6 +574,7 @@
   "Option {{letter}} is correct": {},
   "optional": {},
   "Options:": {},
+  "Or click anywhere on the page.": {},
   "Organization": {},
   "Organization default": {},
   "Organization default ({{language}})": {},
@@ -752,7 +753,6 @@
   "Switch to light theme": {},
   "Switched tab or minimized the browser": {},
   "Switched to another window or app": {},
-  "Switching to another tab, window or app is recorded and counted as a violation.": {},
   "Tag": {},
   "Tags": {},
   "Template": {},
@@ -777,7 +777,7 @@
     "source": "server"
   },
   "The questions are hidden until you come back to fullscreen.": {},
-  "The questions are hidden until you come back.": {},
+  "The questions stay blurred until you click back into the exam.": {},
   "The student stayed in the exam, in fullscreen, the whole time.": {},
   "The timer has not stopped. Widen the window (at least 1024 pixels) or rotate your tablet and your exam comes back exactly as you left it.": {},
   "The timer keeps running while you're away": {},
@@ -899,6 +899,7 @@
   "You can change this later.": {},
   "You can switch between them any time from the sidebar.": {},
   "You can't change your answers after submitting.": {},
+  "You can't select, copy or paste text, or right-click. Your clipboard is emptied when you start and each time you come back.": {},
   "You have {{count}} exam you can take right now.": {
     "plural_of": "You have {{count}} exams you can take right now."
   },

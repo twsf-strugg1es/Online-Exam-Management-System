@@ -158,7 +158,7 @@ Target device: an old office or lab PC (dual-core, 4 GB RAM, integrated graphics
 | Images | None in the UI chrome; question images lazy-loaded, sized, compressed (WebP) |
 
 Rules that follow from the budget:
-- **No `backdrop-blur`** anywhere (expensive on low-end GPUs); use solid or semi-opaque backgrounds.
+- **No `backdrop-blur`** anywhere (expensive on low-end GPUs); use solid or semi-opaque backgrounds. One deliberate exception (owner request, 2026-10-31): while a candidate is away from a running exam, the exam is blurred with a static `filter: blur` (Tailwind `blur-md`) under the "You left the exam" card. It's not `backdrop-filter`, it never animates, and what's under it is only placeholder bars.
 - Shadows: only the two tokens (`card`, `pop`). Prefer borders.
 - Route-level code splitting (`React.lazy`) so candidates never download staff screens.
 - No heavy libraries for small jobs (date pickers, charts, animation libs). Native inputs and `Intl` first. Charts, when needed, load on demand.

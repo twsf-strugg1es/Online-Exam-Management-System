@@ -22,11 +22,11 @@ function RulesScreen({ exam, resuming, onStart, starting, error }) {
   const fullscreen = s.require_fullscreen && fullscreenSupported();
   const rules = [
     fullscreen && { text: t('The exam runs in fullscreen. Questions are hidden whenever you leave fullscreen.') },
-    { text: t('Switching to another tab, window or app is recorded and counted as a violation.') },
+    { text: t('Clicking outside the exam, or switching to another tab, window or app, is recorded as a violation. The questions stay blurred until you click back into the exam.') },
     s.max_violations
       ? { text: tn(s.max_violations, 'After {{count}} violation your exam is submitted automatically.', 'After {{count}} violations your exam is submitted automatically.'), strong: true }
       : { text: t('Violations are recorded and shown to your examiner.') },
-    s.block_copy_paste && { text: t('Copy, paste and right-click are disabled. Your clipboard is emptied when you start and each time you come back.') },
+    s.block_copy_paste && { text: t("You can't select, copy or paste text, or right-click. Your clipboard is emptied when you start and each time you come back.") },
     (s.shuffle_questions || s.shuffle_options) && { text: t('Questions and options are in a different order for every student.') },
   ].filter(Boolean);
 
@@ -120,18 +120,21 @@ function ViolationChip({ count, max }) {
   );
 }
 
-function BlockedOverlay({ integrity, onReturn }) {
+// Shown over the blurred exam whenever the questions are hidden. A click anywhere brings the student back
+// (the button is there for keyboard users, and gets focus).
+function BlockedOverlay({ integrity }) {
   const { t, tn } = useI18n();
   const remaining = integrity.maxViolations ? integrity.maxViolations - integrity.violations : null;
+  const left = integrity.isAway || integrity.needsReturn;
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-paper p-6">
-      <div className="max-w-md text-center">
+    <div className="fixed inset-0 z-40 grid cursor-pointer place-items-center bg-paper/40 p-6" onClick={integrity.returnToExam}>
+      <Card className="max-w-md p-8 text-center" role="alertdialog" aria-modal="true" aria-labelledby="away-title" aria-describedby="away-text">
         <p className="font-mono text-xs font-semibold uppercase tracking-[0.08em] text-danger">{t('Recorded')}</p>
-        <h2 className="mt-3 text-2xl font-semibold tracking-tight">
-          {integrity.isAway ? t('You left the exam') : t('Fullscreen is required')}
+        <h2 id="away-title" className="mt-3 text-2xl font-semibold tracking-tight">
+          {left ? t('You left the exam') : t('Fullscreen is required')}
         </h2>
-        <p className="mt-3 text-[15px] leading-relaxed text-muted">
-          {integrity.fullscreenLost ? t('The questions are hidden until you come back to fullscreen.') : t('The questions are hidden until you come back.')}
+        <p id="away-text" className="mt-3 text-[15px] leading-relaxed text-muted">
+          {left ? t('The questions stay blurred until you click back into the exam.') : t('The questions are hidden until you come back to fullscreen.')}
           {integrity.violations > 0 && ` ${tn(integrity.violations, '{{count}} violation has been recorded.', '{{count}} violations have been recorded.')}`}
         </p>
         {remaining !== null && remaining > 0 && (
@@ -139,7 +142,28 @@ function BlockedOverlay({ integrity, onReturn }) {
             {remaining === 1 ? t('One more violation and your exam is submitted automatically.') : t('{{n}} more and your exam is submitted automatically.', { n: remaining })}
           </p>
         )}
-        <Button size="lg" className="mt-7" onClick={onReturn}>{t('Return to the exam')}</Button>
+        <Button size="lg" className="mt-7" autoFocus onClick={(e) => { e.stopPropagation(); integrity.returnToExam(); }}>{t('Return to the exam')}</Button>
+        <p className="mt-3 text-sm text-faint">{t('Or click anywhere on the page.')}</p>
+      </Card>
+    </div>
+  );
+}
+
+// While the questions are hidden their text isn't on the page at all: an AI sidebar or an extension can read a
+// page's text even when it's blurred. These bars only keep the shape of the page under the blur.
+function HiddenQuestion() {
+  return (
+    <div aria-hidden="true">
+      <div className="flex items-end gap-4 border-b border-line-strong pb-3.5">
+        <span className="h-9 w-14 rounded bg-sunken" />
+        <span className="h-3 w-36 rounded bg-sunken" />
+      </div>
+      <div className="my-7 space-y-3">
+        <span className="block h-4 w-11/12 rounded bg-sunken" />
+        <span className="block h-4 w-2/3 rounded bg-sunken" />
+      </div>
+      <div className="space-y-2.5">
+        {[0, 1, 2, 3].map((i) => <span key={i} className="block h-12 rounded-lg border border-line bg-surface" />)}
       </div>
     </div>
   );
@@ -662,93 +686,101 @@ function ExamPage() {
   const typeLabel = { single_choice: t('Single answer'), multi_choice: t('Multiple answers'), text: t('Written answer'), image_upload: t('Image answer') };
 
   return (
-    <div className={cx('grid min-h-screen grid-rows-[auto_1fr_auto] bg-paper', session.integrity.block_copy_paste && 'select-none')}>
-      {integrity.blocked && <BlockedOverlay integrity={integrity} onReturn={() => integrity.requireFullscreen && enterFullscreen()} />}
+    <div className={cx('min-h-screen bg-paper', session.integrity.block_copy_paste && 'select-none [-webkit-touch-callout:none]')}>
+      {integrity.blocked && <BlockedOverlay integrity={integrity} />}
 
-      <header className="sticky top-0 z-30 border-b border-line bg-surface">
-        <div className="flex items-center gap-5 px-6 py-3">
-          <LogoMark size={22} />
-          <p className="min-w-0 flex-1 truncate text-sm font-medium">
-            {session.exam.title}
-            <span className="ms-3 font-mono text-xs font-normal text-faint">{tn(questions.length, '{{count}} question', '{{count}} questions')}</span>
-          </p>
-          <SaveStatus status={saveStatus} waiting={waiting} />
-          <ViolationChip count={integrity.violations} max={integrity.maxViolations} />
-          <Timer seconds={secondsLeft ?? 0} />
-        </div>
-        {saveStatus === 'offline' && (
-          <div className="border-t border-warn/25 bg-warn-soft px-4 py-2 text-center text-sm text-warn-ink" role="status">
-            {t("You're offline. Keep going: your answers are kept on this computer and sent when you reconnect.")}
+      {/* A static blur (never animated) while the questions are hidden; nothing behind it can be clicked or focused */}
+      <div
+        className={cx('grid min-h-screen grid-rows-[auto_1fr_auto]', integrity.blocked && 'pointer-events-none blur-md')}
+        inert={integrity.blocked}
+        aria-hidden={integrity.blocked || undefined}
+      >
+        <header className="sticky top-0 z-30 border-b border-line bg-surface">
+          <div className="flex items-center gap-5 px-6 py-3">
+            <LogoMark size={22} />
+            <p className="min-w-0 flex-1 truncate text-sm font-medium">
+              {session.exam.title}
+              <span className="ms-3 font-mono text-xs font-normal text-faint">{tn(questions.length, '{{count}} question', '{{count}} questions')}</span>
+            </p>
+            <SaveStatus status={saveStatus} waiting={waiting} />
+            <ViolationChip count={integrity.violations} max={integrity.maxViolations} />
+            <Timer seconds={secondsLeft ?? 0} />
           </div>
-        )}
-        {showWarning && (
-          <div className="border-t border-danger/25 bg-danger-soft px-4 py-2 text-center text-sm text-danger-ink" role="alert">
-            {integrity.maxViolations
-              ? t('Violation recorded ({{n}} of {{max}}).', { n: integrity.violations, max: integrity.maxViolations })
-              : t('Violation recorded ({{n}}).', { n: integrity.violations })}
-            {remainingViolations === 1 && ` ${t('One more and your exam is submitted automatically.')}`}
-            {remainingViolations > 1 && ` ${t('{{n}} more and your exam is submitted automatically.', { n: remainingViolations })}`}
-          </div>
-        )}
-      </header>
-
-      <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_300px]">
-        <main className="min-w-0 px-8 pb-12 pt-12">
-          <div className="mx-auto max-w-[42rem]">
-            {error && <Alert tone="danger" className="mb-6" onClose={() => setError('')}>{error}</Alert>}
-            {question && (
-              <article>
-                <div className="flex items-baseline gap-4 border-b border-line-strong pb-3.5">
-                  <span className="tabular font-mono text-[2.5rem] font-semibold leading-[0.9] tracking-[-0.02em]">{String(current + 1).padStart(2, '0')}</span>
-                  <span className="font-mono text-xs leading-relaxed text-faint">
-                    <b className="font-medium text-muted">{typeLabel[question.type] || t('Question')}</b> · {tn(question.max_score, '{{count}} mark', '{{count}} marks')}
-                    <br />{t('Question {{n}} of {{total}}', { n: current + 1, total: questions.length })}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cx('ms-auto', flagged.has(question.id) && 'text-danger hover:text-danger')}
-                    onClick={() => toggleFlag(question.id)}
-                    aria-pressed={flagged.has(question.id)}
-                  >
-                    {flagged.has(question.id) ? t('Flagged for review') : t('Flag for review')}
-                  </Button>
-                </div>
-                <h2 className="my-7 max-w-[62ch] text-[1.2rem] font-normal leading-relaxed [text-wrap:pretty]">{question.title}</h2>
-                <QuestionBody
-                  question={question}
-                  value={answers[question.id]}
-                  onChange={(value, opts) => answer(question.id, value, opts)}
-                  onImage={(file) => uploadImage(question.id, file)}
-                  onPickFile={integrity.allowFilePicker}
-                />
-                {(question.type === 'single_choice' || question.type === 'multi_choice') && (
-                  <p className="mt-5 flex flex-wrap items-center gap-2 font-mono text-xs text-faint" aria-hidden="true">
-                    <span className="kbd">1</span>–<span className="kbd">{Math.min(9, question.options?.length || 1)}</span> {t('choose')} ·
-                    <span className="kbd">←</span><span className="kbd">→</span> {t('move')} · <span className="kbd">F</span> {t('flag')}
-                  </p>
-                )}
-              </article>
-            )}
-          </div>
-        </main>
-
-        <aside className="border-s border-line bg-surface px-7 py-8" aria-label={t('Questions')}>
-          <div className="sticky top-24">
-            <p className="tabular font-mono text-xs text-muted"><b className="block text-xl font-semibold text-ink">{t('{{n}} of {{total}}', { n: answeredCount, total: questions.length })}</b>{t('answered')}</p>
-            <div className="mt-5">
-              <QuestionNav questions={questions} answers={answers} flagged={flagged} current={current} onJump={setCurrent} />
+          {saveStatus === 'offline' && (
+            <div className="border-t border-warn/25 bg-warn-soft px-4 py-2 text-center text-sm text-warn-ink" role="status">
+              {t("You're offline. Keep going: your answers are kept on this computer and sent when you reconnect.")}
             </div>
-          </div>
-        </aside>
-      </div>
+          )}
+          {showWarning && (
+            <div className="border-t border-danger/25 bg-danger-soft px-4 py-2 text-center text-sm text-danger-ink" role="alert">
+              {integrity.maxViolations
+                ? t('Violation recorded ({{n}} of {{max}}).', { n: integrity.violations, max: integrity.maxViolations })
+                : t('Violation recorded ({{n}}).', { n: integrity.violations })}
+              {remainingViolations === 1 && ` ${t('One more and your exam is submitted automatically.')}`}
+              {remainingViolations > 1 && ` ${t('{{n}} more and your exam is submitted automatically.', { n: remainingViolations })}`}
+            </div>
+          )}
+        </header>
 
-      <footer className="sticky bottom-0 z-20 flex items-center gap-3 border-t border-line bg-surface px-6 py-3">
-        <Button variant="secondary" disabled={current === 0} onClick={() => setCurrent(current - 1)}>{t('Previous')}</Button>
-        <Button variant="secondary" disabled={isLast} onClick={() => setCurrent(current + 1)}>{t('Next')}</Button>
-        <span className="flex-1" />
-        <Button onClick={() => setConfirmSubmit(true)}>{t('Submit exam')}</Button>
-      </footer>
+        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_300px]">
+          <main className="min-w-0 px-8 pb-12 pt-12">
+            <div className="mx-auto max-w-[42rem]">
+              {error && <Alert tone="danger" className="mb-6" onClose={() => setError('')}>{error}</Alert>}
+              {question && integrity.blocked && <HiddenQuestion />}
+              {question && !integrity.blocked && (
+                <article>
+                  <div className="flex items-baseline gap-4 border-b border-line-strong pb-3.5">
+                    <span className="tabular font-mono text-[2.5rem] font-semibold leading-[0.9] tracking-[-0.02em]">{String(current + 1).padStart(2, '0')}</span>
+                    <span className="font-mono text-xs leading-relaxed text-faint">
+                      <b className="font-medium text-muted">{typeLabel[question.type] || t('Question')}</b> · {tn(question.max_score, '{{count}} mark', '{{count}} marks')}
+                      <br />{t('Question {{n}} of {{total}}', { n: current + 1, total: questions.length })}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cx('ms-auto', flagged.has(question.id) && 'text-danger hover:text-danger')}
+                      onClick={() => toggleFlag(question.id)}
+                      aria-pressed={flagged.has(question.id)}
+                    >
+                      {flagged.has(question.id) ? t('Flagged for review') : t('Flag for review')}
+                    </Button>
+                  </div>
+                  <h2 className="my-7 max-w-[62ch] text-[1.2rem] font-normal leading-relaxed [text-wrap:pretty]">{question.title}</h2>
+                  <QuestionBody
+                    question={question}
+                    value={answers[question.id]}
+                    onChange={(value, opts) => answer(question.id, value, opts)}
+                    onImage={(file) => uploadImage(question.id, file)}
+                    onPickFile={integrity.allowFilePicker}
+                  />
+                  {(question.type === 'single_choice' || question.type === 'multi_choice') && (
+                    <p className="mt-5 flex flex-wrap items-center gap-2 font-mono text-xs text-faint" aria-hidden="true">
+                      <span className="kbd">1</span>–<span className="kbd">{Math.min(9, question.options?.length || 1)}</span> {t('choose')} ·
+                      <span className="kbd">←</span><span className="kbd">→</span> {t('move')} · <span className="kbd">F</span> {t('flag')}
+                    </p>
+                  )}
+                </article>
+              )}
+            </div>
+          </main>
+
+          <aside className="border-s border-line bg-surface px-7 py-8" aria-label={t('Questions')}>
+            <div className="sticky top-24">
+              <p className="tabular font-mono text-xs text-muted"><b className="block text-xl font-semibold text-ink">{t('{{n}} of {{total}}', { n: answeredCount, total: questions.length })}</b>{t('answered')}</p>
+              <div className="mt-5">
+                <QuestionNav questions={questions} answers={answers} flagged={flagged} current={current} onJump={setCurrent} />
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <footer className="sticky bottom-0 z-20 flex items-center gap-3 border-t border-line bg-surface px-6 py-3">
+          <Button variant="secondary" disabled={current === 0} onClick={() => setCurrent(current - 1)}>{t('Previous')}</Button>
+          <Button variant="secondary" disabled={isLast} onClick={() => setCurrent(current + 1)}>{t('Next')}</Button>
+          <span className="flex-1" />
+          <Button onClick={() => setConfirmSubmit(true)}>{t('Submit exam')}</Button>
+        </footer>
+      </div>
 
       <Modal
         open={confirmSubmit}

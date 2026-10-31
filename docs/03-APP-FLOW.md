@@ -101,7 +101,7 @@ Sidebar **Results** → `/student-exams` → click an exam → `/exam-results/:a
 |---|---|
 | Resume after a reload or crash | `/student-account` → **Continue where you left off** → `/exam/resume/:attemptId` → warning "Your timer has been running" → answers restored → continue |
 | Resume after the deadline | Resume → the server submits with reason `time_up` → Finished screen |
-| Leave the exam (tab/app switch, fullscreen exit) | Questions hidden behind an overlay → violation recorded → return and press the button to continue (re-enter fullscreen) → the violation chip updates |
+| Leave the exam (click outside the window, tab/app switch, fullscreen exit) | The exam blurs and its question text leaves the page → violation recorded → coming back isn't enough: click anywhere on the page or press **Return to the exam** (re-enters fullscreen when required) → the violation chip updates |
 | Violation limit reached | The server submits with reason `violations` → Finished screen explaining why |
 | Time runs out | The page submits automatically → recorded as `time_up` |
 | Cancel submit | The confirm dialog's **Cancel** returns to the exam; nothing changes |
@@ -158,7 +158,7 @@ Sidebar **Results** → `/student-exams` → click an exam → `/exam-results/:a
 | Candidate dashboard | No exams | "No exams yet" |
 | Candidate results | None | "No results yet" |
 | Exam | Not started / expired / already submitted / not published | Error phase with the server message and a link back |
-| Exam | Away / out of fullscreen | Blocking overlay; questions hidden |
+| Exam | Away / back but not clicked in / out of fullscreen | The exam blurred behind a card ("You left the exam", violations so far, how many are left); question text replaced by placeholder bars; a click anywhere returns |
 | Any | Wrong role | Redirect to the role's home |
 | Any | Offline | Today: save errors shown. *(planned)* offline banner + local queue with retry |
 | Any | Session expiring | Token refreshed automatically by `AuthContext`; an expired session means signing in again |
