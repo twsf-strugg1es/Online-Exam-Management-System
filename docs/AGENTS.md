@@ -69,6 +69,7 @@ npm run build                                # must finish with no warnings
 ## Gotchas
 - CI (`.github/workflows/ci.yml`) is the gate: SQLite + PostgreSQL tests, migrations (`alembic check` fails if models and migrations differ), frontend build, Semgrep with `--error`, Docker stack health. Run `TEST_DATABASE_URL=postgresql+psycopg://... pytest` to reproduce the Postgres job locally.
 - Backend tests use in-memory SQLite, not Postgres. Test anything Postgres-specific (JSON queries, constraints, migrations) against a real database too.
+- SQLite gives a column declared `UUID` numeric affinity, so an id whose hex reads as a number (`1234…e5678`) would be stored as a float and fail on read, about once in a million ids. `tests/conftest.py` makes SQLite create UUID columns as `CHAR(32)`. Don't remove it.
 - `frontend/package.json` `jest.moduleNameMapper` and the `TextEncoder` polyfill in `setupTests.js` are required for React Router 7 under CRA's Jest. Don't remove them.
 - Image answers are currently `data:` URLs inside `answers.answer_data` (2 MB client limit). Moving them to object storage is on the roadmap. Don't build new features on top of inline storage.
 - Tags go through `crud.normalize_tags` (import and `create_question`). Filter tags with `.contains(json.dumps(tag), autoescape=True)` on the JSON text: non-ASCII is stored as `\u` escapes, and without `autoescape` PostgreSQL's `LIKE` treats `\` as an escape character (and `_`/`%` as wildcards) while SQLite doesn't.
