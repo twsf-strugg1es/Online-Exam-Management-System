@@ -126,3 +126,7 @@ Owner asked for a paper texture as the page background, after a scanned crumpled
 - It's the `body` background on every page (index, waitlist, privacy, terms), tiled at 1600 px (1000 px on phones), and scrolls with the page: painted once, nothing per frame. The flat `--paper` colour shows until it loads and matches its average tone; `index.html` preloads it, and the first-visit loader inherits the same background so it fades away without a seam.
 - Cards and panels stay clean sheets on top of it. The Fair by design band is a 62% sheet, so the paper shows through, lighter.
 - Contrast holds: on the darkest 0.1% of the texture, `--faint` text is 4.51:1, `--ink-soft` 6.2:1, `--marker` 5.0:1. Keep the generator's `depth` at 0.06 or below.
+
+## Loader on every visit (2026-10-31)
+
+The owner expected to see the loading screen whenever the site opens; it only ever showed on a browser's first visit (`localStorage fp-visited`), so a returning visitor never saw it. It now shows on every full page load (class `with-loader`, set in the head), lasts about a second from the click and ends as soon as the page is ready after that (never more than 2.2 s). Visitors who ask for reduced motion still skip it. Coming back with the browser's back button restores the page without it.

@@ -111,7 +111,7 @@
  }
 ]
 </script>
-<script>try{if(!localStorage.getItem('fp-visited')&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('first-visit')}catch(e){}</script>
+<script>try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('with-loader')}catch(e){}</script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preload" href="paper.webp" as="image" type="image/webp">
 <link rel="stylesheet" href="fonts/fonts.css">
@@ -646,10 +646,10 @@
     @keyframes ping { 0% { scale: 1; opacity: 0.4; } 70%, 100% { scale: 2.8; opacity: 0; } }
   }
 
-  /* ---------- First-visit loader: the four answer bubbles fill, one is chosen ---------- */
+  /* ---------- Loader (every page load): the four answer bubbles fill, one is chosen ---------- */
   .loader { display: none; }
-  .first-visit .loader { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: inherit; transition: opacity 320ms var(--ease), visibility 0s 320ms; }
-  .first-visit .loader.is-done { opacity: 0; visibility: hidden; }
+  .with-loader .loader { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: inherit; transition: opacity 320ms var(--ease), visibility 0s 320ms; }
+  .with-loader .loader.is-done { opacity: 0; visibility: hidden; }
   .loader__inner { display: grid; justify-items: center; gap: 1.4rem; }
   .loader__bubbles { display: flex; gap: 14px; }
   .loader__bubbles i { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid var(--marker); opacity: 0; scale: 0.6; animation: bubble-in 300ms var(--ease) forwards; animation-delay: calc(var(--n) * 65ms); }
@@ -661,8 +661,8 @@
   .loader__line { width: 140px; height: 2px; border-radius: 1px; background: var(--rule); overflow: hidden; }
   .loader__line b { display: block; height: 100%; background: var(--marker); transform: scaleX(0); transform-origin: 0 50%; animation: line-fill 850ms var(--ease) 100ms forwards; }
   @keyframes line-fill { to { transform: scaleX(1); } }
-  .first-visit body { overflow: hidden; }
-  .first-visit.loaded body { overflow: auto; }
+  .with-loader body { overflow: hidden; }
+  .with-loader.loaded body { overflow: auto; }
 
   /* ---------- Cursor: a dot that follows exactly, a ring that trails and reacts ---------- */
   .cursor-dot, .cursor-ring { display: none; }
@@ -1112,7 +1112,7 @@
 
   /* Entrance for the hero, reveal-once for the rest */
   const startHero = () => requestAnimationFrame(() => document.querySelector('.hero3').classList.add('is-in'));
-  if (document.documentElement.classList.contains('first-visit')) new MutationObserver((m, obs) => {
+  if (document.documentElement.classList.contains('with-loader')) new MutationObserver((m, obs) => {
     if (document.documentElement.classList.contains('loaded')) { obs.disconnect(); startHero(); }
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   else startHero();
@@ -1195,14 +1195,13 @@
   /* ===================== Motion (all of it off under "reduce motion") ===================== */
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* First-visit loader: shown once per browser, gone in about a second */
+  /* Loader: on every page load, gone about a second after the click (and as soon as the page is ready after that) */
   const root = document.documentElement;
-  if (root.classList.contains('first-visit')) {
+  if (root.classList.contains('with-loader')) {
     const loader = $('loader');
     const done = () => {
       loader.classList.add('is-done');
       root.classList.add('loaded');
-      try { localStorage.setItem('fp-visited', '1'); } catch { /* shows again next time */ }
     };
     const minimum = new Promise((r) => setTimeout(r, Math.max(0, 1000 - performance.now()))); // one second from the click, not from this script
     const loaded = document.readyState === 'complete' ? Promise.resolve() : new Promise((r) => addEventListener('load', r, { once: true }));
@@ -1448,7 +1447,7 @@
     "Join the waitlist and I'll wave at you on launch day.",
   ];
   let line = 0;
-  if (!calm) setTimeout(() => say.classList.add('is-on'), root.classList.contains('first-visit') ? 1500 : 700);
+  if (!calm) setTimeout(() => say.classList.add('is-on'), root.classList.contains('with-loader') ? 1500 : 700);
   heroPaige.addEventListener('click', () => {
     line = (line + 1) % LINES.length;
     say.classList.remove('is-on');
