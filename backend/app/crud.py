@@ -496,6 +496,49 @@ def save_answer(
     return overwrite()
 
 
+def question_points(question: models.Question, answer_data, worth: float) -> float | None:
+    """What an answer earns on an auto-graded question: all its marks or none. Grading compares option values,
+    never positions. None for written and image answers, which staff grade."""
+    if question.type not in ("single_choice", "multi_choice"):
+        return None
+    if answer_data is None:
+        return 0.0
+    def norm(value):
+        return sorted(str(v) for v in value) if isinstance(value, list) else [str(value)]
+
+    return float(worth) if norm(question.correct_answers) == norm(answer_data) else 0.0
+
+
+def breakdowns(db: Session, exam: models.Exam, attempts: list[models.ExamAttempt]) -> dict[uuid.UUID, list[dict]]:
+    """Per attempt, question by question in the exam's order: what it's worth and what the attempt earned.
+    `earned` is None for a written or image answer nobody has graded yet. Two queries for any number of attempts."""
+    if not attempts:
+        return {}
+    marks = exam_marks(exam)
+    answers = db.query(models.Answer).filter(models.Answer.attempt_id.in_([a.id for a in attempts])).all()
+    graded = dict(
+        db.query(models.Evaluation.answer_id, models.Evaluation.score_awarded)
+        .filter(models.Evaluation.answer_id.in_([a.id for a in answers]), models.Evaluation.score_awarded.isnot(None))
+        .all()
+    ) if answers else {}
+    by_attempt: dict[uuid.UUID, dict[uuid.UUID, models.Answer]] = {}
+    for answer in answers:
+        by_attempt.setdefault(answer.attempt_id, {})[answer.question_id] = answer
+    result = {}
+    for attempt in attempts:
+        given = by_attempt.get(attempt.id, {})
+        rows = []
+        for question in exam.questions:
+            worth = float(marks[question.id] or 0)
+            answer = given.get(question.id)
+            earned = question_points(question, answer.answer_data if answer else None, worth)
+            if earned is None:  # written or image: staff's mark, 0 if left blank, None while waiting to be graded
+                earned = float(graded[answer.id]) if answer and answer.id in graded else (None if answer else 0.0)
+            rows.append({"question": question, "worth": worth, "earned": earned, "answered": answer is not None})
+        result[attempt.id] = rows
+    return result
+
+
 def finish_attempt(
     db: Session, attempt: models.ExamAttempt, reason: str = models.SUBMIT_STUDENT, ended_at: datetime | None = None
 ) -> bool:
@@ -528,25 +571,9 @@ def finish_attempt(
     total_possible = 0.0
     marks = exam_marks(exam)
     for question in exam.questions:
-        total_possible += float(marks[question.id] or 0)
-
-        # Auto-grade for supported types
-        if question.type in ("single_choice", "multi_choice"):
-            student_answer = answer_map.get(question.id)
-            if student_answer is not None:
-                correct = question.correct_answers
-                if isinstance(correct, list):
-                    correct_norm = sorted([str(c) for c in correct])
-                else:
-                    correct_norm = [str(correct)]
-
-                if isinstance(student_answer, list):
-                    student_norm = sorted([str(s) for s in student_answer])
-                else:
-                    student_norm = [str(student_answer)]
-
-                if correct_norm == student_norm:
-                    total_score += float(marks[question.id] or 0)
+        worth = float(marks[question.id] or 0)
+        total_possible += worth
+        total_score += question_points(question, answer_map.get(question.id), worth) or 0.0
 
     attempt.score = float(total_score)  # type: ignore
     attempt.total_possible_score = float(total_possible)  # type: ignore

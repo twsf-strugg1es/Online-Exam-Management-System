@@ -100,6 +100,7 @@ FastAPI app (backend/app)
                 │  depend on permissions.py (membership + role) and security.py (JWT user)
                 ▼
              crud.py (business logic: grading, shuffling, deadlines, integrity)
+             results_export.py (Excel workbook and result-card data, task 4.5)
                 ▼
              models.py (SQLAlchemy) ──► PostgreSQL (schema via Alembic)
 ```
@@ -181,6 +182,8 @@ cd frontend && npm start | npm test -- --watchAll=false | npm run build
 | Own rate limiter (`app/rate_limit.py`, ~100 lines) | Needs per-account failure counting and a class-sized per-IP allowance, which are easier to express directly; no new dependency | `slowapi`: decorators need `request` in every signature and still need custom logic for per-account failures |
 | CRA kept for now | Works; migrating isn't urgent | Vite: faster builds; a reasonable later task |
 | CSS-variable tokens + a small component set (`ui.js`) | One consistent look in light and dark; replaced several competing style systems | Component library (MUI/shadcn): heavier, generic look |
+| Result cards are a print view saved as PDF by the browser (4.5) | The browser shapes every script correctly (Bengali conjuncts, Arabic, Devanagari) with the fonts it already has, prints one card per A4 page, and the server needs no PDF library, HarfBuzz or bundled fonts | Server-side PDFs (fpdf2 + uharfbuzz + Noto fonts): a real download link, but a font per script and a shaping engine on the server; worth it only if cards must be emailed in bulk |
+| Spreadsheet cells from user input are always text (4.5) | openpyxl stores a string starting with `=` as a formula; a student named `=HYPERLINK(...)` could otherwise plant a link in the examiner's file | Prefixing an apostrophe: changes what the examiner sees |
 
 ## Known technical debt
 

@@ -56,7 +56,8 @@ Status: living document · Last updated 2026-10-12 · Routes are defined in `fro
 | *(planned)* Edit exam | `/admin-exams/:examId/edit` | Change an exam before it opens | exam | Staff |
 | Bulk import students | Organization → Students → **Import students** (dialog) | Choose a CSV/XLSX and optional groups → **Check the list** (counts: new / with an account / already here; skipped rows with reasons) → **Add N students** → report | `/org/students/import/preview`, `/org/students/import` | Managers |
 | Merit list | card under the attempts on Exam results | Rank ("=" when tied), student, score with %, time taken; "Provisional" while the exam is open. Exam form: **Show students their rank** puts "Rank 3 of 40" (or "Joint 3 of 40") on the student's result page | `/admin/exams/:id/merit` | Staff |
-| *(planned)* Export | Exam results | XLSX/PDF export | attempts | Staff |
+| Export to Excel | Exam results → **Export to Excel** (next to the title) | Downloads `<exam title> results.xlsx`: Results (rank, name, email, score, out of, percent, time taken, started, submitted, ended by, violations, flags, time away, risk), Marks by question ("Not graded" where a written answer waits), Questions, Exam. Times in the organization's timezone | `GET /admin/exams/{id}/export.xlsx` | Staff |
+| Result cards | Exam results → **Result cards** (once someone has submitted), or **Card** on a student's row | `/admin-exams/:examId/cards` (`?attempt=` for one): one A4 card per submitted student (organization, exam, name, score and percent, rank when the exam shows ranks, time taken, submitted, marks by question, a signature line); **Print or save as PDF** opens the browser's print dialog, one card per page. A note (not printed) when results aren't released yet. Outside the app shell so only the cards print | `GET /admin/exams/{id}/result-cards` | Staff |
 
 ## Desktop only (version one)
 

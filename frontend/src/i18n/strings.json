@@ -3,6 +3,12 @@
   "{{count}} already here": {
     "plural": true
   },
+  "{{count}} card": {
+    "plural_of": "{{count}} cards"
+  },
+  "{{count}} cards": {
+    "plural": true
+  },
   "{{count}} mark": {
     "plural_of": "{{count}} marks"
   },
@@ -97,6 +103,7 @@
   "{{email}} is confirmed.": {},
   "{{n}} archived (used in exams, kept for results)": {},
   "{{n}} deleted": {},
+  "{{n}} marks in total": {},
   "{{n}} min": {},
   "{{n}} more and your exam is submitted automatically.": {},
   "{{n}} of {{count}} question": {
@@ -113,7 +120,11 @@
   "{{n}} pts": {},
   "{{n}} Q": {},
   "{{n}} selected": {},
+  "{{n}}%": {},
+  "{{rank}} (shared) of {{n}}": {},
+  "{{rank}} of {{n}}": {},
   "{{time}} left": {},
+  "A card appears here for every student who has submitted.": {},
   "A CSV or Excel file with an \"email\" column, and optionally a \"name\" column. Up to 1000 students at a time.": {},
   "A group with that name already exists": {
     "source": "server"
@@ -145,6 +156,7 @@
     "plural": true
   },
   "All": {},
+  "All cards": {},
   "All difficulties": {},
   "All groups": {},
   "All questions were graded automatically.": {},
@@ -202,6 +214,7 @@
   "Block copy and paste": {},
   "Came back after {{time}}": {},
   "Cancel": {},
+  "Card": {},
   "Change password": {},
   "Changed your mind? Join again": {},
   "Check {{email}}, including the spam folder. The link works once, for 30 minutes.": {},
@@ -246,6 +259,8 @@
   "Correct": {},
   "Correct answer:": {},
   "Correct answers are shown after the exam closes for everyone ({{date}}).": {},
+  "Could not export the results. Try again.": {},
+  "Could not load the result cards.": {},
   "Could not validate credentials": {
     "source": "server"
   },
@@ -338,6 +353,7 @@
   },
   "Exam unpublished. Students can no longer see it.": {},
   "Examiner": {},
+  "Examiner's signature": {},
   "Examiners manage questions, exams and grading. Admins can also manage students, groups and staff. Only owners can manage other owners.": {},
   "Exams": {},
   "Exams need a full desktop browser for their timer and protections. Open Fairpaper on a laptop or desktop and sign in there.": {},
@@ -347,6 +363,7 @@
     "source": "server"
   },
   "Exited fullscreen": {},
+  "Export to Excel": {},
   "Fair exams in any browser": {},
   "Fair, timed exams in any browser. Leave your email and we'll send one message at launch.": {},
   "Fairpaper home": {},
@@ -471,6 +488,7 @@
   "Make this window wider to keep going": {},
   "Male": {},
   "Mark the correct answer.": {},
+  "Marks by question": {},
   "Marks for “{{title}}” in this exam": {},
   "Marks for “{{title}}” must be a whole number from 1 to 100.": {},
   "Marks for a question must be between 1 and 100.": {
@@ -530,6 +548,7 @@
   "No paste": {},
   "No protections": {},
   "No questions yet": {},
+  "No result cards yet": {},
   "No results yet": {},
   "No students yet": {},
   "No.": {},
@@ -538,6 +557,7 @@
     "source": "server"
   },
   "Not answered": {},
+  "Not graded": {},
   "Not graded yet": {},
   "Not saved": {},
   "Not set": {},
@@ -599,6 +619,8 @@
   "Pressed a blocked shortcut": {},
   "Preview": {},
   "Previous": {},
+  "Print or save as PDF": {},
+  "Printed {{date}} from Fairpaper": {},
   "Problem": {},
   "Protections": {},
   "Provisional: the exam is still open.": {},
@@ -606,6 +628,7 @@
   "Publish": {},
   "Publish “{{title}}”?": {},
   "Put students into groups so they see the right exams.": {},
+  "Q{{n}}": {},
   "Qs": {},
   "Question": {},
   "Question {{n}}": {},
@@ -645,8 +668,12 @@
   "Require fullscreen": {},
   "Resend invite": {},
   "Reset password": {},
+  "Result card": {},
+  "Result card for {{name}}": {},
+  "Result cards": {},
   "Results": {},
   "Results aren’t released yet": {},
+  "Results aren't released yet, so students can't see them in Fairpaper. Printing cards doesn't release them.": {},
   "Results hidden": {},
   "Results not released yet": {},
   "Results released": {},

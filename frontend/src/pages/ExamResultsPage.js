@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { LuArrowLeft, LuCalendar, LuClock, LuUsers, LuSearch, LuShieldAlert, LuPencil, LuInbox } from 'react-icons/lu';
+import { LuArrowLeft, LuCalendar, LuClock, LuUsers, LuSearch, LuShieldAlert, LuPencil, LuInbox, LuFileSpreadsheet, LuPrinter } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
 import { Alert, Badge, Button, Card, EmptyState, Input, PageLoader, Stat, Tabs } from '../components/ui';
@@ -116,6 +116,7 @@ function ExamResultsPage() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     Promise.all([api.get('/admin/exams/'), api.get(`/admin/exams/${examId}/attempts`)])
@@ -130,6 +131,23 @@ function ExamResultsPage() {
   }, [examId]);
 
   const needsGrading = exam?.questions?.some((q) => q.type === 'text' || q.type === 'image_upload');
+
+  const exportExcel = async () => {
+    setExporting(true);
+    try {
+      const res = await api.get(`/admin/exams/${examId}/export.xlsx`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(exam?.title || 'Exam').replace(/[\\/:*?"<>|]+/g, ' ').trim()} results.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(errorMessage(err, t('Could not export the results. Try again.')));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const stats = useMemo(() => {
     const list = attempts || [];
@@ -166,6 +184,12 @@ function ExamResultsPage() {
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight">{exam.title}</h1>
             <StatusBadge exam={exam} />
+            <div className="ms-auto flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" icon={LuFileSpreadsheet} loading={exporting} onClick={exportExcel}>{t('Export to Excel')}</Button>
+              {stats.submitted > 0 && (
+                <Link to={`/admin-exams/${examId}/cards`} className="btn btn-secondary btn-sm"><LuPrinter className="h-4 w-4" /> {t('Result cards')}</Link>
+              )}
+            </div>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted">
             <span className="flex items-center gap-1.5"><LuCalendar className="h-3.5 w-3.5" />{formatDateTime(exam.start_time)} – {formatExamTime(exam.end_time)}</span>
@@ -263,6 +287,11 @@ function ExamResultsPage() {
                         <Link to={`/admin-integrity/${a.id}`} className="btn btn-ghost btn-sm">
                           <LuShieldAlert className="h-4 w-4" /> {t('Report')}
                         </Link>
+                        {a.is_submitted && (
+                          <Link to={`/admin-exams/${examId}/cards?attempt=${a.id}`} className="btn btn-ghost btn-sm" aria-label={t('Result card for {{name}}', { name: a.student?.full_name || a.student?.email })}>
+                            <LuPrinter className="h-4 w-4" /> {t('Card')}
+                          </Link>
+                        )}
                         {needsGrading && a.is_submitted && (
                           <Link to={`/admin-evaluate-answers/${a.id}`} className="btn btn-secondary btn-sm">
                             <LuPencil className="h-4 w-4" /> {t('Grade')}

@@ -19,6 +19,7 @@ import QuestionEditorPage from './pages/QuestionEditorPage';
 import AdminExamsPage from './pages/AdminExamsPage';
 import ExamFormPage from './pages/ExamFormPage';
 import ExamResultsPage from './pages/ExamResultsPage';
+import ResultCardsPage from './pages/ResultCardsPage';
 import IntegrityReportPage from './pages/IntegrityReportPage';
 import AdminStudentsPage from './pages/AdminStudentsPage';
 import AdminOrganizationPage from './pages/AdminOrganizationPage';
@@ -80,6 +81,7 @@ function App() {
       <Route path="/admin-exams/new" element={only(isStaff, <ExamFormPage />)} />
       <Route path="/admin-exams/:examId/edit" element={only(isStaff, <ExamFormPage />)} />
       <Route path="/admin-exams/:examId" element={only(isStaff, <ExamResultsPage />)} />
+      <Route path="/admin-exams/:examId/cards" element={only(isStaff, <ResultCardsPage />)} />
       <Route path="/admin-integrity/:attemptId" element={only(isStaff, <IntegrityReportPage />)} />
       <Route path="/admin-evaluate-answers/:attemptId" element={only(isStaff, <AdminEvaluateAnswersPage />)} />
       <Route path="/admin-questions" element={only(isStaff, <AdminQuestionsPage />)} />

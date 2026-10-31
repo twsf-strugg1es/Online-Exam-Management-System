@@ -2,9 +2,10 @@ import json
 from typing import Any
 from uuid import UUID
 from datetime import datetime, timezone
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, status, Query, Body
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from sqlalchemy import String, cast
 from sqlalchemy.orm import Session, joinedload
 import openpyxl
@@ -12,7 +13,7 @@ import openpyxl
 import logging
 
 from ..database import get_db
-from .. import schemas, crud, models
+from .. import schemas, crud, models, results_export
 from ..logging_config import internal_error_detail
 from ..permissions import require_manager, require_staff
 
@@ -832,6 +833,38 @@ def get_merit_list(
             for r in rows
         ],
     }
+
+
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+@router.get("/exams/{exam_id}/export.xlsx")
+def export_results(
+    exam_id: UUID,
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """The exam's results as an Excel workbook (task 4.5): results, marks by question, the questions, the exam."""
+    exam = _get_org_exam(db, exam_id, membership)
+    data = results_export.results_workbook(db, exam)
+    name = quote(f"{exam.title} results.xlsx", safe="")
+    return Response(
+        content=data,
+        media_type=XLSX,
+        headers={"Content-Disposition": f"attachment; filename=\"results.xlsx\"; filename*=UTF-8''{name}"},
+    )
+
+
+@router.get("/exams/{exam_id}/result-cards")
+def get_result_cards(
+    exam_id: UUID,
+    attempt: UUID | None = Query(default=None, description="Only this attempt's card"),
+    db: Session = Depends(get_db),
+    membership: models.Membership = Depends(require_staff),
+):
+    """Data for the printable result cards: one per submitted attempt."""
+    exam = _get_org_exam(db, exam_id, membership)
+    return results_export.result_cards(db, exam, attempt)
 
 
 @router.get("/exams/{exam_id}/attempts")

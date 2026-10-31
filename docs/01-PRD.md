@@ -67,7 +67,7 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 | F15 | Negative marking; per-exam marks | Matches admission/BCS-style exams | P1 | Planned |
 | F16 | Random question pools by tag/difficulty | Different paper per student, harder to share answers | P1 | Planned |
 | F17 | Merit list / rank; result publishing control | What coaching centers sell on | P1 | Built (4.3, 4.4) |
-| F18 | Export results (XLSX, PDF result cards) | Notice boards, parents, records | P1 | Planned |
+| F18 | Export results (XLSX, PDF result cards) | Notice boards, parents, records | P1 | Built (4.5): Excel workbook from Exam results; result cards print one per A4 page, saved as PDF by the browser |
 | F19 | More question types (true/false, fill-in-the-blank, numeric, matching, ordering), math (KaTeX), images in questions | Covers science and math subjects | P1 | Planned |
 | F20 | Sections, extra time per candidate, offline-tolerant saving, grade-by-question, analytics | Serious exam operations | P1 | Planned |
 | F21 | Internationalization: translation-ready UI (English default, Bengali first translation), locale-aware dates and numbers, per-organization language/timezone/currency, right-to-left support | One codebase serves Bangladesh and global customers | P0 (framework) / P1 (languages) | Planned |

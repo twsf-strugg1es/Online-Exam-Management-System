@@ -245,6 +245,10 @@ Added in `0007_indexes_unique_answers`: unique `answers (attempt_id, question_id
 ### Merit list (task 4.4, PRD AC17)
 `GET /admin/exams/{id}/merit` (staff): `{closed, rows: [{rank, tied, attempt_id, student, score, total_possible_score, percentage, time_taken_seconds, submit_reason}]}`. Submitted attempts only, ranked by final score (`crud.final_score`: auto-graded + marks awarded to written/image answers, capped at the total), then time taken (`end_time − start_time`, shorter first). Level on both = same rank, and the next rank skips (1, 2, 2, 4). `closed: false` means provisional.
 
+### Results export (task 4.5)
+`GET /admin/exams/{id}/export.xlsx` (staff): an Excel workbook built by `app/results_export.py` with four sheets (Results, Marks by question, Questions, Exam). Ranked attempts first (merit-list order), unfinished ones after by name; times are the organization's wall-clock time (`organizations.timezone`); user text is always written as text, so a value starting with `=` can't become a formula. `Content-Disposition` carries the exam title as `filename*=UTF-8''…`.
+`GET /admin/exams/{id}/result-cards[?attempt=]` (staff): `{exam: {title, organization, start_time, end_time, total_marks, show_rank, results_visible}, submitted, cards: [{attempt_id, student, rank, tied, score, total, percentage, time_taken_seconds, submitted_at, questions: [{n, type, worth, earned}]}]}`. Submitted attempts only; `rank` is null unless the exam shows ranks; no integrity data (cards go to students); `earned` is null for a written or image answer not graded yet. Per-question marks come from `crud.breakdowns` (two queries for any number of attempts), which uses the same `crud.question_points` as grading.
+
 ### Get started checklist (task 3.10)
 `GET /org/setup` (staff): `{steps: {students, groups, questions, exams}, counts, done}`. A step is done once the organization has at least one candidate, group, question (archived included) or exam (archived included). Counted per organization; no table of its own.
 
@@ -293,7 +297,7 @@ O = owner, A = admin, E = examiner, C = candidate (in the same organization). Ot
 | User account | No deletion endpoint | Self-service deletion; anonymize attempts (keep scores, drop personal data) |
 | Integrity events | Kept forever | Keep for the life of the exam record |
 | Image answers / webcam / ID photos | Inline in the database | Object storage; webcam/ID photos auto-deleted 90 days after the exam closes (configurable per organization) |
-| Export | Not available | XLSX/PDF results; full organization ZIP export |
+| Export | Per exam: Excel results and printable result cards (4.5) | Full organization ZIP export |
 
 ## Migration and seed data
 
