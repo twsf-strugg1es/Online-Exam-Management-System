@@ -3,8 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LuPlus, LuClipboardList, LuEllipsis, LuTrash2, LuEyeOff, LuSend, LuPencil } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import { Alert, Button, Card, EmptyState, PageHeader, PageLoader, useConfirm } from '../components/ui';
+import { Alert, Button, Card, EmptyState, ErrorState, PageHeader, PageLoader, useConfirm } from '../components/ui';
 import GetStarted from '../components/GetStarted';
+import { useToast } from '../components/Toaster';
 import { errorMessage, formatExamTime, formatShortDate, getTimeZone, isSameDay, timeZoneLabel } from '../utils';
 import { useI18n } from '../i18n';
 
@@ -123,7 +124,9 @@ function AdminExamsPage() {
   const { t } = useI18n();
   const [exams, setExams] = useState(null);
   const [message, setMessage] = useState(null);
+  const [loadFailure, setLoadFailure] = useState(null);
   const [confirmDialog, confirm] = useConfirm();
+  const toast = useToast();
   const [checklist, setChecklist] = useState(false); // the Get started card is showing
 
   const fetchExams = async () => {
@@ -132,8 +135,7 @@ function AdminExamsPage() {
       // Newest first
       setExams([...res.data].sort((a, b) => new Date(b.start_time) - new Date(a.start_time)));
     } catch (err) {
-      setMessage({ tone: 'danger', text: errorMessage(err, 'Failed to load exams') });
-      setExams([]);
+      setLoadFailure(err); // an error, not "no exams yet"
     }
   };
 
@@ -154,7 +156,9 @@ function AdminExamsPage() {
     }
     try {
       await api.post(`/admin/exams/${exam.id}/${exam.is_published ? 'unpublish' : 'publish'}`);
-      setMessage({ tone: 'success', text: exam.is_published ? t('Exam unpublished. Students can no longer see it.') : t('Exam published.') });
+      toast(exam.is_published
+        ? { title: t('Exam unpublished'), body: t('Students can no longer see {{title}}. Publish it again whenever you like.', { title: exam.title }) }
+        : { title: t('Exam published'), body: t('{{title}} opens {{when}}. Students see it on their dashboard.', { title: exam.title, when: formatExamTime(exam.start_time) }), action: { label: t('View exam'), to: `/admin-exams/${exam.id}` } });
       fetchExams();
     } catch (err) {
       setMessage({ tone: 'danger', text: errorMessage(err) });
@@ -190,7 +194,9 @@ function AdminExamsPage() {
 
       <GetStarted onVisible={setChecklist} />
 
-      {exams === null ? (
+      {loadFailure ? (
+        <Card><ErrorState error={loadFailure} onRetry={() => { setLoadFailure(null); fetchExams(); }} /></Card>
+      ) : exams === null ? (
         <PageLoader />
       ) : exams.length === 0 ? (checklist ? null : (
         <Card>

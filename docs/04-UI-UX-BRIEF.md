@@ -191,11 +191,17 @@ Rules that follow from the budget:
 | Pressed | Slightly darker immediately (the 100 ms feedback rule) |
 | Focus | 2 px brand ring with offset, keyboard only |
 | Disabled | 50% opacity, no pointer events, with a reason nearby when not obvious |
-| Loading | Button: spinner replaces the icon, label kept. Page: `PageLoader` after 300 ms. Never a blank screen |
-| Error | Inline `Alert` with a server message that says how to fix it; field errors under the field |
-| Success | Quiet inline state change or a short toast; no success dialogs |
-| Empty | `EmptyState` with one action |
-| Offline *(planned)* | Thin banner "Offline. Your answers are saved on this device and will sync." |
+| Loading | Button: spinner replaces the icon, label kept. Page: `PageLoader` draws a **skeleton in the page's shape** (`variant`: `list`, `detail`, `cards`, `sheet`, `exam`), never a lone spinner; after 5 s it adds "Still loading. Your connection seems slow…" |
+| Load error | `ErrorState` in place of the content, never an empty list: what happened and whose side it's on (offline · couldn't reach Fairpaper · our side, your work is safe · no access · not found · session ended), and **Try again** when retrying can help, plus a way back |
+| Error after an action | Inline `Alert` with the server's message saying how to fix it |
+| Form validation | On the exact field (`Field error`, `aria-invalid`), saying how to fix it ("for example 60"); focus moves to the first bad field; a one-line summary by the buttons. Email fields catch common domain typos (`EmailSuggestion`: "Did you mean …@gmail.com?") |
+| Success | A toast (`useToast`): what happened, the details worth repeating (when it opens, for whom, the file name) and the next step (**View exam**, **Write another question**). Inline changes for small toggles; no success dialogs |
+| Empty | `EmptyState`: why there's nothing yet and one next step |
+| No search results | `NoResults`: what was searched, "Did you mean …" (closest word from titles, names, tags), **Clear search** / **Clear filters** |
+| Offline | `OfflineBanner` under the browser bar on every page except the exam (it has its own): what's on screen stays, reading works, saving waits; "You're back online" for a few seconds after |
+| Slow upload | `UploadProgress`: the real percentage, then "Checking it…"; photo answers add the lighter path (a smaller or cropped photo) |
+| Permission | Role: `NoAccess` (who the page is for, who you're signed in as, home and switch organization) instead of a silent redirect. Browser fullscreen: why it's required, the keyboard shortcut, and asking the examiner to turn it off |
+| Session ended | Idle sign-out or a refused session (401): the sign-in page says why and that work is safe, keeps the email and returns to the same page. Long forms (exam, question) keep unsaved changes on this computer (`useDraft`) and offer them back (`DraftNotice`) |
 | Time running low | Timer color warn (5 min) → danger (1 min); no animation |
 
 ## Assets needed

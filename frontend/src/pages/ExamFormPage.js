@@ -3,10 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { LuArrowLeft, LuSearch, LuFileQuestion, LuPlus, LuShuffle, LuX } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import {
-  Alert, Badge, Button, Card, CardHeader, Checkbox, EmptyState, Field, Input, PageHeader, PageLoader, Select, Switch, cx,
-} from '../components/ui';
-import { QUESTION_TYPE_LABELS, errorMessage, fromZonedInput, timeZoneLabel, toZonedInput } from '../utils';
+import { Alert, Badge, Button, Card, CardHeader, Checkbox, DraftNotice, EmptyState, Field, Input, PageHeader, PageLoader, Select, Switch, cx, NoResults } from '../components/ui';
+import { QUESTION_TYPE_LABELS, errorMessage, formatExamTime, fromZonedInput, timeZoneLabel, toZonedInput, suggestCorrection } from '../utils';
+import { useToast } from '../components/Toaster';
+import useDraft from '../hooks/useDraft';
 import { useI18n } from '../i18n';
 
 const defaultTimes = () => {
@@ -50,8 +50,24 @@ function ExamFormPage() {
   const [selectedGroups, setSelectedGroups] = useState(new Set());
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({}); // shown on the field itself
   const [saving, setSaving] = useState(null); // 'draft' | 'publish' | 'save'
   const [existing, setExisting] = useState(editing ? null : {}); // the exam being edited
+  const toast = useToast();
+  // Unsaved changes survive being signed out or closing the tab (offered back on the next visit)
+  const saved = useDraft(`exam:${examId || 'new'}`, {
+    form, settings, selected: [...selectedQuestions], marks, rules, groups: [...selectedGroups],
+  }, { ready: !editing || Boolean(existing?.id) });
+  const restoreDraft = () => {
+    const d = saved.draft;
+    setForm(d.form);
+    setSettings(d.settings);
+    setSelectedQuestions(new Set(d.selected || []));
+    setMarks(d.marks || {});
+    setRules(d.rules || []);
+    setSelectedGroups(new Set(d.groups || []));
+    saved.keep();
+  };
 
   useEffect(() => {
     api.get('/admin/questions/').then((res) => setQuestions(res.data || [])).catch(() => setQuestions([]));
@@ -83,7 +99,10 @@ function ExamFormPage() {
       .catch((err) => { setExisting({ edit_blocked: errorMessage(err, 'Exam not found') }); });
   }, [editing, examId]);
 
-  const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+  const update = (field) => (e) => {
+    setForm({ ...form, [field]: e.target.value });
+    if (fieldErrors[field]) setFieldErrors({ ...fieldErrors, [field]: undefined });
+  };
   const toggleIn = (set, setter, id) => {
     const next = new Set(set);
     next.has(id) ? next.delete(id) : next.add(id);
@@ -116,8 +135,14 @@ function ExamFormPage() {
   const submit = async (publish) => {
     if (editing && existing?.edit_blocked) return;
     setError('');
-    if (!form.title.trim()) return setError(t('Give the exam a title.'));
-    if (!(Number(form.duration) > 0)) return setError(t('Set a duration in minutes.'));
+    const problems = {};
+    if (!form.title.trim()) problems.title = t('Give the exam a title, for example “Physics, chapter 3 test”.');
+    if (!(Number(form.duration) > 0)) problems.duration = t('Set a duration in whole minutes, for example 60.');
+    setFieldErrors(problems);
+    if (Object.keys(problems).length) {
+      document.getElementById(problems.title ? 'title' : 'duration')?.focus();
+      return setError(t('Fix the fields marked in red above.'));
+    }
     if (windowMinutes <= 0) return setError(t('The exam must close after it opens.'));
     if (selectedQuestions.size === 0 && rules.length === 0) return setError(t('Pick at least one question, or add a rule that draws random questions.'));
     for (const [i, rule] of rules.entries()) {
@@ -151,12 +176,24 @@ function ExamFormPage() {
         show_rank: settings.show_rank,
     };
     try {
+      let id = examId;
       if (editing) {
         await api.put(`/admin/exams/${examId}`, payload); // a published exam stays published
       } else {
         const res = await api.post('/admin/exams/', payload);
-        if (publish) await api.post(`/admin/exams/${res.data.id}/publish`);
+        id = res.data.id;
+        if (publish) await api.post(`/admin/exams/${id}/publish`);
       }
+      saved.clear();
+      const who = selectedGroups.size
+        ? groups.filter((g) => selectedGroups.has(g.id)).map((g) => g.name).join(', ')
+        : t('everyone in your organization');
+      const when = formatExamTime(payload.start_time);
+      toast(editing
+        ? { title: t('Changes saved'), body: t('{{title}} opens {{when}}.', { title: payload.title, when }), action: { label: t('View exam'), to: `/admin-exams/${id}` } }
+        : publish
+          ? { title: t('Exam published'), body: t('{{title}} opens {{when}} for {{who}}. Students see it on their dashboard.', { title: payload.title, when, who }), action: { label: t('View exam'), to: `/admin-exams/${id}` } }
+          : { title: t('Saved as a draft'), body: t("Students can't see {{title}} until you publish it.", { title: payload.title }), action: { label: t('Keep editing'), to: `/admin-exams/${id}/edit` } });
       navigate('/admin-exams');
     } catch (err) {
       setError(errorMessage(err, editing ? 'Could not save the exam' : 'Could not create the exam'));
@@ -173,6 +210,9 @@ function ExamFormPage() {
         <LuArrowLeft className="h-4 w-4 rtl:-scale-x-100" /> {t('Exams')}
       </Link>
       <PageHeader title={editing ? t('Edit exam') : t('New exam')} />
+      {saved.draft && !(editing && existing?.edit_blocked) && (
+        <DraftNotice className="mb-6" savedAt={saved.savedAt} onRestore={restoreDraft} onDiscard={saved.clear} />
+      )}
       {locked && <Alert tone="warn" className="mb-6" title={t('Editing is closed')}>{t(existing.edit_blocked)}</Alert>}
 
       {/* A disabled fieldset disables every input and switch inside it */}
@@ -181,8 +221,8 @@ function ExamFormPage() {
           <Card>
             <CardHeader title={t('Details and schedule')} description={t('Students can start any time in the window. Each attempt lasts the duration, but never past the closing time.')} />
             <div className="grid gap-5 p-5 sm:grid-cols-2">
-              <Field label={t('Title')} htmlFor="title" className="sm:col-span-2">
-                <Input id="title" value={form.title} onChange={update('title')} placeholder={t('e.g. Physics, chapter 3 test')} autoFocus />
+              <Field label={t('Title')} htmlFor="title" className="sm:col-span-2" error={fieldErrors.title}>
+                <Input id="title" value={form.title} onChange={update('title')} placeholder={t('e.g. Physics, chapter 3 test')} autoFocus aria-invalid={Boolean(fieldErrors.title)} />
               </Field>
               <Field label={t('Opens')} htmlFor="start">
                 <Input id="start" type="datetime-local" value={form.start} onChange={update('start')} />
@@ -190,8 +230,8 @@ function ExamFormPage() {
               <Field label={t('Closes')} htmlFor="end">
                 <Input id="end" type="datetime-local" value={form.end} onChange={update('end')} />
               </Field>
-              <Field label={t('Duration (minutes)')} htmlFor="duration">
-                <Input id="duration" type="number" min="1" value={form.duration} onChange={update('duration')} />
+              <Field label={t('Duration (minutes)')} htmlFor="duration" error={fieldErrors.duration}>
+                <Input id="duration" type="number" min="1" value={form.duration} onChange={update('duration')} aria-invalid={Boolean(fieldErrors.duration)} />
               </Field>
               {timeZoneLabel() && (
                 <p className="text-sm text-muted sm:col-span-2">
@@ -258,6 +298,14 @@ function ExamFormPage() {
                     </label>
                   ))}
                 </div>
+                {visibleQuestions.length === 0 && (
+                  <NoResults
+                    query={search}
+                    suggestion={suggestCorrection(search, questions.flatMap((q) => [q.title, ...(q.tags || [])]))}
+                    onSuggest={setSearch}
+                    onClear={() => setSearch('')}
+                  />
+                )}
                 <div className="flex gap-2 border-t border-line px-4 py-2.5">
                   <Button variant="ghost" size="sm" onClick={() => setSelectedQuestions(new Set([...selectedQuestions, ...visibleQuestions.map((q) => q.id)]))}>
                     {search ? t('Select shown') : t('Select all')}

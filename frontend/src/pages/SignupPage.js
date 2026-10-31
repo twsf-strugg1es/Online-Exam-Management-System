@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import AuthLayout from '../components/AuthLayout';
-import { Alert, Button, Field, Input, Select } from '../components/ui';
+import { Alert, Button, Field, Input, Select, EmailSuggestion } from '../components/ui';
 import { errorMessage } from '../utils';
 import { useI18n } from '../i18n';
 
@@ -80,6 +80,7 @@ function SignupPage() {
         </Field>
         <Field label={t('Email')} htmlFor="email">
           <Input id="email" type="email" autoComplete="email" value={form.email} onChange={update('email')} required />
+          <EmailSuggestion value={form.email} onUse={(email) => setForm({ ...form, email })} />
         </Field>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Field label={t('Join code')} htmlFor="joinCode" optional>

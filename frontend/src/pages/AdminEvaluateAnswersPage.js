@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { LuArrowLeft, LuCheck, LuX, LuShieldAlert, LuCircleCheck, LuImage } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import { Alert, Badge, Button, Card, EmptyState, PageLoader, Textarea, cx } from '../components/ui';
+import { Alert, Badge, Button, Card, Textarea, EmptyState, ErrorState, PageLoader, cx } from '../components/ui';
 import { QUESTION_TYPE_LABELS, errorMessage, formatDateTime } from '../utils';
 import { useI18n } from '../i18n';
 
@@ -110,14 +110,15 @@ function AdminEvaluateAnswersPage() {
   const { attemptId } = useParams();
   const { t } = useI18n();
   const [data, setData] = useState(null);
-  const [error, setError] = useState('');
+  const [loadFailure, setLoadFailure] = useState(null);
 
   const load = useCallback(async () => {
     try {
       const res = await api.get(`/admin/evaluations/attempts/${attemptId}`);
       setData(res.data);
+      setLoadFailure(null);
     } catch (err) {
-      setError(errorMessage(err, 'Failed to load the attempt'));
+      setLoadFailure(err);
     }
   }, [attemptId]);
 
@@ -125,8 +126,14 @@ function AdminEvaluateAnswersPage() {
     load();
   }, [load]);
 
-  if (error) return <AppShell width="narrow"><Alert tone="danger">{error}</Alert></AppShell>;
-  if (!data) return <AppShell width="narrow"><PageLoader /></AppShell>;
+  if (loadFailure && !data) {
+    return (
+      <AppShell width="narrow">
+        <ErrorState error={loadFailure} onRetry={load} action={<Link to="/admin-exams" className="btn btn-secondary">{t('Back to exams')}</Link>} />
+      </AppShell>
+    );
+  }
+  if (!data) return <AppShell width="narrow"><PageLoader variant="sheet" /></AppShell>;
 
   const graded = data.answers.filter((a) => a.is_evaluated).length;
   const awarded = data.answers.reduce((sum, a) => sum + (a.is_evaluated ? a.score_awarded || 0 : 0), 0);

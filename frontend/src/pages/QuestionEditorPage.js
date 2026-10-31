@@ -3,7 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { LuArrowLeft, LuCopy, LuPlus, LuX } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import { Alert, Button, Card, CardHeader, Field, Input, PageHeader, PageLoader, Select, Textarea, cx } from '../components/ui';
+import { Alert, Button, Card, CardHeader, DraftNotice, ErrorState, Field, Input, PageHeader, PageLoader, Select, Textarea, cx } from '../components/ui';
+import { useToast } from '../components/Toaster';
+import useDraft from '../hooks/useDraft';
 import { QUESTION_TYPE_LABELS, errorMessage } from '../utils';
 import { useI18n } from '../i18n';
 
@@ -61,7 +63,11 @@ function QuestionEditorPage() {
   const [locked, setLocked] = useState(null);
   const [allTags, setAllTags] = useState([]);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState(null);
+  const [reload, setReload] = useState(0);
   const [saving, setSaving] = useState(false);
+  const toast = useToast();
+  const saved = useDraft(`question:${questionId || 'new'}`, form, { ready: Boolean(form) && !locked });
 
   useEffect(() => {
     api.get('/admin/questions/')
@@ -75,6 +81,7 @@ function QuestionEditorPage() {
     setForm(null);
     setLocked(null);
     setError('');
+    setLoadError(null);
     api.get(`/admin/questions/${questionId}`)
       .then(({ data }) => {
         const options = Array.isArray(data.options) ? data.options.map(String) : [];
@@ -91,8 +98,8 @@ function QuestionEditorPage() {
         });
         setLocked(data.edit_blocked);
       })
-      .catch((err) => setError(errorMessage(err, 'Question not found')));
-  }, [editing, questionId]);
+      .catch((err) => setLoadError(err));
+  }, [editing, questionId, reload]);
 
   const isChoice = form && CHOICE_TYPES.includes(form.type);
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
@@ -140,6 +147,10 @@ function QuestionEditorPage() {
     try {
       if (editing) await api.put(`/admin/questions/${questionId}`, payload);
       else await api.post('/admin/questions/', payload);
+      saved.clear();
+      toast(editing
+        ? { title: t('Changes saved'), body: form.title }
+        : { title: t('Question added to your bank'), body: form.title, action: { label: t('Write another question'), to: '/admin-questions/new' } });
       navigate('/admin-questions');
     } catch (err) {
       setError(errorMessage(err, 'Could not save the question'));
@@ -156,7 +167,19 @@ function QuestionEditorPage() {
     }
   };
 
-  if (!form) return <AppShell width="narrow">{error ? <Alert tone="danger">{error}</Alert> : <PageLoader />}</AppShell>;
+  if (!form) {
+    return (
+      <AppShell width="narrow">
+        {loadError ? (
+          <ErrorState
+            error={loadError}
+            onRetry={() => setReload((n) => n + 1)}
+            action={<Link to="/admin-questions" className="btn btn-secondary">{t('Back to the question bank')}</Link>}
+          />
+        ) : <PageLoader variant="sheet" />}
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell width="narrow">
@@ -164,6 +187,9 @@ function QuestionEditorPage() {
         <LuArrowLeft className="h-4 w-4 rtl:-scale-x-100" /> {t('Question bank')}
       </Link>
       <PageHeader title={editing ? t('Edit question') : t('New question')} />
+      {saved.draft && !locked && (
+        <DraftNotice className="mb-6" savedAt={saved.savedAt} onRestore={() => { setForm(saved.draft); saved.keep(); }} onDiscard={saved.clear} />
+      )}
 
       {locked && (
         <Alert tone="warn" className="mb-6" title={t('Editing is closed')}>

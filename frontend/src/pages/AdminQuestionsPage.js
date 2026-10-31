@@ -3,10 +3,8 @@ import { LuDownload, LuFileSpreadsheet, LuFileQuestion, LuSearch, LuTrash2, LuUp
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import {
-  Alert, Badge, Button, Card, Checkbox, EmptyState, Input, Modal, PageHeader, PageLoader, Select, cx, useConfirm,
-} from '../components/ui';
-import { QUESTION_TYPE_LABELS, errorMessage } from '../utils';
+import { UploadProgress, Alert, Badge, Button, Card, Checkbox, Input, Modal, Select, EmptyState, ErrorState, PageHeader, PageLoader, cx, useConfirm, NoResults } from '../components/ui';
+import { QUESTION_TYPE_LABELS, errorMessage, suggestCorrection } from '../utils';
 import { useI18n } from '../i18n';
 
 const COMPLEXITY_TONES = { easy: 'brand', medium: 'warn', hard: 'danger' };
@@ -19,6 +17,7 @@ function ImportDialog({ open, onClose, onImported }) {
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(null); // 'preview' | 'import'
+  const [progress, setProgress] = useState(null); // upload, 0..1
   const inputRef = useRef(null);
 
   const reset = () => {
@@ -35,7 +34,8 @@ function ImportDialog({ open, onClose, onImported }) {
   const send = async (path) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post(path, formData);
+    setProgress(0);
+    return api.post(path, formData, { onUploadProgress: (e) => { if (e.total) setProgress(e.loaded / e.total); } });
   };
 
   const handlePreview = async () => {
@@ -47,6 +47,7 @@ function ImportDialog({ open, onClose, onImported }) {
       setError(errorMessage(err, 'Could not read this file'));
     } finally {
       setBusy(null);
+      setProgress(null);
     }
   };
 
@@ -61,6 +62,7 @@ function ImportDialog({ open, onClose, onImported }) {
       setError(errorMessage(err, 'Import failed'));
     } finally {
       setBusy(null);
+      setProgress(null);
     }
   };
 
@@ -124,6 +126,7 @@ function ImportDialog({ open, onClose, onImported }) {
           ))}
         </div>
       )}
+      {busy && progress !== null && <UploadProgress value={progress} className="mt-4" />}
       {error && <Alert tone="danger" className="mt-4">{error}</Alert>}
     </Modal>
   );
@@ -166,7 +169,7 @@ function QuestionDialog({ question, onClose }) {
 function AdminQuestionsPage() {
   const { t, tn } = useI18n();
   const [questions, setQuestions] = useState(null);
-  const [loadError, setLoadError] = useState('');
+  const [loadError, setLoadError] = useState(null);
   const [message, setMessage] = useState(null);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -183,8 +186,7 @@ function AdminQuestionsPage() {
       const res = await api.get('/admin/questions/');
       setQuestions(res.data || []);
     } catch (err) {
-      setLoadError(errorMessage(err, 'Failed to load questions'));
-      setQuestions([]);
+      setLoadError(err); // an error, not an empty bank
     }
   };
 
@@ -272,9 +274,9 @@ function AdminQuestionsPage() {
       />
 
       {message && <Alert tone={message.tone} className="mb-6" onClose={() => setMessage(null)}>{message.text}</Alert>}
-      {loadError && <Alert tone="danger" className="mb-6">{loadError}</Alert>}
-
-      {questions === null ? (
+      {loadError ? (
+        <Card><ErrorState error={loadError} onRetry={() => { setLoadError(null); fetchQuestions(); }} /></Card>
+      ) : questions === null ? (
         <PageLoader />
       ) : questions.length === 0 ? (
         <Card>
@@ -362,7 +364,14 @@ function AdminQuestionsPage() {
                 ))}
               </tbody>
             </table>
-            {filtered.length === 0 && <EmptyState icon={LuSearch} title={t('No matching questions')}>{t('Try a different search or filter.')}</EmptyState>}
+            {filtered.length === 0 && (
+              <NoResults
+                query={search}
+                suggestion={search ? suggestCorrection(search, (questions || []).flatMap((q) => [q.title, ...(q.tags || [])])) : null}
+                onSuggest={setSearch}
+                onClear={() => { setSearch(''); setTypeFilter(''); setComplexityFilter(''); setTagFilter(''); }}
+              />
+            )}
           </div>
           <div className="border-t border-line px-4 py-2.5 text-xs text-muted">
             {tn(questions.length, '{{n}} of {{count}} question', '{{n}} of {{count}} questions', { n: filtered.length })}

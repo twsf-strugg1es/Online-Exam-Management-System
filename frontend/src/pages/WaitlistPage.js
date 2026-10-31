@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import AuthLayout from '../components/AuthLayout';
-import { Alert, Button, Field, Input, Paige } from '../components/ui';
+import { Alert, Button, Field, Input, Paige, EmailSuggestion } from '../components/ui';
 import { errorMessage } from '../utils';
 import { useI18n } from '../i18n';
 
@@ -64,6 +64,7 @@ function WaitlistPage() {
               required
               autoFocus
             />
+            <EmailSuggestion value={email} onUse={setEmail} />
           </Field>
           <div className="sr-only" aria-hidden="true">
             <label htmlFor="website">{t('Website')}</label>

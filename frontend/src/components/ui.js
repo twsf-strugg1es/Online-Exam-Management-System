@@ -1,6 +1,10 @@
 import React, { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n';
-import { LuX, LuLoaderCircle, LuCircleAlert, LuCircleCheck, LuTriangleAlert, LuInfo } from 'react-icons/lu';
+import {
+  LuX, LuLoaderCircle, LuCircleAlert, LuCircleCheck, LuTriangleAlert, LuInfo, LuWifiOff, LuServerCrash, LuLock,
+  LuSearchX, LuRefreshCw, LuClock, LuCloudOff,
+} from 'react-icons/lu';
+import { errorKind, errorMessage, formatDateTime, suggestEmail } from '../utils';
 
 const cx = (...classes) => classes.filter(Boolean).join(' ');
 export { cx };
@@ -224,12 +228,186 @@ export function Spinner({ className }) {
   return <LuLoaderCircle className={cx('h-5 w-5 animate-spin text-muted', className)} />;
 }
 
-export function PageLoader({ label }) {
+// A gray block where content is about to appear (pulses only when motion is allowed)
+export function Skeleton({ className }) {
+  return <span aria-hidden="true" className={cx('block rounded bg-sunken motion-safe:animate-pulse', className)} />;
+}
+
+function SkeletonRows({ rows = 6 }) {
+  return (
+    <div className="divide-y divide-line">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="flex items-center gap-4 px-4 py-3.5">
+          <Skeleton className="h-4 w-1/3" />
+          <Skeleton className="h-4 w-1/6" />
+          <Skeleton className="ms-auto h-4 w-16" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Loading shows the shape of what's coming, not a spinner. If it takes long, it says so: usually a slow line.
+// variant: list (title + table), detail (title + stats + table), cards (a grid of cards), sheet (one paper sheet),
+// exam (question + answers + question map)
+export function PageLoader({ label, variant = 'list' }) {
+  const { t } = useI18n();
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setSlow(true), 5000);
+    return () => clearTimeout(id);
+  }, []);
+  return (
+    <div role="status" aria-busy="true" aria-live="polite" className="mx-auto w-full max-w-6xl px-6 py-8">
+      <span className="sr-only">{label || t('Loading…')}</span>
+      {variant === 'exam' ? (
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="mx-auto w-full max-w-[42rem] space-y-6 pt-6">
+            <div className="flex items-end gap-4 border-b border-line pb-3.5"><Skeleton className="h-9 w-14" /><Skeleton className="h-3 w-40" /></div>
+            <div className="space-y-3"><Skeleton className="h-5 w-11/12" /><Skeleton className="h-5 w-2/3" /></div>
+            <div className="space-y-2.5">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
+          </div>
+          <div className="grid h-fit grid-cols-5 gap-3 pt-6">{Array.from({ length: 15 }, (_, i) => <Skeleton key={i} className="h-7 w-7 rounded-full" />)}</div>
+        </div>
+      ) : variant === 'sheet' ? (
+        <div className="sheet mx-auto max-w-2xl space-y-4 px-10 py-10">
+          <Skeleton className="h-8 w-2/3" />
+          <Skeleton className="h-px w-full" />
+          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-4 w-full" />)}
+          <Skeleton className="mt-6 h-11 w-full rounded-lg" />
+        </div>
+      ) : (
+        <>
+          <Skeleton className="h-7 w-56" />
+          <Skeleton className="mt-3 h-4 w-80" />
+          {variant === 'detail' && (
+            <div className="mt-8 grid grid-cols-2 gap-6 rounded-xl border border-line bg-surface p-5 sm:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => <div key={i} className="space-y-2"><Skeleton className="h-3 w-20" /><Skeleton className="h-7 w-14" /></div>)}
+            </div>
+          )}
+          {variant === 'cards' ? (
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="space-y-3 rounded-xl border border-line bg-surface p-5">
+                  <Skeleton className="h-5 w-3/4" /><Skeleton className="h-3 w-1/2" /><Skeleton className="mt-4 h-9 w-28 rounded-lg" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-8 overflow-hidden rounded-xl border border-line bg-surface"><SkeletonRows /></div>
+          )}
+        </>
+      )}
+      {slow && (
+        <p className="mt-6 flex items-center justify-center gap-2 text-sm text-muted">
+          <Spinner className="h-4 w-4" />
+          {t('Still loading. Your connection seems slow; this appears as soon as it arrives.')}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// A failed load, said plainly: what happened, whose side it's on, and what to do now
+const ERROR_ICONS = { offline: LuWifiOff, unreachable: LuCloudOff, server: LuServerCrash, forbidden: LuLock, notFound: LuSearchX, expired: LuClock, invalid: LuCircleAlert };
+export function ErrorState({ error, onRetry, action, className }) {
+  const { t } = useI18n();
+  const kind = errorKind(error);
+  const detail = typeof error?.response?.data?.detail === 'string' ? errorMessage(error) : null;
+  const copy = {
+    offline: [t("You're offline"), t("Nothing you've saved is lost. Reconnect, then try again.")],
+    unreachable: [t("We couldn't reach Fairpaper"), t("Your connection may be slow or blocked, or our servers may be busy. Nothing you've saved is lost.")],
+    server: [t('Something went wrong on our side'), t("It's not something you did, and your saved work is safe. Try again in a moment.")],
+    forbidden: [t("You don't have access to this"), detail || t("Your role in this organization doesn't include it. An owner or admin can change that.")],
+    notFound: [t("We couldn't find this"), detail || t('It may have been deleted, or the link may be out of date.')],
+    expired: [t('Your session has ended'), t('Sign in again to carry on. Your saved work is safe.')],
+    invalid: [t("That didn't work"), detail || t('Something went wrong. Please try again.')],
+  }[kind];
+  const Icon = ERROR_ICONS[kind];
+  const retryable = ['offline', 'unreachable', 'server', 'invalid'].includes(kind);
+  return (
+    <div role="alert" className={cx('flex flex-col items-center px-6 py-14 text-center', className)}>
+      <span className="mb-4 grid h-11 w-11 place-items-center rounded-full bg-danger-soft text-danger"><Icon className="h-5 w-5" /></span>
+      <p className="font-medium text-ink">{copy[0]}</p>
+      <p className="mt-1 max-w-md text-sm leading-relaxed text-muted">{copy[1]}</p>
+      {(onRetry || action) && (
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          {onRetry && retryable && <Button icon={LuRefreshCw} onClick={onRetry}>{t('Try again')}</Button>}
+          {action}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A search with no results is never a dead end: say what was searched, offer a likely correction, a way back
+export function NoResults({ query, suggestion, onSuggest, onClear, children, className }) {
   const { t } = useI18n();
   return (
-    <div className="flex items-center justify-center gap-3 py-24 text-sm text-muted">
-      <Spinner />
-      {label || t('Loading…')}
+    <div className={cx('flex flex-col items-center px-6 py-12 text-center', className)}>
+      <span className="mb-4 grid h-11 w-11 place-items-center rounded-full bg-sunken text-muted"><LuSearchX className="h-5 w-5" /></span>
+      <p className="font-medium text-ink">{query ? t('Nothing matches “{{q}}”', { q: query }) : t('Nothing matches these filters')}</p>
+      <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
+        {suggestion ? (
+          <>
+            {t('Did you mean')}{' '}
+            <button type="button" className="link font-medium" onClick={() => onSuggest?.(suggestion)}>{suggestion}</button>?
+          </>
+        ) : (children || t('Check the spelling, or try fewer or different words.'))}
+      </p>
+      {onClear && <Button variant="secondary" size="sm" className="mt-5" onClick={onClear}>{query ? t('Clear search') : t('Clear filters')}</Button>}
+    </div>
+  );
+}
+
+// "Did you mean …@gmail.com?" under an email field: a typo caught here is an account that can still be reached
+export function EmailSuggestion({ value, onUse }) {
+  const { t } = useI18n();
+  const suggestion = suggestEmail(value);
+  if (!suggestion) return null;
+  return (
+    <p className="hint" aria-live="polite">
+      {t('Did you mean')}{' '}
+      <button type="button" className="link font-medium" onClick={() => onUse(suggestion)}>{suggestion}</button>?
+    </p>
+  );
+}
+
+// An upload in flight: the real percentage, then "checking" while the server reads it
+export function UploadProgress({ value, hint, className }) {
+  const { t } = useI18n();
+  const pct = Math.round((value || 0) * 100);
+  return (
+    <div className={cx('space-y-1.5', className)}>
+      <ProgressBar value={value} label={t('Upload progress')} />
+      <p className="text-xs text-muted">
+        {pct < 100 ? t('Uploading: {{pct}}%', { pct }) : t('Uploaded. Checking it…')}
+        {hint && pct < 100 && <span className="block">{hint}</span>}
+      </p>
+    </div>
+  );
+}
+
+// A form's unsaved changes from an earlier visit (useDraft): restore them or start from what's saved
+export function DraftNotice({ savedAt, onRestore, onDiscard, className }) {
+  const { t } = useI18n();
+  return (
+    <Alert tone="info" className={className} title={t('You have unsaved changes from earlier')}>
+      <p>{t('Kept on this computer when you left this form on {{when}}.', { when: formatDateTime(savedAt) })}</p>
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        <Button size="sm" onClick={onRestore}>{t('Restore my changes')}</Button>
+        <Button size="sm" variant="ghost" onClick={onDiscard}>{t('Discard them')}</Button>
+      </div>
+    </Alert>
+  );
+}
+
+// Real progress for uploads (value from 0 to 1), so a slow line doesn't look frozen
+export function ProgressBar({ value, label, className }) {
+  const pct = Math.max(0, Math.min(100, Math.round((value || 0) * 100)));
+  return (
+    <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={label} className={cx('h-1.5 w-full overflow-hidden rounded-full bg-sunken', className)}>
+      <div className="h-full w-full rounded-full bg-brand transition-transform duration-150 ltr:origin-left rtl:origin-right" style={{ transform: `scaleX(${pct / 100})` }} />
     </div>
   );
 }

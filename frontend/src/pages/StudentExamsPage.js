@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { LuAward, LuArrowRight } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import { Alert, Card, EmptyState, PageHeader, PageLoader, Stat, cx } from '../components/ui';
-import { errorMessage, formatDate } from '../utils';
+import { Card, Stat, EmptyState, ErrorState, PageHeader, PageLoader, cx } from '../components/ui';
+import { formatDate } from '../utils';
 import { useI18n } from '../i18n';
 
 const scoreTone = (pct) => (pct >= 80 ? 'text-brand' : pct >= 50 ? 'text-warn' : 'text-danger');
@@ -13,16 +13,14 @@ const scoreTone = (pct) => (pct >= 80 ? 'text-brand' : pct >= 50 ? 'text-warn' :
 function StudentExamsPage() {
   const { t } = useI18n();
   const [exams, setExams] = useState(null);
-  const [error, setError] = useState('');
+  const [loadFailure, setLoadFailure] = useState(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     api.get('/student/completed-exams/')
       .then((res) => setExams([...res.data].sort((a, b) => new Date(b.end_time) - new Date(a.end_time))))
-      .catch((err) => {
-        setError(errorMessage(err, 'Failed to load results'));
-        setExams([]);
-      });
-  }, []);
+      .catch((err) => setLoadFailure(err)); // an error, not "no results yet"
+  }, [reload]);
 
   // Averages count only the exams whose results have been released
   const scored = (exams || []).filter((e) => e.results_released !== false);
@@ -32,9 +30,9 @@ function StudentExamsPage() {
   return (
     <AppShell>
       <PageHeader title={t('Results')} description={t('Scores include written answers once your examiner has graded them.')} />
-      {error && <Alert tone="danger" className="mb-6">{error}</Alert>}
-
-      {exams === null ? (
+      {loadFailure ? (
+        <Card><ErrorState error={loadFailure} onRetry={() => { setLoadFailure(null); setReload((n) => n + 1); }} /></Card>
+      ) : exams === null ? (
         <PageLoader />
       ) : exams.length === 0 ? (
         <Card>

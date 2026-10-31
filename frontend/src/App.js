@@ -1,8 +1,11 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { PageLoader } from './components/ui';
 import DesktopOnly from './components/DesktopOnly';
+import NoAccess from './components/NoAccess';
+import OfflineBanner from './components/OfflineBanner';
+import { ToastProvider } from './components/Toaster';
 import { LANGUAGES, useI18n } from './i18n';
 import { setTimeZone } from './utils';
 import LoginPage from './pages/LoginPage';
@@ -33,6 +36,7 @@ import StudentProfilePage from './pages/StudentProfilePage';
 function App() {
   const { user, isLoading, currentMembership, isStaff, isManager, isCandidate } = useAuth();
   const { language, setLanguage } = useI18n();
+  const location = useLocation();
 
   // Set during render so every date on this render already uses the organization's timezone
   setTimeZone(currentMembership?.timezone);
@@ -49,10 +53,19 @@ function App() {
     return <div className="min-h-screen bg-paper"><PageLoader /></div>;
   }
 
-  // Pages for one kind of member; anyone else goes back to the root, which routes them
-  const only = (allowed, element) => (allowed ? element : <Navigate to="/" replace />);
+  // Pages for one kind of member. Signed out: to sign in, then back here. Signed in without an organization:
+  // pick one. Otherwise say why the page isn't theirs (NoAccess) instead of quietly sending them elsewhere.
+  const only = (allowed, element, need) => {
+    if (allowed) return element;
+    if (!user) return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+    if (!currentMembership) return <Navigate to="/organizations" replace />;
+    return <NoAccess need={need} />;
+  };
 
   return (
+    <ToastProvider>
+    {/* The exam page shows its own connection status, next to its answers */}
+    {!location.pathname.startsWith('/exam/') && <OfflineBanner />}
     <DesktopOnly>
     <Routes>
       <Route
@@ -74,33 +87,34 @@ function App() {
       <Route path="/waitlist" element={<WaitlistPage />} />
       <Route path="/waitlist/unsubscribe/:token" element={<WaitlistUnsubscribePage />} />
       <Route path="/organizations" element={user ? <OrganizationsPage /> : <Navigate to="/login" replace />} />
-      <Route path="/profile" element={only(currentMembership, <StudentProfilePage />)} />
+      <Route path="/profile" element={only(currentMembership, <StudentProfilePage />, 'member')} />
 
       {/* Staff */}
-      <Route path="/admin-exams" element={only(isStaff, <AdminExamsPage />)} />
-      <Route path="/admin-exams/new" element={only(isStaff, <ExamFormPage />)} />
-      <Route path="/admin-exams/:examId/edit" element={only(isStaff, <ExamFormPage />)} />
-      <Route path="/admin-exams/:examId" element={only(isStaff, <ExamResultsPage />)} />
-      <Route path="/admin-exams/:examId/cards" element={only(isStaff, <ResultCardsPage />)} />
-      <Route path="/admin-integrity/:attemptId" element={only(isStaff, <IntegrityReportPage />)} />
-      <Route path="/admin-evaluate-answers/:attemptId" element={only(isStaff, <AdminEvaluateAnswersPage />)} />
-      <Route path="/admin-questions" element={only(isStaff, <AdminQuestionsPage />)} />
-      <Route path="/admin-questions/new" element={only(isStaff, <QuestionEditorPage />)} />
-      <Route path="/admin-questions/:questionId/edit" element={only(isStaff, <QuestionEditorPage />)} />
-      <Route path="/admin-students" element={only(isStaff, <AdminStudentsPage />)} />
-      <Route path="/admin-organization" element={only(isManager, <AdminOrganizationPage />)} />
+      <Route path="/admin-exams" element={only(isStaff, <AdminExamsPage />, 'staff')} />
+      <Route path="/admin-exams/new" element={only(isStaff, <ExamFormPage />, 'staff')} />
+      <Route path="/admin-exams/:examId/edit" element={only(isStaff, <ExamFormPage />, 'staff')} />
+      <Route path="/admin-exams/:examId" element={only(isStaff, <ExamResultsPage />, 'staff')} />
+      <Route path="/admin-exams/:examId/cards" element={only(isStaff, <ResultCardsPage />, 'staff')} />
+      <Route path="/admin-integrity/:attemptId" element={only(isStaff, <IntegrityReportPage />, 'staff')} />
+      <Route path="/admin-evaluate-answers/:attemptId" element={only(isStaff, <AdminEvaluateAnswersPage />, 'staff')} />
+      <Route path="/admin-questions" element={only(isStaff, <AdminQuestionsPage />, 'staff')} />
+      <Route path="/admin-questions/new" element={only(isStaff, <QuestionEditorPage />, 'staff')} />
+      <Route path="/admin-questions/:questionId/edit" element={only(isStaff, <QuestionEditorPage />, 'staff')} />
+      <Route path="/admin-students" element={only(isStaff, <AdminStudentsPage />, 'staff')} />
+      <Route path="/admin-organization" element={only(isManager, <AdminOrganizationPage />, 'manager')} />
 
       {/* Students */}
-      <Route path="/student-account" element={only(isCandidate, <StudentDashboard />)} />
-      <Route path="/exam/:id" element={only(isCandidate, <ExamPage />)} />
-      <Route path="/exam/resume/:attemptId" element={only(isCandidate, <ExamPage />)} />
-      <Route path="/student-exams" element={only(isCandidate, <StudentExamsPage />)} />
-      <Route path="/exam-results/:attemptId" element={only(isCandidate, <StudentResultsPage />)} />
+      <Route path="/student-account" element={only(isCandidate, <StudentDashboard />, 'candidate')} />
+      <Route path="/exam/:id" element={only(isCandidate, <ExamPage />, 'candidate')} />
+      <Route path="/exam/resume/:attemptId" element={only(isCandidate, <ExamPage />, 'candidate')} />
+      <Route path="/student-exams" element={only(isCandidate, <StudentExamsPage />, 'candidate')} />
+      <Route path="/exam-results/:attemptId" element={only(isCandidate, <StudentResultsPage />, 'candidate')} />
       <Route path="/student-profile" element={<Navigate to="/profile" replace />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </DesktopOnly>
+    </ToastProvider>
   );
 }
 

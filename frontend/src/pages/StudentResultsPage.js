@@ -3,8 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { LuArrowLeft, LuImage, LuMessageSquare } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import { Alert, Badge, Card, PageLoader } from '../components/ui';
-import { QUESTION_TYPE_LABELS, errorMessage, formatDateTime } from '../utils';
+import { Badge, Card, ErrorState, PageLoader } from '../components/ui';
+import { QUESTION_TYPE_LABELS, formatDateTime } from '../utils';
 import { useI18n } from '../i18n';
 
 const formatAnswer = (answer) => {
@@ -19,16 +19,23 @@ function StudentResultsPage() {
   const { attemptId } = useParams();
   const { t } = useI18n();
   const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
+  const [loadFailure, setLoadFailure] = useState(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     api.get(`/student/attempts/${attemptId}/evaluated-results`)
       .then((res) => setResult(res.data))
-      .catch((err) => setError(errorMessage(err, 'Failed to load this result')));
-  }, [attemptId]);
+      .catch((err) => setLoadFailure(err));
+  }, [attemptId, reload]);
 
-  if (error) return <AppShell width="narrow"><Alert tone="danger">{error}</Alert></AppShell>;
-  if (!result) return <AppShell width="narrow"><PageLoader /></AppShell>;
+  if (loadFailure) {
+    return (
+      <AppShell width="narrow">
+        <ErrorState error={loadFailure} onRetry={() => { setLoadFailure(null); setReload((n) => n + 1); }} action={<Link to="/student-exams" className="btn btn-secondary">{t('Back to results')}</Link>} />
+      </AppShell>
+    );
+  }
+  if (!result) return <AppShell width="narrow"><PageLoader variant="sheet" /></AppShell>;
 
   return (
     <AppShell width="narrow">

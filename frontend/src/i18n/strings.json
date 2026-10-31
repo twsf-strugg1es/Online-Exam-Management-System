@@ -1,4 +1,5 @@
 {
+  "“{{file}}” is in your downloads: results, marks by question, the questions and the exam, one sheet each.": {},
   "(first on row {{row}})": {},
   "{{count}} already here": {
     "plural": true
@@ -130,11 +131,15 @@
   "{{rank}} (shared) of {{n}}": {},
   "{{rank}} of {{n}}": {},
   "{{time}} left": {},
+  "{{title}} opens {{when}} for {{who}}. Students see it on their dashboard.": {},
+  "{{title}} opens {{when}}.": {},
+  "{{title}} opens {{when}}. Students see it on their dashboard.": {},
   "A card appears here for every student who has submitted.": {},
   "A CSV or Excel file with an \"email\" column, and optionally a \"name\" column. Up to 1000 students at a time.": {},
   "A group with that name already exists": {
     "source": "server"
   },
+  "a member": {},
   "A private space for your school, coaching center or company: your own question bank, exams, students and results.": {},
   "A single-choice question has exactly one correct answer.": {
     "source": "server"
@@ -183,6 +188,7 @@
   },
   "An admin does this": {},
   "An exam picks questions from your question bank and runs in a time window you choose.": {},
+  "An owner or admin can change your role.": {},
   "and create an organization from there.": {},
   "Answer": {},
   "Answer does not belong to this attempt": {
@@ -222,6 +228,8 @@
   "Back": {},
   "Back to exams": {},
   "Back to log in": {},
+  "Back to results": {},
+  "Back to the question bank": {},
   "Batches, classes or hiring rounds. Each group has its own code that also puts students into the group. Exams can be limited to groups.": {},
   "Best": {},
   "Block copy and paste": {},
@@ -230,8 +238,10 @@
   "Card": {},
   "Change password": {},
   "Changed your mind? Join again": {},
+  "Changes saved": {},
   "Check {{email}}, including the spam folder. The link works once, for 30 minutes.": {},
   "Check the list": {},
+  "Check the spelling, or try fewer or different words.": {},
   "choose": {},
   "Choose a .csv or .xlsx file": {},
   "Choose a different image": {},
@@ -244,6 +254,8 @@
     "source": "server"
   },
   "Clear": {},
+  "Clear filters": {},
+  "Clear search": {},
   "Click to choose a different file": {},
   "Clicking outside the exam, or switching to another tab, window or app, is recorded as a violation. The questions stay blurred until you click back into the exam.": {},
   "Close": {},
@@ -305,8 +317,10 @@
   "Delete this question?": {},
   "Details": {},
   "Details and schedule": {},
+  "Did you mean": {},
   "Difficulty": {},
   "Difficulty for rule {{n}}": {},
+  "Discard them": {},
   "Dismiss": {},
   "done": {},
   "Done": {},
@@ -337,6 +351,7 @@
   "Every student in your organization. To limit it,": {},
   "Everyone": {},
   "Everyone added joins {{groups}}.": {},
+  "everyone in your organization": {},
   "Everyone who joined your organization as a student, with their average score across your exams.": {},
   "Exam": {},
   "Exam already submitted": {
@@ -361,14 +376,14 @@
     "source": "server"
   },
   "Exam opening and closing times are shown in this timezone to everyone in the organization.": {},
-  "Exam published.": {},
+  "Exam published": {},
   "Exam time has expired. You can no longer take this exam": {
     "source": "server"
   },
   "Exam time is over. Answers can no longer be changed": {
     "source": "server"
   },
-  "Exam unpublished. Students can no longer see it.": {},
+  "Exam unpublished": {},
   "Examiner": {},
   "Examiner's signature": {},
   "Examiners manage questions, exams and grading. Admins can also manage students, groups and staff. Only owners can manage other owners.": {},
@@ -393,6 +408,7 @@
   "Fill in every option or remove the empty ones.": {},
   "Find questions by topic, chapter or class. Press Enter or type a comma after each tag.": {},
   "first, then come back to build the exam.": {},
+  "Fix the fields marked in red above.": {},
   "flag": {},
   "Flag for review": {},
   "Flagged": {},
@@ -409,7 +425,11 @@
   "Gender": {},
   "Get a join link": {},
   "Get started": {},
-  "Give the exam a title.": {},
+  "Give the exam a title, for example “Physics, chapter 3 test”.": {},
+  "Give the exam a title.": {
+    "source": "server"
+  },
+  "Go to my home page": {},
   "Good afternoon": {},
   "Good evening": {},
   "Good morning": {},
@@ -480,7 +500,12 @@
   "Invite sent to {{email}}. They can sign in once they set a password.": {},
   "Invite students": {},
   "Invite students, organize them into groups, and manage who can run exams.": {},
+  "It changes the organization's members and settings.": {},
+  "It is where students take their exams.": {},
+  "It lets examiners manage exams, questions and results.": {},
+  "It may have been deleted, or the link may be out of date.": {},
   "It started when you first opened the exam and doesn't pause. Violations recorded earlier still count.": {},
+  "It's not something you did, and your saved work is safe. Try again in a moment.": {},
   "Its students stay in the organization. Exams limited to only this group become open to everyone.": {},
   "Join": {},
   "Join code": {},
@@ -491,8 +516,10 @@
   "Joining as a student. Staff are added by an organization admin.": {},
   "Joint {{n}} of {{total}}": {},
   "JPG or PNG, up to 2 MB": {},
+  "Keep editing": {},
   "Keep me signed in on this device": {},
   "Keep working": {},
+  "Kept on this computer when you left this form on {{when}}.": {},
   "Language": {},
   "Left": {},
   "LEFT EXAM": {},
@@ -564,8 +591,6 @@
   "No groups yet": {},
   "No image uploaded": {},
   "no limit": {},
-  "No matching questions": {},
-  "No matching students": {},
   "No paste": {},
   "No protections": {},
   "No questions yet": {},
@@ -584,15 +609,18 @@
   "Not set": {},
   "Notes": {},
   "Nothing changed": {},
-  "Nothing here": {},
+  "Nothing matches “{{q}}”": {},
+  "Nothing matches these filters": {},
   "Nothing to grade": {},
   "Nothing was recorded during this attempt.": {},
+  "Nothing you've saved is lost. Reconnect, then try again.": {},
   "Offline · {{count}} answer waiting": {
     "plural_of": "Offline · {{count}} answers waiting"
   },
   "Offline · {{count}} answers waiting": {
     "plural": true
   },
+  "On a slow connection, a smaller or cropped photo uploads faster.": {},
   "Once you start, the timer runs even if you close the page.": {},
   "One email when we launch, nothing else. Every email has an unsubscribe link.": {},
   "One more and your exam is submitted automatically.": {},
@@ -609,6 +637,7 @@
   "Open menu": {},
   "Open now": {},
   "Opens": {},
+  "Opens …": {},
   "Opens {{date}}": {},
   "Opens in {{n}} h": {},
   "Opens in {{n}} min": {},
@@ -656,6 +685,7 @@
   "Question": {},
   "Question {{n}}": {},
   "Question {{n}} of {{total}}": {},
+  "Question added to your bank": {},
   "Question bank": {},
   "Question deleted": {
     "source": "server"
@@ -697,12 +727,14 @@
   "Require fullscreen": {},
   "Resend invite": {},
   "Reset password": {},
+  "Restore my changes": {},
   "Result card": {},
   "Result card for {{name}}": {},
   "Result cards": {},
   "Results": {},
   "Results aren’t released yet": {},
   "Results aren't released yet, so students can't see them in Fairpaper. Printing cards doesn't release them.": {},
+  "Results downloaded": {},
   "Results hidden": {},
   "Results not released yet": {},
   "Results released": {},
@@ -719,6 +751,7 @@
   "Save changes": {},
   "Save grade": {},
   "Saved": {},
+  "Saved as a draft": {},
   "Saved from Excel, Google Sheets or any spreadsheet": {},
   "Saving": {},
   "Schedule an exam from your question bank, then share it with one or more groups.": {},
@@ -736,7 +769,7 @@
   "Send reset link": {},
   "Send the link again": {},
   "Sent. Check {{email}}, including the spam folder.": {},
-  "Set a duration in minutes.": {},
+  "Set a duration in whole minutes, for example 60.": {},
   "Set a new password": {},
   "Set password": {},
   "Settings": {},
@@ -749,10 +782,13 @@
   "Shuffled": {},
   "Shuffled per student": {},
   "Sign in": {},
+  "Sign in again to carry on. Your saved work is safe.": {},
   "Sign out": {},
   "Single answer": {},
   "Single choice": {},
   "Some activity was recorded. Look at the timeline to judge whether it matters.": {},
+  "Something went wrong on our side": {},
+  "Something went wrong. Please try again.": {},
   "Staff": {},
   "Staff members can't join a candidate group": {
     "source": "server"
@@ -763,6 +799,7 @@
   "Started": {},
   "Started {{date}}": {},
   "Status": {},
+  "Still loading. Your connection seems slow; this appears as soon as it arrives.": {},
   "Stop Fairpaper emails": {},
   "Student": {},
   "Student not found": {
@@ -772,8 +809,10 @@
   "Student's answer": {},
   "Students": {},
   "Students and their groups": {},
+  "Students can no longer see {{title}}. Publish it again whenever you like.": {},
   "Students can see their scores and, once the exam has closed, the correct answers.": {},
   "Students can start any time in the window. Each attempt lasts the duration, but never past the closing time.": {},
+  "Students can't see {{title}} until you publish it.": {},
   "Students have already started this exam, so it can't be changed.": {
     "source": "server"
   },
@@ -805,6 +844,7 @@
   "Submitting…": {},
   "switch": {},
   "Switch between them from the sidebar.": {},
+  "Switch organization": {},
   "Switch to dark theme": {},
   "Switch to light theme": {},
   "Switched tab or minimized the browser": {},
@@ -813,6 +853,7 @@
   "Tag for rule {{n}}": {},
   "Tags": {},
   "Template": {},
+  "That didn't work": {},
   "That email doesn't look right. Check it and try again.": {},
   "That image is larger than 2 MB. Take a smaller photo or crop it.": {},
   "The correct answer must be one of the options.": {
@@ -858,6 +899,9 @@
     "source": "server"
   },
   "This exam is not available to you.": {},
+  "This page is for owners and admins": {},
+  "This page is for staff": {},
+  "This page is for students": {},
   "This reset link is invalid or has expired. Ask for a new one.": {
     "source": "server"
   },
@@ -891,7 +935,7 @@
   "Tried to drop text in (blocked)": {},
   "Tried to paste (blocked)": {},
   "Tried to paste from the menu (blocked)": {},
-  "Try a different search or filter.": {},
+  "Try again": {},
   "Two options have the same text.": {},
   "Two-letter code, such as BD or GB.": {},
   "Type": {},
@@ -911,7 +955,10 @@
   "Upcoming": {},
   "Update grade": {},
   "Upload an image of your answer": {},
+  "Upload progress": {},
   "Uploaded answer": {},
+  "Uploaded. Checking it…": {},
+  "Uploading: {{pct}}%": {},
   "Use a computer": {},
   "Use a different email": {},
   "Use at most 10 options.": {
@@ -922,11 +969,15 @@
     "source": "server"
   },
   "View": {},
+  "View exam": {},
   "Violation": {},
   "Violation recorded ({{n}} of {{max}}).": {},
   "Violation recorded ({{n}}).": {},
   "Violations": {},
   "Violations are recorded and shown to your examiner.": {},
+  "We couldn't find this": {},
+  "We couldn't reach Fairpaper": {},
+  "We do this to keep your account safe. Everything you saved is safe, and forms you were filling in keep your changes on this computer. Sign in to pick up where you left off.": {},
   "We sent a link to {{email}}. Confirming it lets you reset your password by email if you forget it.": {},
   "We'll email {{email}} once, when Fairpaper opens.": {},
   "We've sent this person 3 invites in the last hour. Try again later.": {
@@ -943,6 +994,7 @@
   "With their results, students see their place on the merit list, e.g. 3rd of 40.": {},
   "worth": {},
   "Write a question": {},
+  "Write another question": {},
   "Write questions one at a time, or fill in the Excel template and import many at once.": {},
   "Write the question.": {},
   "Written": {},
@@ -958,6 +1010,8 @@
   "You can switch between them any time from the sidebar.": {},
   "You can't change your answers after submitting.": {},
   "You can't select, copy or paste text, or right-click. Your clipboard is emptied when you start and each time you come back.": {},
+  "You don't have access to this": {},
+  "You don't have access to this page": {},
   "You have {{count}} exam you can take right now.": {
     "plural_of": "You have {{count}} exams you can take right now."
   },
@@ -967,18 +1021,25 @@
   "You have already submitted this exam": {
     "source": "server"
   },
+  "You have unsaved changes from earlier": {},
   "You joined the Fairpaper launch waitlist. Unsubscribe and we won't email you about the launch.": {},
   "You left the exam": {},
+  "You were signed out after a while away": {},
+  "You're back online.": {},
   "You're off the list": {},
   "You're off the list. We won't email you about the launch.": {
     "source": "server"
   },
+  "You're offline": {},
   "You're offline, so your exam can't be submitted yet. Your answers are kept on this computer. Reconnect and press Submit again.": {},
   "You're offline. Keep going: your answers are kept on this computer and sent when you reconnect.": {},
+  "You're offline. What's on screen stays here and you can keep reading; saving and loading new pages wait until you reconnect.": {},
   "You're on the list": {},
   "You're on the list. We'll email you once, when Fairpaper opens.": {
     "source": "server"
   },
+  "You're signed in as {{email}}.": {},
+  "You're signed in as {{role}} in {{org}}.": {},
   "You're signed in but not part of an organization yet. Enter the join code your school, coaching center or employer gave you.": {},
   "You've already submitted this exam.": {},
   "You've been invited to join an organization. Your join code is already filled in.": {},
@@ -990,10 +1051,12 @@
   "Your answers are kept on this computer and sent when you reconnect.": {},
   "Your answers are saved. Your score will appear here once your examiner releases it.": {},
   "Your answers are saved. Your score will appear under Results once your examiner releases it.": {},
+  "Your connection may be slow or blocked, or our servers may be busy. Nothing you've saved is lost.": {},
   "Your email": {},
   "Your email here": {},
   "Your email is your login and can't be changed here.": {},
   "Your exam is still running": {},
+  "Your examiner asked for fullscreen, so the exam has your whole screen. If the button doesn't work, press F11 (Windows) or Control+Command+F (Mac). If your browser won't allow fullscreen, tell your examiner: they can turn it off for this exam.": {},
   "Your name is what examiners see on your results.": {},
   "Your next exam: {{when}}.": {},
   "your organization": {},
@@ -1001,9 +1064,12 @@
   "Your role does not allow this action": {
     "source": "server"
   },
+  "Your role in this organization doesn't include it. An owner or admin can change that.": {},
   "Your saved answers are restored.": {},
   "Your score": {},
   "Your scores appear here after you submit an exam.": {},
+  "Your session ended": {},
+  "Your session has ended": {},
   "Your timer has been running": {},
   "Your uploaded answer": {}
 }

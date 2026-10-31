@@ -4,7 +4,7 @@ import { LuArrowLeft, LuImage, LuCircleAlert } from 'react-icons/lu';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import useExamIntegrity, { clearClipboard, enterFullscreen, exitFullscreen, fullscreenSupported } from '../hooks/useExamIntegrity';
-import { Alert, Badge, Button, Card, Logo, LogoMark, Modal, PageLoader, Paige, Textarea, cx } from '../components/ui';
+import { Alert, Badge, Button, Card, Logo, LogoMark, Modal, PageLoader, Paige, Textarea, UploadProgress, cx } from '../components/ui';
 import { errorMessage, formatClock, formatExamTime } from '../utils';
 import { useI18n } from '../i18n';
 import { createAnswerQueue, openStorage } from '../answerQueue';
@@ -142,6 +142,11 @@ function BlockedOverlay({ integrity }) {
             {remaining === 1 ? t('One more violation and your exam is submitted automatically.') : t('{{n}} more and your exam is submitted automatically.', { n: remaining })}
           </p>
         )}
+        {!left && (
+          <p className="mt-3 text-sm leading-relaxed text-muted">
+            {t("Your examiner asked for fullscreen, so the exam has your whole screen. If the button doesn't work, press F11 (Windows) or Control+Command+F (Mac). If your browser won't allow fullscreen, tell your examiner: they can turn it off for this exam.")}
+          </p>
+        )}
         <Button size="lg" className="mt-7" autoFocus onClick={(e) => { e.stopPropagation(); integrity.returnToExam(); }}>{t('Return to the exam')}</Button>
         <p className="mt-3 text-sm text-faint">{t('Or click anywhere on the page.')}</p>
       </Card>
@@ -226,7 +231,7 @@ function ChoiceOption({ type, index, label, checked, onChange }) {
   );
 }
 
-function QuestionBody({ question, value, onChange, onImage, onPickFile }) {
+function QuestionBody({ question, value, onChange, onImage, onPickFile, upload }) {
   const { t } = useI18n();
   if (question.type === 'single_choice') {
     return (
@@ -287,6 +292,9 @@ function QuestionBody({ question, value, onChange, onImage, onPickFile }) {
         </label>
         {value?.preview && (
           <img src={value.preview} alt={t('Your uploaded answer')} className="mt-4 max-h-80 rounded border border-line object-contain" />
+        )}
+        {upload !== null && upload !== undefined && (
+          <UploadProgress value={upload} className="mt-3" hint={t('On a slow connection, a smaller or cropped photo uploads faster.')} />
         )}
       </div>
     );
@@ -406,6 +414,7 @@ function ExamPage() {
   const [current, setCurrent] = useState(0);
   const [flagged, setFlagged] = useState(new Set());
   const [secondsLeft, setSecondsLeft] = useState(null);
+  const [imageUpload, setImageUpload] = useState(null); // { questionId, value 0..1 } while a photo uploads
   const [saveStatus, setSaveStatus] = useState(null);
   const [waiting, setWaiting] = useState(0); // answers kept on this computer, not yet on the server
   const [error, setError] = useState('');
@@ -500,7 +509,15 @@ function ExamPage() {
       queue.current = createAnswerQueue({
         attemptId: id,
         storage: await openStorage(),
-        send: (row) => api.post(`/student/attempts/${id}/save-answer`, { question_id: row.questionId, answer_data: row.value, client_seq: row.seq }),
+        send: (row) => {
+          const photo = Boolean(row.value && typeof row.value === 'object' && row.value.preview);
+          const body = { question_id: row.questionId, answer_data: row.value, client_seq: row.seq };
+          if (!photo) return api.post(`/student/attempts/${id}/save-answer`, body);
+          // Photos are big: show the real upload progress
+          return api.post(`/student/attempts/${id}/save-answer`, body, {
+            onUploadProgress: (e) => { if (e.total) setImageUpload({ questionId: row.questionId, value: e.loaded / e.total }); },
+          }).finally(() => setImageUpload(null));
+        },
         onChange: ({ status, waiting: n }) => { setSaveStatus(status); setWaiting(n); },
         onClosed: () => finish(),
       });
@@ -652,7 +669,7 @@ function ExamPage() {
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  if (phase === 'loading') return <div className="min-h-screen bg-paper"><PageLoader /></div>;
+  if (phase === 'loading') return <div className="min-h-screen bg-paper"><PageLoader variant="exam" /></div>;
 
   if (phase === 'error') {
     return (
@@ -751,6 +768,7 @@ function ExamPage() {
                     value={answers[question.id]}
                     onChange={(value, opts) => answer(question.id, value, opts)}
                     onImage={(file) => uploadImage(question.id, file)}
+                    upload={imageUpload?.questionId === question.id ? imageUpload.value : null}
                     onPickFile={integrity.allowFilePicker}
                   />
                   {(question.type === 'single_choice' || question.type === 'multi_choice') && (

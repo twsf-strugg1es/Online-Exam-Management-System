@@ -3,9 +3,10 @@ import { Link, useParams } from 'react-router-dom';
 import { LuArrowLeft, LuCalendar, LuClock, LuUsers, LuSearch, LuShieldAlert, LuPencil, LuInbox, LuFileSpreadsheet, LuPrinter } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
-import { Alert, Badge, Button, Card, EmptyState, Input, PageLoader, Stat, Tabs } from '../components/ui';
+import { Alert, Badge, Button, Card, Input, Stat, Tabs, EmptyState, ErrorState, PageLoader, NoResults } from '../components/ui';
 import { ProtectionIcons, StatusBadge } from './AdminExamsPage';
-import { errorMessage, formatDateTime, formatDuration, formatExamTime, percent } from '../utils';
+import { useToast } from '../components/Toaster';
+import { errorMessage, formatDateTime, formatDuration, formatExamTime, percent, suggestCorrection } from '../utils';
 import { useI18n } from '../i18n';
 
 export const RISK = {
@@ -117,6 +118,9 @@ function ExamResultsPage() {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [exporting, setExporting] = useState(false);
+  const toast = useToast();
+  const [loadFailure, setLoadFailure] = useState(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     Promise.all([api.get('/admin/exams/'), api.get(`/admin/exams/${examId}/attempts`)])
@@ -124,11 +128,8 @@ function ExamResultsPage() {
         setExam(examsRes.data.find((e) => e.id === examId) || null);
         setAttempts(attemptsRes.data);
       })
-      .catch((err) => {
-        setError(errorMessage(err, 'Failed to load results'));
-        setAttempts([]);
-      });
-  }, [examId]);
+      .catch((err) => setLoadFailure(err)); // an error, not "no attempts yet"
+  }, [examId, reload]);
 
   const needsGrading = exam?.questions?.some((q) => q.type === 'text' || q.type === 'image_upload');
 
@@ -142,6 +143,7 @@ function ExamResultsPage() {
       a.download = `${(exam?.title || 'Exam').replace(/[\\/:*?"<>|]+/g, ' ').trim()} results.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
+      toast({ title: t('Results downloaded'), body: t('“{{file}}” is in your downloads: results, marks by question, the questions and the exam, one sheet each.', { file: a.download }) });
     } catch (err) {
       setError(errorMessage(err, t('Could not export the results. Try again.')));
     } finally {
@@ -169,7 +171,14 @@ function ExamResultsPage() {
     .sort((a, b) => ['high', 'review', 'clean'].indexOf(a.integrity?.risk) - ['high', 'review', 'clean'].indexOf(b.integrity?.risk)
       || (b.score || 0) - (a.score || 0));
 
-  if (attempts === null) return <AppShell><PageLoader /></AppShell>;
+  if (loadFailure) {
+    return (
+      <AppShell>
+        <ErrorState error={loadFailure} onRetry={() => { setLoadFailure(null); setReload((n) => n + 1); }} action={<Link to="/admin-exams" className="btn btn-secondary">{t('Back to exams')}</Link>} />
+      </AppShell>
+    );
+  }
+  if (attempts === null) return <AppShell><PageLoader variant="detail" /></AppShell>;
 
   return (
     <AppShell>
@@ -303,7 +312,16 @@ function ExamResultsPage() {
                 ))}
               </tbody>
             </table>
-            {shown.length === 0 && <EmptyState title={t('Nothing here')}>{t('No attempts match this filter.')}</EmptyState>}
+            {shown.length === 0 && (
+              <NoResults
+                query={search}
+                suggestion={search ? suggestCorrection(search, attempts.flatMap((a) => [a.student?.full_name, a.student?.email])) : null}
+                onSuggest={setSearch}
+                onClear={() => { setSearch(''); setFilter('all'); }}
+              >
+                {t('No attempts match this filter.')}
+              </NoResults>
+            )}
           </div>
         )}
       </Card>

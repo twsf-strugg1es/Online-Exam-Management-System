@@ -98,7 +98,7 @@ function ResultCardsPage() {
       .catch((err) => setError(errorMessage(err, t('Could not load the result cards.'))));
   }, [examId, only, t]);
 
-  if (!data && !error) return <div className="min-h-screen bg-paper"><PageLoader /></div>;
+  if (!data && !error) return <div className="min-h-screen bg-paper"><PageLoader variant="sheet" /></div>;
 
   return (
     <div className="min-h-screen bg-paper print:bg-white">

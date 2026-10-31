@@ -160,9 +160,14 @@ Sidebar **Results** → `/student-exams` → click an exam → `/exam-results/:a
 | Candidate results | None | "No results yet" |
 | Exam | Not started / expired / already submitted / not published | Error phase with the server message and a link back |
 | Exam | Away / back but not clicked in / out of fullscreen | The exam blurred behind a card ("You left the exam", violations so far, how many are left); question text replaced by placeholder bars; a click anywhere returns |
-| Any | Wrong role | Redirect to the role's home |
-| Any | Offline | Today: save errors shown. *(planned)* offline banner + local queue with retry |
-| Any | Session expiring | Token refreshed automatically by `AuthContext`; an expired session means signing in again |
+| Any | Loading | A skeleton in the page's shape; after 5 s a "connection seems slow" note |
+| Any | Load failed | `ErrorState` where the content would be (offline / couldn't reach Fairpaper / our side / not found / no access), **Try again** and a way back; never shown as an empty list |
+| Any list | Search or filters match nothing | "Nothing matches “…”", "Did you mean …?" when a word is close, **Clear search** |
+| Any | Wrong role | `NoAccess`: who the page is for, who you're signed in as, **Go to my home page**, **Switch organization**. Signed out: to `/login`, then back to the same page |
+| Any | Offline | Banner: what's on screen stays, saving waits; "You're back online" afterwards. The exam keeps its own banner and answer queue (3.8) |
+| Any | Session ended (idle for 5 min without "keep me signed in", or the server refuses the session) | `/login` says why and that work is saved, keeps the email, and returns to the page after signing in; the exam and question forms offer back their unsaved changes |
+| Imports, photo answers | Uploading | Real progress, then "Checking it…" |
+| After create / publish / save / export | Success | A toast with the details and a next step |
 
 ## First-use journey
 
