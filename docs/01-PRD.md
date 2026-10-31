@@ -65,7 +65,7 @@ Status: living document · Last updated 2026-10-12 · Related: [TRD](02-TRD.md) 
 | F13 | Bulk candidate import (CSV/XLSX) with invites | Enroll a 200-student batch at once | P0 | Built (3.6) |
 | F14 | Email + SMS notifications (exam published, reminder, results) | Students show up on time | P0 | Planned |
 | F15 | Negative marking; per-exam marks | Matches admission/BCS-style exams | P1 | Planned |
-| F16 | Random question pools by tag/difficulty | Different paper per student, harder to share answers | P1 | Planned |
+| F16 | Random question pools by tag/difficulty | Different paper per student, harder to share answers | P1 | Built (4.6): rules on the exam form ("Draw 5 random easy questions tagged physics, worth 1 each"); each attempt draws its own set when it starts and keeps it |
 | F17 | Merit list / rank; result publishing control | What coaching centers sell on | P1 | Built (4.3, 4.4) |
 | F18 | Export results (XLSX, PDF result cards) | Notice boards, parents, records | P1 | Built (4.5): Excel workbook from Exam results; result cards print one per A4 page, saved as PDF by the browser |
 | F19 | More question types (true/false, fill-in-the-blank, numeric, matching, ordering), math (KaTeX), images in questions | Covers science and math subjects | P1 | Planned |

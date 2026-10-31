@@ -51,7 +51,8 @@ def test_a_save_that_loses_the_race_updates_the_winner(client, test_db, monkeypa
 
     def query(*entities, **kw):
         result = real_query(*entities, **kw)
-        if entities == (models.Answer,) and calls["n"] == 0:
+        # identity, not ==: comparing a Column with == builds a SQL expression
+        if len(entities) == 1 and entities[0] is models.Answer and calls["n"] == 0:
             calls["n"] += 1
 
             class Miss:

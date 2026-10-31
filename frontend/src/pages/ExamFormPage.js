@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { LuArrowLeft, LuSearch, LuFileQuestion } from 'react-icons/lu';
+import { LuArrowLeft, LuSearch, LuFileQuestion, LuPlus, LuShuffle, LuX } from 'react-icons/lu';
 import api from '../api';
 import AppShell from '../components/AppShell';
 import {
@@ -15,6 +15,14 @@ const defaultTimes = () => {
   start.setHours(start.getHours() + 1);
   const end = new Date(start.getTime() + 2 * 3600 * 1000);
   return { start: toZonedInput(start), end: toZonedInput(end) };
+};
+
+// Written the way the server stores question tags: lower case, no '#', single spaces, no quotes or backslashes
+const normalizeTag = (tag) => (tag || '').replace(/["\\]/g, '').trim().replace(/^#+/, '').split(/\s+/).filter(Boolean).join(' ').toLowerCase();
+const newRule = () => ({ key: `${Date.now()}-${Math.random()}`, count: '5', complexity: '', tag: '', marks: '1' });
+const wholeIn = (value, min, max) => {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= min && n <= max ? n : null;
 };
 
 // New exam (/admin-exams/new) or, with an exam ID, edit one that hasn't opened yet
@@ -38,6 +46,7 @@ function ExamFormPage() {
   const [groups, setGroups] = useState([]);
   const [selectedQuestions, setSelectedQuestions] = useState(new Set());
   const [marks, setMarks] = useState({}); // questionId -> marks in this exam, when it differs from the bank
+  const [rules, setRules] = useState([]); // random questions drawn for each student (pool rules)
   const [selectedGroups, setSelectedGroups] = useState(new Set());
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
@@ -67,6 +76,9 @@ function ExamFormPage() {
         setSelectedQuestions(new Set(data.questions.map((q) => q.id)));
         setMarks(Object.fromEntries(data.questions.filter((q) => q.max_score !== q.bank_max_score).map((q) => [q.id, String(q.max_score)])));
         setSelectedGroups(new Set(data.groups.map((g) => g.id)));
+        setRules((data.pool_rules || []).map((r) => ({
+          key: r.id, count: String(r.count), complexity: r.complexity || '', tag: r.tag || '', marks: String(r.marks),
+        })));
       })
       .catch((err) => { setExisting({ edit_blocked: errorMessage(err, 'Exam not found') }); });
   }, [editing, examId]);
@@ -83,7 +95,16 @@ function ExamFormPage() {
     const n = Number(marks[q.id]);
     return Number.isInteger(n) && n >= 1 && n <= 100 ? n : q.max_score;
   };
-  const totalPoints = questions.filter((q) => selectedQuestions.has(q.id)).reduce((sum, q) => sum + marksFor(q), 0);
+  const fixedPoints = questions.filter((q) => selectedQuestions.has(q.id)).reduce((sum, q) => sum + marksFor(q), 0);
+  // How many bank questions each rule could draw from (questions picked above are never drawn)
+  const matching = (rule) => questions.filter((q) => !selectedQuestions.has(q.id)
+    && (!rule.complexity || q.complexity === rule.complexity)
+    && (!normalizeTag(rule.tag) || (q.tags || []).map(normalizeTag).includes(normalizeTag(rule.tag)))).length;
+  const drawnCount = rules.reduce((sum, r) => sum + (wholeIn(r.count, 1, 200) || 0), 0);
+  const totalPoints = fixedPoints + rules.reduce((sum, r) => sum + (wholeIn(r.count, 1, 200) || 0) * (wholeIn(r.marks, 1, 100) || 0), 0);
+  const questionCount = selectedQuestions.size + drawnCount;
+  const bankTags = [...new Set(questions.flatMap((q) => (q.tags || []).map(normalizeTag)).filter(Boolean))].sort();
+  const setRule = (key, field) => (e) => setRules(rules.map((r) => (r.key === key ? { ...r, [field]: e.target.value } : r)));
 
   const windowMinutes = (fromZonedInput(form.end) - fromZonedInput(form.start)) / 60000;
   const scheduleProblem =
@@ -98,7 +119,12 @@ function ExamFormPage() {
     if (!form.title.trim()) return setError(t('Give the exam a title.'));
     if (!(Number(form.duration) > 0)) return setError(t('Set a duration in minutes.'));
     if (windowMinutes <= 0) return setError(t('The exam must close after it opens.'));
-    if (selectedQuestions.size === 0) return setError(t('Pick at least one question.'));
+    if (selectedQuestions.size === 0 && rules.length === 0) return setError(t('Pick at least one question, or add a rule that draws random questions.'));
+    for (const [i, rule] of rules.entries()) {
+      if (!wholeIn(rule.count, 1, 200)) return setError(t('Random questions, rule {{n}}: draw a whole number of questions from 1 to 200.', { n: i + 1 }));
+      if (!wholeIn(rule.marks, 1, 100)) return setError(t('Random questions, rule {{n}}: marks must be a whole number from 1 to 100.', { n: i + 1 }));
+      if (wholeIn(rule.count, 1, 200) > matching(rule)) return setError(t('Random questions, rule {{n}}: only {{m}} questions in the bank match it.', { n: i + 1, m: matching(rule) }));
+    }
     const badMarks = questions.find((q) => selectedQuestions.has(q.id) && marks[q.id] !== undefined && marks[q.id] !== '' && marksFor(q) !== Number(marks[q.id]));
     if (badMarks) return setError(t('Marks for “{{title}}” must be a whole number from 1 to 100.', { title: badMarks.title }));
 
@@ -110,6 +136,9 @@ function ExamFormPage() {
         end_time: fromZonedInput(form.end).toISOString(),
         duration_minutes: parseInt(form.duration, 10),
         question_ids: [...selectedQuestions],
+        pool_rules: rules.map((r) => ({
+          count: wholeIn(r.count, 1, 200), complexity: r.complexity || null, tag: normalizeTag(r.tag) || null, marks: wholeIn(r.marks, 1, 100),
+        })),
         // Only the questions whose marks differ from the question bank
         question_marks: Object.fromEntries(questions.filter((q) => selectedQuestions.has(q.id) && marksFor(q) !== q.max_score).map((q) => [q.id, marksFor(q)])),
         group_ids: [...selectedGroups],
@@ -177,7 +206,7 @@ function ExamFormPage() {
             <CardHeader
               title={t('Questions')}
               description={t('Pick from your question bank.')}
-              action={<Badge tone={selectedQuestions.size ? 'brand' : 'neutral'}>{t('{{n}} selected', { n: selectedQuestions.size })} · {t('{{n}} pts', { n: totalPoints })}</Badge>}
+              action={<Badge tone={questionCount ? 'brand' : 'neutral'}>{tn(questionCount, '{{count}} question', '{{count}} questions')} · {t('{{n}} pts', { n: totalPoints })}</Badge>}
             />
             {questions.length === 0 ? (
               <EmptyState icon={LuFileQuestion} title={t('Your question bank is empty')}>
@@ -236,6 +265,58 @@ function ExamFormPage() {
                   {selectedQuestions.size > 0 && (
                     <Button variant="ghost" size="sm" onClick={() => setSelectedQuestions(new Set())}>{t('Clear')}</Button>
                   )}
+                </div>
+
+                {/* Random questions: each student gets their own draw when they start */}
+                <div className="border-t border-line p-4">
+                  <div className="flex items-start gap-3">
+                    <LuShuffle className="mt-0.5 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{t('Random questions')}</p>
+                      <p className="mt-0.5 text-sm text-muted">
+                        {t('Each student gets their own random set, drawn when they start and kept if they reload. Questions picked above are never drawn.')}
+                      </p>
+                    </div>
+                  </div>
+                  {rules.length > 0 && (
+                    <ul className="mt-4 space-y-2.5">
+                      {rules.map((rule, i) => {
+                        const found = matching(rule);
+                        const short = (wholeIn(rule.count, 1, 200) || 0) > found;
+                        return (
+                          <li key={rule.key} className="flex flex-wrap items-center gap-x-2 gap-y-2 rounded-lg border border-line bg-sunken/40 px-3 py-2.5 text-sm">
+                            <span className="text-muted">{t('Draw')}</span>
+                            <Input type="number" min={1} max={200} inputMode="numeric" value={rule.count} onChange={setRule(rule.key, 'count')}
+                              aria-label={t('How many questions rule {{n}} draws', { n: i + 1 })} className="h-8 w-16 text-end tabular-nums" />
+                            <Select value={rule.complexity} onChange={setRule(rule.key, 'complexity')} aria-label={t('Difficulty for rule {{n}}', { n: i + 1 })} className="h-8 w-auto py-0">
+                              <option value="">{t('any difficulty')}</option>
+                              <option value="easy">{t('easy')}</option>
+                              <option value="medium">{t('medium')}</option>
+                              <option value="hard">{t('hard')}</option>
+                            </Select>
+                            <span className="text-muted">{t('questions tagged')}</span>
+                            <Input value={rule.tag} onChange={setRule(rule.key, 'tag')} list="pool-tags" placeholder={t('any tag')}
+                              aria-label={t('Tag for rule {{n}}', { n: i + 1 })} className="h-8 w-36" />
+                            <span className="text-muted">{t('worth')}</span>
+                            <Input type="number" min={1} max={100} inputMode="numeric" value={rule.marks} onChange={setRule(rule.key, 'marks')}
+                              aria-label={t('Marks for each question rule {{n}} draws', { n: i + 1 })} className="h-8 w-16 text-end tabular-nums" />
+                            <span className="text-muted">{t('pts each')}</span>
+                            <span className={cx('ms-auto text-xs tabular-nums', short ? 'font-medium text-danger' : 'text-muted')}>
+                              {short ? t('Only {{n}} match', { n: found }) : tn(found, '{{count}} matches', '{{count}} match')}
+                            </span>
+                            <Button variant="ghost" size="sm" className="btn-icon" onClick={() => setRules(rules.filter((r) => r.key !== rule.key))}
+                              aria-label={t('Remove rule {{n}}', { n: i + 1 })}>
+                              <LuX className="h-4 w-4" />
+                            </Button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  <datalist id="pool-tags">{bankTags.map((tag) => <option key={tag} value={tag} />)}</datalist>
+                  <Button variant="secondary" size="sm" icon={LuPlus} className="mt-3" onClick={() => setRules([...rules, newRule()])}>
+                    {rules.length ? t('Add another rule') : t('Add a rule')}
+                  </Button>
                 </div>
               </>
             )}

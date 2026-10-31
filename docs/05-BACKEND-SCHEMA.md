@@ -187,6 +187,29 @@ API: `POST /waitlist` `{email, source?, locale?, website?}` (public, 20 per 10 m
 | position | int | | null | *(planned)* Teacher's order (shuffling still applies per candidate if on) |
 | time_limit_seconds | int | | null | Per-question mode only; overrides the question's default; null = exam default, then no limit |
 
+### exam_pool_rules *(task 4.6)*
+"Draw `count` random questions from the bank, of this difficulty, with this tag, worth `marks` each" (PRD US17, AC18).
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| id | uuid | ✓ | | PK |
+| exam_id | uuid | ✓ | | FK exams, cascade; indexed |
+| position | int | ✓ | 0 | The rule's order on the form; draws happen in this order |
+| count | int | ✓ | | 1–200 questions per student |
+| complexity | text | | null | One of `easy`/`medium`/`hard`; null = any difficulty |
+| tag | text | | null | Written like question tags (lower case, no `#`); null = any tag. Matched like the bank's tag filter (quoted inside the JSON text, `autoescape`) |
+| marks | int | ✓ | 1 | What each drawn question is worth, 1–100. A fixed mark per rule keeps every student's total the same, so the merit list stays fair |
+
+### attempt_questions *(task 4.6)*
+The paper an attempt got, for exams with pool rules: the fixed questions first, then each rule's draw, stored when the attempt starts (`crud.draw_pool_questions`, called by the exam session for start and resume; a second call keeps the first draw). Exams without rules store nothing here and use `exams.questions` as before.
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| attempt_id | uuid | ✓ | | FK exam_attempts, cascade; PK with question_id |
+| question_id | uuid | ✓ | | FK questions. A question drawn here counts as in use: deleting it archives it |
+| position | int | ✓ | | Order on the paper (fixed questions, then each rule's draw); shuffling still applies on top when the exam shuffles |
+| marks | int | ✓ | | Frozen when drawn, so a later bank change can't move a student's score |
+
+Every attempt-scoped read goes through `crud.attempt_questions` / `crud.papers` (stored paper, else the exam's questions at their exam marks): the candidate's questions, answer saving (a question not on the paper is refused with 403), auto-grading, the grading view, the student's result page, the results export and the result cards. Exam-wide numbers use `crud.exam_question_count` and `crud.exam_total_marks` (fixed marks plus `count × marks` per rule). The draw is seeded by the attempt ID, so a parallel second "start" draws the same set and its insert is simply dropped.
+
 ### attempt_question_timings *(planned, per-question mode only)*
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
@@ -244,6 +267,9 @@ Added in `0007_indexes_unique_answers`: unique `answers (attempt_id, question_id
 
 ### Merit list (task 4.4, PRD AC17)
 `GET /admin/exams/{id}/merit` (staff): `{closed, rows: [{rank, tied, attempt_id, student, score, total_possible_score, percentage, time_taken_seconds, submit_reason}]}`. Submitted attempts only, ranked by final score (`crud.final_score`: auto-graded + marks awarded to written/image answers, capped at the total), then time taken (`end_time − start_time`, shorter first). Level on both = same rank, and the next rank skips (1, 2, 2, 4). `closed: false` means provisional.
+
+### Pool rules on the exam API (task 4.6)
+`POST /admin/exams/` and `PUT /admin/exams/{id}` take `pool_rules: [{count, complexity, tag, marks}]` (≤ 20) next to `question_ids`, which may now be empty when there are rules (an exam needs at least one of the two). Before saving, `crud.pool_shortfall` checks the bank can fill the rules, not counting questions already fixed in the exam: 422 with the reason ("Only 3 questions in the bank match …", or overlapping rules that need more different questions than they share). Publishing checks again (the bank may have changed): 409. The exam payload carries `pool_rules`, `question_count` and `total_marks` per student. If the bank shrinks after publishing, a draw takes what's there and logs a warning.
 
 ### Results export (task 4.5)
 `GET /admin/exams/{id}/export.xlsx` (staff): an Excel workbook built by `app/results_export.py` with four sheets (Results, Marks by question, Questions, Exam). Ranked attempts first (merit-list order), unfinished ones after by name; times are the organization's wall-clock time (`organizations.timezone`); user text is always written as text, so a value starting with `=` can't become a formula. `Content-Disposition` carries the exam title as `filename*=UTF-8''…`.

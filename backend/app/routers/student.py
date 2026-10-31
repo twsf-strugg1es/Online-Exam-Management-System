@@ -48,6 +48,7 @@ def _exam_session(db: Session, exam: models.Exam, attempt: models.ExamAttempt, n
     """What the exam page needs to run an attempt: questions in this student's order,
     the time left, and the integrity rules to enforce."""
     deadline = crud.get_attempt_deadline(attempt, exam)
+    crud.draw_pool_questions(db, exam, attempt)  # once per attempt; later calls keep the same paper
     return {
         "exam": {
             "id": str(exam.id),
@@ -56,7 +57,7 @@ def _exam_session(db: Session, exam: models.Exam, attempt: models.ExamAttempt, n
             "end_time": exam.end_time.isoformat(),
             "duration_minutes": exam.duration_minutes,
             "is_published": exam.is_published,
-            "questions": crud.questions_for_attempt(exam, attempt),
+            "questions": crud.questions_for_attempt(db, exam, attempt),
             # Remaining time runs from the attempt start, capped at the exam window's end
             "time_remaining_seconds": max(0, int((deadline - now).total_seconds())),
             "exam_end_time": exam.end_time.isoformat(),
@@ -114,7 +115,7 @@ def list_available_exams(
             # Shown on the exam's rules screen before the student starts
             "integrity": crud.integrity_settings(exam),
             # Only the count: question content is sent when an attempt starts
-            "question_count": len(exam.questions or []),
+            "question_count": crud.exam_question_count(exam),
         }
         result.append(exam_dict)
     return result
@@ -485,7 +486,6 @@ def get_attempt_results(
         publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
         publisher_email = publisher.email if publisher else "Unknown"
 
-    marks = crud.exam_marks(exam)
     # Manually build exam dict to avoid Pydantic validation issues with published_by
     exam_payload = {
         "id": str(exam.id),
@@ -504,10 +504,10 @@ def get_attempt_results(
                 "type": q.type,
                 "options": q.options,
                 "correct_answers": q.correct_answers if answers_revealed else None,
-                "max_score": marks[q.id],
+                "max_score": int(worth),
                 "tags": q.tags,
             }
-            for q in (exam.questions or [])
+            for q, worth in crud.attempt_questions(db, exam, attempt)
         ],
     }
 

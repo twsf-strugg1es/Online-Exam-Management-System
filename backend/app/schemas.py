@@ -206,13 +206,40 @@ class QuestionForStudent(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PoolRuleIn(BaseModel):
+    """Draw `count` random questions from the bank (of this difficulty, with this tag), worth `marks` each."""
+    count: int = Field(ge=1, le=200)
+    complexity: Optional[str] = None  # None: any difficulty
+    tag: Optional[str] = Field(default=None, max_length=60)  # None: any tag
+    marks: int = Field(default=1, ge=1, le=100)
+
+    @field_validator("complexity")
+    @classmethod
+    def _complexity(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return None
+        if v not in models.COMPLEXITIES:
+            raise ValueError(f"Difficulty must be one of: {', '.join(models.COMPLEXITIES)}")
+        return v
+
+    @field_validator("tag")
+    @classmethod
+    def _tag(cls, v: Optional[str]) -> Optional[str]:
+        # Written like question tags (lower case, no '#', single spaces), so the rule matches what the bank stores
+        if not v:
+            return None
+        tag = " ".join(v.replace('"', "").replace("\\", "").strip().lstrip("#").split()).lower()
+        return tag or None
+
+
 class ExamCreate(BaseModel):
     """A new exam. The form checks the same rules, but the server is the one that enforces them."""
     title: str = Field(min_length=1, max_length=200)
     start_time: datetime
     end_time: datetime
     duration_minutes: int = Field(ge=1, le=24 * 60)
-    question_ids: list[UUID] = Field(min_length=1)
+    question_ids: list[UUID] = []  # the fixed questions every student gets
+    pool_rules: list[PoolRuleIn] = Field(default=[], max_length=20)  # random questions drawn per student
     group_ids: list[UUID] = []  # empty: open to every candidate in the organization
     shuffle_questions: bool = True
     shuffle_options: bool = True
@@ -266,6 +293,12 @@ class ExamCreate(BaseModel):
     def _window(self):
         if self.end_time <= self.start_time:
             raise ValueError("The exam must close after it opens.")
+        return self
+
+    @model_validator(mode="after")
+    def _has_questions(self):
+        if not self.question_ids and not self.pool_rules:
+            raise ValueError("Add at least one question, or a rule that draws random questions.")
         return self
 
 

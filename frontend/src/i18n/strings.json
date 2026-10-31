@@ -15,6 +15,12 @@
   "{{count}} marks": {
     "plural": true
   },
+  "{{count}} match": {
+    "plural": true
+  },
+  "{{count}} matches": {
+    "plural_of": "{{count}} match"
+  },
   "{{count}} new": {
     "plural": true
   },
@@ -143,6 +149,11 @@
   "Add {{count}} students": {
     "plural": true
   },
+  "Add a rule": {},
+  "Add another rule": {},
+  "Add at least one question, or a rule that draws random questions.": {
+    "source": "server"
+  },
   "Add at least two options.": {},
   "Add option": {},
   "Add question": {},
@@ -186,6 +197,8 @@
   "Answered": {},
   "Answers": {},
   "Answers save automatically as you go.": {},
+  "any difficulty": {},
+  "any tag": {},
   "Anyone with this code can join as a student. Share the code, or the signup link that already contains it.": {},
   "Ask for a new link": {},
   "At least 6 characters.": {},
@@ -293,18 +306,22 @@
   "Details": {},
   "Details and schedule": {},
   "Difficulty": {},
+  "Difficulty for rule {{n}}": {},
   "Dismiss": {},
   "done": {},
   "Done": {},
   "Done. We won't email you about the launch.": {},
   "Download a template": {},
   "Download template": {},
+  "Draw": {},
   "Duplicate and edit the copy": {},
   "Duration (minutes)": {},
   "e.g. Mirpur Science Coaching": {},
   "e.g. Physics, chapter 3 test": {},
   "e.g. physics, class 9": {},
   "Each student gets their own order.": {},
+  "Each student gets their own random set, drawn when they start and kept if they reload. Questions picked above are never drawn.": {},
+  "easy": {},
   "Easy": {},
   "Edit": {},
   "Edit exam": {},
@@ -407,11 +424,13 @@
     "source": "server"
   },
   "Groups": {},
+  "hard": {},
   "Hard": {},
   "Hear when Fairpaper opens": {},
   "Hello, {{name}}": {},
   "Hide results again": {},
   "Hide this checklist": {},
+  "How many questions rule {{n}} draws": {},
   "If an account exists for that email, we've sent a link to reset the password.": {},
   "If students have started it, it is archived instead: hidden from lists and closed, with their results and integrity records kept.": {},
   "Image answer": {},
@@ -494,9 +513,11 @@
   "Marks for a question must be between 1 and 100.": {
     "source": "server"
   },
+  "Marks for each question rule {{n}} draws": {},
   "Marks were given for a question that isn't in this exam.": {
     "source": "server"
   },
+  "medium": {},
   "Medium": {},
   "Member": {},
   "Member not found": {
@@ -576,6 +597,7 @@
   "One email when we launch, nothing else. Every email has an unsubscribe link.": {},
   "One more and your exam is submitted automatically.": {},
   "One more violation and your exam is submitted automatically.": {},
+  "Only {{n}} match": {},
   "Only Excel files (.xlsx or .xls) are accepted. Please upload a valid Excel file.": {
     "source": "server"
   },
@@ -610,7 +632,7 @@
   "Password must be at least 6 characters long": {},
   "Passwords do not match": {},
   "Personal details": {},
-  "Pick at least one question.": {},
+  "Pick at least one question, or add a rule that draws random questions.": {},
   "Pick from your question bank.": {},
   "Points": {},
   "Points must be at least 1.": {},
@@ -625,6 +647,7 @@
   "Protections": {},
   "Provisional: the exam is still open.": {},
   "pts": {},
+  "pts each": {},
   "Publish": {},
   "Publish “{{title}}”?": {},
   "Put students into groups so they see the right exams.": {},
@@ -646,8 +669,13 @@
   "Questions": {},
   "Questions and options are in a different order for every student.": {},
   "Questions are hidden whenever the student leaves fullscreen.": {},
+  "questions tagged": {},
   "Questions used in an exam are archived instead: they leave the bank, but past results keep them. Unused questions are deleted.": {},
   "Questions you can reuse across exams. Multiple-choice questions are graded automatically; written and image answers are graded by an examiner.": {},
+  "Random questions": {},
+  "Random questions, rule {{n}}: draw a whole number of questions from 1 to 200.": {},
+  "Random questions, rule {{n}}: marks must be a whole number from 1 to 100.": {},
+  "Random questions, rule {{n}}: only {{m}} questions in the bank match it.": {},
   "Rank": {},
   "Rank {{n}} of {{total}}": {},
   "Ranked by score, then by time taken.": {},
@@ -661,6 +689,7 @@
   "Remove from {{name}}": {},
   "Remove from organization": {},
   "Remove option {{letter}}": {},
+  "Remove rule {{n}}": {},
   "Repeated in this file.": {
     "source": "server"
   },
@@ -781,6 +810,7 @@
   "Switched tab or minimized the browser": {},
   "Switched to another window or app": {},
   "Tag": {},
+  "Tag for rule {{n}}": {},
   "Tags": {},
   "Template": {},
   "That email doesn't look right. Check it and try again.": {},
@@ -911,6 +941,7 @@
   "Who can take it": {},
   "Window": {},
   "With their results, students see their place on the merit list, e.g. 3rd of 40.": {},
+  "worth": {},
   "Write a question": {},
   "Write questions one at a time, or fill in the Excel template and import many at once.": {},
   "Write the question.": {},

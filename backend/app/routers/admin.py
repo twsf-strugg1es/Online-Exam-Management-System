@@ -592,6 +592,9 @@ def _check_exam_references(db: Session, exam: schemas.ExamCreate, membership: mo
     }
     if set(exam.group_ids) - org_group_ids:
         raise HTTPException(status_code=404, detail="Group not found")
+    shortfall = crud.pool_shortfall(db, membership.organization_id, exam.question_ids, exam.pool_rules)
+    if shortfall:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=shortfall)
 
 
 def _exam_payload(db: Session, exam: models.Exam) -> dict:
@@ -626,7 +629,12 @@ def _exam_payload(db: Session, exam: models.Exam) -> dict:
             }
             for q in (exam.questions or [])
         ],
-        "total_marks": sum(marks.values()),
+        "pool_rules": [
+            {"id": str(r.id), "count": r.count, "complexity": r.complexity, "tag": r.tag, "marks": r.marks}
+            for r in exam.pool_rules
+        ],
+        "question_count": crud.exam_question_count(exam),
+        "total_marks": crud.exam_total_marks(exam),
         "results_release": exam.results_release,
         "results_released_at": exam.results_released_at.isoformat() if exam.results_released_at else None,
         "results_visible": crud.results_visible(exam),
@@ -708,40 +716,17 @@ def publish_exam(
 ):
     """Publish an exam to make it available to students."""
     exam = _get_org_exam(db, exam_id, membership)
+    # The bank can change after the exam was saved (questions archived): check the pools still fill
+    shortfall = crud.pool_shortfall(db, exam.organization_id, [q.id for q in exam.questions], exam.pool_rules)
+    if shortfall:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=shortfall)
 
     exam.is_published = True
     exam.published_by = membership.user_id  # Track which admin published
     db.commit()
     db.refresh(exam)
 
-    # Get publisher email
-    publisher_email = membership.user.email
-
-    marks = crud.exam_marks(exam)
-    # Manually build response
-    return {
-        "id": str(exam.id),
-        "title": exam.title,
-        "start_time": exam.start_time.isoformat(),
-        "end_time": exam.end_time.isoformat(),
-        "duration_minutes": exam.duration_minutes,
-        "is_published": exam.is_published,
-        "published_by": publisher_email,
-        "groups": _groups_payload(exam),
-        "questions": [
-            {
-                "id": str(q.id),
-                "title": q.title,
-                "complexity": q.complexity,
-                "type": q.type,
-                "options": q.options,
-                "correct_answers": q.correct_answers,
-                "max_score": marks[q.id],
-                "tags": q.tags,
-            }
-            for q in (exam.questions or [])
-        ],
-    }
+    return _exam_payload(db, exam)
 
 
 @router.post("/exams/{exam_id}/unpublish")
@@ -757,37 +742,7 @@ def unpublish_exam(
     db.commit()
     db.refresh(exam)
 
-    # Get publisher email if exists
-    publisher_email = None
-    if exam.published_by:
-        publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
-        publisher_email = publisher.email if publisher else "Unknown"
-
-    marks = crud.exam_marks(exam)
-    # Manually build response
-    return {
-        "id": str(exam.id),
-        "title": exam.title,
-        "start_time": exam.start_time.isoformat(),
-        "end_time": exam.end_time.isoformat(),
-        "duration_minutes": exam.duration_minutes,
-        "is_published": exam.is_published,
-        "published_by": publisher_email,
-        "groups": _groups_payload(exam),
-        "questions": [
-            {
-                "id": str(q.id),
-                "title": q.title,
-                "complexity": q.complexity,
-                "type": q.type,
-                "options": q.options,
-                "correct_answers": q.correct_answers,
-                "max_score": marks[q.id],
-                "tags": q.tags,
-            }
-            for q in (exam.questions or [])
-        ],
-    }
+    return _exam_payload(db, exam)
 
 
 @router.delete("/exams/{exam_id}")
@@ -1042,7 +997,6 @@ def get_attempt_results_admin(
         publisher = db.query(models.User).filter(models.User.id == exam.published_by).first()
         publisher_email = publisher.email if publisher else "Unknown"
 
-    marks = crud.exam_marks(exam)
     # Manually build exam dict to avoid Pydantic validation issues with published_by
     exam_payload = {
         "id": str(exam.id),
@@ -1061,10 +1015,10 @@ def get_attempt_results_admin(
                 "type": q.type,
                 "options": q.options,
                 "correct_answers": q.correct_answers,
-                "max_score": marks[q.id],
+                "max_score": int(worth),
                 "tags": q.tags,
             }
-            for q in (exam.questions or [])
+            for q, worth in crud.attempt_questions(db, exam, attempt)
         ],
     }
 
@@ -1391,7 +1345,7 @@ def get_attempt_for_evaluation(
             "exam": {
                 "id": str(exam.id) if exam else None,
                 "title": exam.title if exam else None,
-                "total_marks": sum(crud.exam_marks(exam).values()) if exam and exam.questions else 0,
+                "total_marks": crud.exam_total_marks(exam) if exam else 0,
             },
             "submitted_at": attempt.end_time.isoformat() if attempt.end_time else None,
             "answers": []
@@ -1402,7 +1356,7 @@ def get_attempt_for_evaluation(
             models.Answer.attempt_id == attempt_id
         ).all()
 
-        marks = crud.exam_marks(exam) if exam else {}
+        marks = {q.id: int(worth) for q, worth in crud.attempt_questions(db, exam, attempt)} if exam else {}
 
         # Process each answer
         for answer in answers:
@@ -1501,7 +1455,8 @@ def submit_answer_evaluation(
         # Calculate score: full marks if correct, 0 if incorrect
         attempt = db.get(models.ExamAttempt, answer.attempt_id)
         exam = db.get(models.Exam, attempt.exam_id) if attempt else None
-        full_marks = crud.exam_marks(exam).get(question.id, question.max_score) if exam else question.max_score
+        paper = {q.id: int(worth) for q, worth in crud.attempt_questions(db, exam, attempt)} if exam and attempt else {}
+        full_marks = paper.get(question.id, question.max_score)
         score_awarded = full_marks if is_correct else 0
 
         # Get or create evaluation

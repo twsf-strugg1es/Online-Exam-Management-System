@@ -167,6 +167,8 @@ cd frontend && npm start | npm test -- --watchAll=false | npm run build
 | Groups decide exam visibility; no groups = everyone | Matches "batches"; zero configuration for small organizations | Explicit per-candidate assignment: too much admin work |
 | One attempt per (exam, candidate), enforced by a unique constraint | Stops duplicate attempts from double clicks or parallel requests | App-level check only: racy. Retakes would need an `attempt_number` column |
 | Shuffle seeded by attempt ID, not stored | Stable order on reload with no extra table | Storing the order: needed later for random *pools*, because a pool can change |
+| Pool draws are stored per attempt (`attempt_questions`, 4.6) | A seeded draw alone would change when the bank changes (a question archived, one added); AC18 wants the same paper after a reload and after bank changes. Marks are frozen with it | Re-deriving the draw from the seed: no table, but breaks as soon as the bank changes |
+| A pool rule gives every drawn question the same marks (4.6) | Every student's total is identical, so ranks and percentages compare fairly | Each drawn question keeps its own bank marks: totals would differ per student |
 | Grading compares option values, not positions | Shuffling can never affect scores | Index-based answers: breaks with shuffling |
 | Violations vs flags | Only leaving the exam can end an attempt; copy/paste/right-click are only recorded. Wrongly auto-submitting an honest candidate costs more than missing a flag | Every event counts: too many false positives |
 | Server clock is authoritative | Candidates can change their device clock | Trusting `occurred_at`: easy to fake |

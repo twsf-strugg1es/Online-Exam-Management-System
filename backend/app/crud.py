@@ -1,12 +1,16 @@
-from sqlalchemy import func, or_
+from sqlalchemy import String, cast, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, object_session
+import json
+import logging
 import random
 import uuid
 from datetime import datetime, timedelta, timezone
 
 from . import models, schemas
 from .security import get_password_hash
+
+logger = logging.getLogger(__name__)
 
 
 def get_user_by_email(db: Session, email: str) -> models.User | None:
@@ -216,6 +220,105 @@ def exam_marks(exam: models.Exam) -> dict[uuid.UUID, int]:
     return {q.id: overrides.get(q.id, q.max_score) for q in exam.questions}
 
 
+def exam_question_count(exam: models.Exam) -> int:
+    """How many questions each student gets: the fixed ones plus everything the pool rules draw."""
+    return len(exam.questions or []) + sum(rule.count for rule in exam.pool_rules)
+
+
+def exam_total_marks(exam: models.Exam) -> int:
+    """The total every student's paper adds up to (pool rules give each drawn question a fixed mark)."""
+    return sum(exam_marks(exam).values()) + sum(rule.count * rule.marks for rule in exam.pool_rules)
+
+
+def papers(db: Session, exam: models.Exam, attempts: list[models.ExamAttempt]) -> dict[uuid.UUID, list[tuple]]:
+    """Each attempt's questions in a stable order, each with what it's worth: the paper drawn and stored when
+    the attempt started (exams with pool rules), else the exam's own questions at their exam marks."""
+    stored = (
+        db.query(models.AttemptQuestion)
+        .options(joinedload(models.AttemptQuestion.question))
+        .filter(models.AttemptQuestion.attempt_id.in_([a.id for a in attempts]))
+        .order_by(models.AttemptQuestion.attempt_id, models.AttemptQuestion.position)
+        .all()
+    ) if attempts else []
+    drawn: dict[uuid.UUID, list[tuple]] = {}
+    for row in stored:
+        drawn.setdefault(row.attempt_id, []).append((row.question, float(row.marks)))
+    marks = exam_marks(exam)
+    fixed = [(q, float(marks[q.id] or 0)) for q in exam.questions]
+    return {attempt.id: drawn.get(attempt.id, fixed) for attempt in attempts}
+
+
+def attempt_questions(db: Session, exam: models.Exam, attempt: models.ExamAttempt) -> list[tuple]:
+    return list(papers(db, exam, [attempt])[attempt.id])
+
+
+def pool_candidates(db: Session, organization_id: uuid.UUID, complexity: str | None, tag: str | None) -> list[uuid.UUID]:
+    """IDs of the bank's live questions a pool rule may draw from."""
+    query = db.query(models.Question.id).filter(
+        models.Question.organization_id == organization_id, models.Question.archived_at.is_(None)
+    )
+    if complexity:
+        query = query.filter(models.Question.complexity == complexity)
+    if tag:
+        # Same match as the question bank's tag filter: the quoted tag inside the stored JSON text
+        query = query.filter(cast(models.Question.tags, String).contains(json.dumps(tag), autoescape=True))
+    return [row[0] for row in query.all()]
+
+
+def describe_rule(rule) -> str:
+    parts = [f"{rule.count} random", rule.complexity, "question" if rule.count == 1 else "questions"]
+    text = " ".join(p for p in parts if p)
+    return f'{text} tagged "{rule.tag}"' if rule.tag else text
+
+
+def pool_shortfall(db: Session, organization_id: uuid.UUID, fixed_ids, rules) -> str | None:
+    """Why the bank can't fill these pool rules, or None when it can. Questions already in the exam don't count."""
+    fixed = set(fixed_ids)
+    reachable: set[uuid.UUID] = set()
+    for rule in rules:
+        ids = set(pool_candidates(db, organization_id, rule.complexity, rule.tag)) - fixed
+        reachable |= ids
+        if len(ids) < rule.count:
+            return f'Only {len(ids)} questions in the bank match "{describe_rule(rule)}".'
+    if len(reachable) < sum(rule.count for rule in rules):
+        return "The pool rules overlap: together they need more different questions than the bank has for them."
+    return None
+
+
+def draw_pool_questions(db: Session, exam: models.Exam, attempt: models.ExamAttempt) -> None:
+    """Draw an attempt's random questions, once, and store its whole paper (fixed questions first, then each
+    rule's draw). Later calls (a reload, a resume, a second "start") keep what was drawn (PRD AC18)."""
+    if not exam.pool_rules:
+        return
+    if db.query(models.AttemptQuestion.attempt_id).filter(models.AttemptQuestion.attempt_id == attempt.id).first():
+        return
+    marks = exam_marks(exam)
+    paper = [(q.id, marks[q.id]) for q in exam.questions]
+    taken = {question_id for question_id, _ in paper}
+    rng = random.Random(f"{attempt.id}:pool")
+    for rule in exam.pool_rules:
+        pool = sorted((qid for qid in pool_candidates(db, exam.organization_id, rule.complexity, rule.tag) if qid not in taken), key=str)
+        picked = rng.sample(pool, min(rule.count, len(pool)))
+        if len(picked) < rule.count:
+            logger.warning("A pool rule drew fewer questions than it asks for", extra={"fields": {
+                "exam_id": str(exam.id), "rule_id": str(rule.id), "wanted": rule.count, "drawn": len(picked)}})
+        paper.extend((question_id, rule.marks) for question_id in picked)
+        taken.update(picked)
+    for position, (question_id, worth) in enumerate(paper):
+        db.add(models.AttemptQuestion(attempt_id=attempt.id, question_id=question_id, position=position, marks=worth))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()  # a parallel request stored this attempt's paper first; the seed makes it the same draw
+
+
+def _set_pool_rules(exam: models.Exam, rules) -> None:
+    exam.pool_rules = [
+        models.ExamPoolRule(position=i, count=rule.count, complexity=rule.complexity, tag=rule.tag, marks=rule.marks)
+        for i, rule in enumerate(rules)
+    ]
+
+
 def _apply_question_marks(db: Session, exam: models.Exam, marks: dict[uuid.UUID, int]) -> None:
     """Store the per-exam marks (after the exam's questions are attached and flushed)."""
     db.flush()
@@ -254,6 +357,7 @@ def create_exam(db: Session, exam: schemas.ExamCreate, organization_id: uuid.UUI
         if question:
             db_exam.questions.append(question)
     
+    _set_pool_rules(db_exam, exam.pool_rules)
     db.add(db_exam)
     _apply_question_marks(db, db_exam, exam.question_marks)
     db.commit()
@@ -287,6 +391,7 @@ def update_exam(db: Session, exam: models.Exam, data: schemas.ExamCreate) -> mod
         setattr(exam, field, getattr(data, field))
     exam.questions = db.query(models.Question).filter(models.Question.id.in_(data.question_ids)).all()
     exam.groups = db.query(models.Group).filter(models.Group.id.in_(data.group_ids)).all() if data.group_ids else []
+    _set_pool_rules(exam, data.pool_rules)
     _apply_question_marks(db, exam, data.question_marks)
     db.commit()
     db.refresh(exam)
@@ -332,7 +437,8 @@ def question_in_use(db: Session, question_id: uuid.UUID) -> bool:
     """Whether deleting the question would erase part of an exam or a student's answer."""
     answered = db.query(models.Answer.id).filter(models.Answer.question_id == question_id).first()
     in_exam = db.query(models.exam_questions.c.exam_id).filter(models.exam_questions.c.question_id == question_id).first()
-    return bool(answered or in_exam)
+    drawn = db.query(models.AttemptQuestion.attempt_id).filter(models.AttemptQuestion.question_id == question_id).first()
+    return bool(answered or in_exam or drawn)
 
 
 def remove_question(db: Session, question: models.Question) -> str:
@@ -458,7 +564,7 @@ def save_answer(
     if datetime.now(timezone.utc) > deadline + timedelta(seconds=ANSWER_GRACE_SECONDS):
         raise ValueError("Exam time is over. Answers can no longer be changed")
 
-    if answer_in.question_id not in {q.id for q in exam.questions}:
+    if answer_in.question_id not in {q.id for q, _ in attempt_questions(db, exam, attempt)}:
         raise ValueError("Question does not belong to this exam")
 
     def existing() -> models.Answer | None:
@@ -510,11 +616,11 @@ def question_points(question: models.Question, answer_data, worth: float) -> flo
 
 
 def breakdowns(db: Session, exam: models.Exam, attempts: list[models.ExamAttempt]) -> dict[uuid.UUID, list[dict]]:
-    """Per attempt, question by question in the exam's order: what it's worth and what the attempt earned.
+    """Per attempt, question by question in its paper's order: what it's worth and what the attempt earned.
     `earned` is None for a written or image answer nobody has graded yet. Two queries for any number of attempts."""
     if not attempts:
         return {}
-    marks = exam_marks(exam)
+    paper_of = papers(db, exam, attempts)
     answers = db.query(models.Answer).filter(models.Answer.attempt_id.in_([a.id for a in attempts])).all()
     graded = dict(
         db.query(models.Evaluation.answer_id, models.Evaluation.score_awarded)
@@ -528,8 +634,7 @@ def breakdowns(db: Session, exam: models.Exam, attempts: list[models.ExamAttempt
     for attempt in attempts:
         given = by_attempt.get(attempt.id, {})
         rows = []
-        for question in exam.questions:
-            worth = float(marks[question.id] or 0)
+        for question, worth in paper_of[attempt.id]:
             answer = given.get(question.id)
             earned = question_points(question, answer.answer_data if answer else None, worth)
             if earned is None:  # written or image: staff's mark, 0 if left blank, None while waiting to be graded
@@ -566,12 +671,10 @@ def finish_attempt(
     )
     answer_map = {ans.question_id: ans.answer_data for ans in answers}
 
-    # Calculate scores
+    # Calculate scores on this attempt's own paper (fixed questions, plus any it drew from pools)
     total_score = 0.0
     total_possible = 0.0
-    marks = exam_marks(exam)
-    for question in exam.questions:
-        worth = float(marks[question.id] or 0)
+    for question, worth in attempt_questions(db, exam, attempt):
         total_possible += worth
         total_score += question_points(question, answer_map.get(question.id), worth) or 0.0
 
@@ -646,20 +749,19 @@ def get_evaluation_by_answer(db: Session, answer_id: uuid.UUID) -> models.Evalua
 
 # --- Integrity ---
 
-def questions_for_attempt(exam: models.Exam, attempt: models.ExamAttempt) -> list[dict]:
-    """The exam's questions as this student sees them, without answers.
+def questions_for_attempt(db: Session, exam: models.Exam, attempt: models.ExamAttempt) -> list[dict]:
+    """The attempt's questions as this student sees them, without answers.
 
     Shuffling is seeded with the attempt's ID: every student gets their own order,
     and it stays the same when they reload or resume.
     """
-    questions = list(exam.questions or [])
+    paper = attempt_questions(db, exam, attempt)
     if exam.shuffle_questions:
-        questions.sort(key=lambda q: str(q.id))  # a fixed starting point, so the seed alone decides the order
-        random.Random(f"{attempt.id}:questions").shuffle(questions)
+        paper.sort(key=lambda item: str(item[0].id))  # a fixed starting point, so the seed alone decides the order
+        random.Random(f"{attempt.id}:questions").shuffle(paper)
 
-    marks = exam_marks(exam)
     result = []
-    for q in questions:
+    for q, worth in paper:
         options = list(q.options) if isinstance(q.options, list) else q.options
         # Answers are stored as option values, not positions, so shuffling never affects grading
         if exam.shuffle_options and isinstance(options, list):
@@ -669,7 +771,7 @@ def questions_for_attempt(exam: models.Exam, attempt: models.ExamAttempt) -> lis
             "title": q.title,
             "type": q.type,
             "complexity": q.complexity,
-            "max_score": marks[q.id],
+            "max_score": int(worth),
             "options": options,
         })
     return result

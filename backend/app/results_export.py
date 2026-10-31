@@ -45,7 +45,7 @@ def _rows(db: Session, exam: models.Exam) -> list[dict]:
     )
     ranked = {row["attempt"].id: row for row in crud.merit_list(db, exam)}
     parts = crud.breakdowns(db, exam, attempts)
-    total_marks = float(sum(crud.exam_marks(exam).values()))
+    total_marks = float(crud.exam_total_marks(exam))
     rows = []
     for attempt in attempts:
         merit = ranked.get(attempt.id)
@@ -66,6 +66,15 @@ def _rows(db: Session, exam: models.Exam) -> list[dict]:
 
 def _sort_name(student: models.User | None) -> str:
     return ((student.full_name or student.email or "") if student else "").lower()
+
+
+def _slots(exam: models.Exam, marks: dict) -> list[tuple[str, int]]:
+    """The column for each position on a paper: fixed questions first, then each pool rule's draws, in the
+    order papers store them. ("Q4", 1, "random") reads "the 4th question, worth 1, drawn per student"."""
+    slots = [(marks[q.id], False) for q in exam.questions or []]
+    for rule in exam.pool_rules:
+        slots.extend((rule.marks, True) for _ in range(rule.count))
+    return [(f"Q{i} ({worth}{', random' if drawn else ''})", worth) for i, (worth, drawn) in enumerate(slots, start=1)]
 
 
 def _text(cell, value):
@@ -127,10 +136,10 @@ def results_workbook(db: Session, exam: models.Exam) -> bytes:
         ws.cell(row=r, column=13, value=integrity["seconds_away"] / 86400).number_format = "[h]:mm:ss"
         _text(ws.cell(row=r, column=14), integrity["risk"].capitalize())
 
-    # 2. Marks by question: what each student earned on each question
+    # 2. Marks by question: what each student earned on each question (with pools: on each slot of their paper)
     wq = wb.create_sheet("Marks by question")
-    _header(wq, ["Name", "Email"] + [f"Q{i} ({marks[q.id]})" for i, q in enumerate(questions, start=1)],
-            [28, 32] + [10] * len(questions))
+    slots = _slots(exam, marks)
+    _header(wq, ["Name", "Email"] + [label for label, _ in slots], [28, 32] + [12] * len(slots))
     for r, row in enumerate(rows, start=2):
         student = row["student"]
         _text(wq.cell(row=r, column=1), student.full_name if student and student.full_name else "")
@@ -149,6 +158,15 @@ def results_workbook(db: Session, exam: models.Exam) -> bytes:
         _text(wl.cell(row=i + 1, column=2), question.title).alignment = Alignment(wrap_text=True, vertical="top")
         _text(wl.cell(row=i + 1, column=3), TYPE_NAMES.get(question.type, question.type))
         wl.cell(row=i + 1, column=4, value=marks[question.id])
+    # Pool rules: which slots each one fills, and what it draws
+    first, row = len(questions) + 1, len(questions) + 2
+    for rule in exam.pool_rules:
+        last = first + rule.count - 1
+        _text(wl.cell(row=row, column=1), f"Q{first}" if first == last else f"Q{first}-Q{last}")
+        _text(wl.cell(row=row, column=2), crud.describe_rule(rule))
+        _text(wl.cell(row=row, column=3), "Drawn per student")
+        wl.cell(row=row, column=4, value=rule.marks)
+        first, row = last + 1, row + 1
 
     # 4. The exam itself
     we = wb.create_sheet("Exam")
@@ -160,7 +178,7 @@ def results_workbook(db: Session, exam: models.Exam) -> bytes:
         ("Opens", local(exam.start_time)),
         ("Closes", local(exam.end_time)),
         ("Duration (min)", exam.duration_minutes),
-        ("Total marks", sum(marks.values())),
+        ("Total marks", crud.exam_total_marks(exam)),
         ("Students", len(rows)),
         ("Submitted", sum(1 for row in rows if row["attempt"].end_time)),
         ("Exported", local(datetime.now(timezone.utc))),
@@ -197,7 +215,7 @@ def result_cards(db: Session, exam: models.Exam, attempt_id=None) -> dict:
             "organization": org.name if org else "",
             "start_time": crud.as_utc(exam.start_time).isoformat(),
             "end_time": crud.as_utc(exam.end_time).isoformat(),
-            "total_marks": sum(crud.exam_marks(exam).values()),
+            "total_marks": crud.exam_total_marks(exam),
             "show_rank": exam.show_rank,
             "results_visible": crud.results_visible(exam),
         },

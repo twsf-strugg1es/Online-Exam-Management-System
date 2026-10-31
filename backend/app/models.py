@@ -215,8 +215,41 @@ class Exam(Base):
     archived_at = Column(DateTime(timezone=True), nullable=True)
 
     questions = relationship("Question", secondary=exam_questions, back_populates="exams")
+    # Random questions drawn for each attempt on top of the fixed ones (task 4.6)
+    pool_rules = relationship(
+        "ExamPoolRule", order_by="ExamPoolRule.position", cascade="all, delete-orphan", back_populates="exam"
+    )
     groups = relationship("Group", secondary=exam_groups, back_populates="exams")
     publisher = relationship("User", foreign_keys=[published_by])
+
+
+class ExamPoolRule(Base):
+    """'Draw `count` random questions (of this difficulty, with this tag) worth `marks` each' (PRD US17, AC18).
+    A fixed mark per drawn question keeps every student's total the same, so the merit list stays fair."""
+    __tablename__ = "exam_pool_rules"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    exam_id = Column(UUID(as_uuid=True), ForeignKey("exams.id", ondelete="CASCADE"), nullable=False, index=True)
+    position = Column(Integer, nullable=False, default=0)
+    count = Column(Integer, nullable=False)
+    complexity = Column(String, nullable=True)  # one of COMPLEXITIES; null: any difficulty
+    tag = Column(String, nullable=True)  # normalized like question tags; null: any tag
+    marks = Column(Integer, nullable=False, default=1, server_default="1")
+
+    exam = relationship("Exam", back_populates="pool_rules")
+
+
+class AttemptQuestion(Base):
+    """The paper an attempt got, for exams with pool rules: fixed and drawn questions, drawn once when the
+    attempt started and stored, so a reload or a change to the bank never changes it. `marks` is frozen too."""
+    __tablename__ = "attempt_questions"
+
+    attempt_id = Column(UUID(as_uuid=True), ForeignKey("exam_attempts.id", ondelete="CASCADE"), primary_key=True)
+    question_id = Column(UUID(as_uuid=True), ForeignKey("questions.id"), primary_key=True)
+    position = Column(Integer, nullable=False)
+    marks = Column(Integer, nullable=False)
+
+    question = relationship("Question")
 
 
 class ExamAttempt(Base):
