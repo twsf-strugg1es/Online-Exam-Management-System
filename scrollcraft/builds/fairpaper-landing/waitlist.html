@@ -13,6 +13,11 @@
   :root { --paper: #F6F4EE; --sheet: #FBFAF6; --ink: #141414; --soft: #57544E; --faint: #6B675D; --rule: #DCD8CC; --rule-strong: #C3BEAF; --marker: #0B6E4F; --redpen: #B3261E; }
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100svh; background: var(--paper); color: var(--ink); font: 400 1rem/1.6 "Geist", system-ui, sans-serif; -webkit-font-smoothing: antialiased; display: grid; grid-template-rows: auto 1fr auto; }
+  /* Crumpled paper (paper.webp: a seamless 1600 px tile made by design/paper/crumple.html). It scrolls with
+     the page, so it's painted once and costs nothing while scrolling; the flat --paper colour shows until it
+     loads and matches its average tone. */
+  body { background: var(--paper) url("paper.webp") 0 0 / 1600px 1600px repeat; }
+  @media (max-width: 560px) { body { background-size: 1000px 1000px; } }
   :focus-visible { outline: 2px solid var(--marker); outline-offset: 3px; }
   .top, .bottom { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem clamp(1.25rem, 5vw, 3rem); }
   .brand { display: inline-flex; align-items: center; gap: 0.6rem; font-weight: 600; letter-spacing: -0.015em; color: var(--ink); text-decoration: none; }
@@ -46,7 +51,7 @@
 
   <main class="sheet">
     <div class="head"><h1>Hear when Fairpaper opens</h1></div>
-    <p class="lede">Fair, timed exams in any browser, for schools, coaching centers and hiring teams. Leave your email and we'll send one message at launch.</p>
+    <p class="lede">Fair, timed exams in any browser. Leave your email and we'll send one message at launch.</p>
     <form id="form" novalidate>
       <label for="email">Your email</label>
       <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="Your email here" required>

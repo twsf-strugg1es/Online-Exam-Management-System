@@ -21,6 +21,11 @@
   html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 5.5rem; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1rem/1.7 var(--sans); -webkit-font-smoothing: antialiased; }
+  /* Crumpled paper (paper.webp: a seamless 1600 px tile made by design/paper/crumple.html). It scrolls with
+     the page, so it's painted once and costs nothing while scrolling; the flat --paper colour shows until it
+     loads and matches its average tone. */
+  body { background: var(--paper) url("paper.webp") 0 0 / 1600px 1600px repeat; }
+  @media (max-width: 560px) { body { background-size: 1000px 1000px; } }
   a { color: var(--marker); text-underline-offset: 3px; }
   :focus-visible { outline: 2px solid var(--marker); outline-offset: 3px; border-radius: 2px; }
   .wrap { width: min(1180px, 100% - 2 * var(--gutter)); margin-inline: auto; }

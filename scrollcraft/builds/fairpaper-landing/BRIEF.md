@@ -118,3 +118,11 @@ Owner said the animations felt slow. Measured first: scrolling the page with the
 - **Timings:** entrances 420 ms with 60 ms stagger (were 500 / 100), heading words 380 ms with 35 ms per word (600 / 70), loader about 1 s from the click (was 1.7 s from the script, up to 3 s), count-up 0.9 s, the join code types in under a second, pricing fan 0.6 s.
 
 Measured on this laptop's Intel UHD 620, scrolling the whole page with the mouse moving: median frame 50–67 ms before, 16.7 ms after; main-thread work about a third. Re-measure with the scripts in the session scratchpad pattern (Playwright + CDP Performance metrics and a trace) after big motion changes.
+
+## Paper texture (2026-10-31)
+
+Owner asked for a paper texture as the page background, after a scanned crumpled-paper reference. The reference was only 617 x 874 px and carried a resampling grid, so it would have blurred and turned into a coarse checker pattern when stretched; instead `paper.webp` is our own: a seamless 1600 px tile of crumpled-then-flattened paper in the `--paper` colour (facets, bent creases, soft cloudy shading, fine grain), 22 KB, made by `design/paper/crumple.html` (README there).
+
+- It's the `body` background on every page (index, waitlist, privacy, terms), tiled at 1600 px (1000 px on phones), and scrolls with the page: painted once, nothing per frame. The flat `--paper` colour shows until it loads and matches its average tone; `index.html` preloads it, and the first-visit loader inherits the same background so it fades away without a seam.
+- Cards and panels stay clean sheets on top of it. The Fair by design band is a 62% sheet, so the paper shows through, lighter.
+- Contrast holds: on the darkest 0.1% of the texture, `--faint` text is 4.51:1, `--ink-soft` 6.2:1, `--marker` 5.0:1. Keep the generator's `depth` at 0.06 or below.
